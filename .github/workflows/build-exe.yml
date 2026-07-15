@@ -1,6 +1,7 @@
 name: Build Windows EXE
 
-# 관리 프로그램(.exe) 패키징 — electron-builder 는 Windows 러너에서 수행
+# 관리 프로그램(.exe) 빌드 + GitHub Releases 발행(자동 업데이트 피드).
+# electron-updater 가 Releases 의 latest.yml 을 보고 새 버전을 받아온다.
 on:
   workflow_dispatch:
   push:
@@ -8,6 +9,9 @@ on:
       - claude/review-and-proceed-ul70h0
     tags:
       - 'v*'
+
+permissions:
+  contents: write # electron-builder 가 Release 를 생성/업로드하려면 필요
 
 jobs:
   build-win:
@@ -26,10 +30,12 @@ jobs:
       - name: Build renderer (vite)
         run: npm run build
 
-      - name: Package Windows installer (NSIS .exe)
-        run: npx electron-builder --win nsis --publish never
+      - name: Package + publish Windows installer (NSIS .exe → GitHub Releases)
+        run: npx electron-builder --win nsis --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifact
+      - name: Upload artifact (편의용 백업)
         uses: actions/upload-artifact@v4
         with:
           name: smartqnr-windows-exe

@@ -1,6 +1,6 @@
 {
   "name": "smart-qnr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "SmartQnR — 병원 문진(問診) 디지털 솔루션 (관리 프로그램: Windows exe)",
   "author": "vlralf77-svg",
@@ -25,6 +25,7 @@
     "@mui/material": "^5.15.20",
     "@mui/x-date-pickers": "^7.7.1",
     "dayjs": "^1.11.11",
+    "electron-updater": "^6.8.9",
     "mammoth": "^1.12.0",
     "pdf-parse": "^2.4.5",
     "react": "^18.3.1",
@@ -51,6 +52,14 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "vlralf77-svg",
+        "repo": "smart-qnr",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "dist/**/*",
       "electron/**/*"
