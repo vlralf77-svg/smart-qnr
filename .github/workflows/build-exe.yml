@@ -1,0 +1,35 @@
+name: Build Windows EXE
+
+# 관리 프로그램(.exe) 패키징 — electron-builder 는 Windows 러너에서 수행
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer (vite)
+        run: npm run build
+
+      - name: Package Windows installer (NSIS .exe)
+        run: npx electron-builder --win nsis --publish never
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartqnr-windows-exe
+          path: |
+            release/*.exe

@@ -1,0 +1,324 @@
+// 문항 1개를 MUI 컴포넌트로 렌더 (§3.2 매핑) — react-hook-form Controller 사용
+import {
+  Box,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  FormGroup,
+  FormHelperText,
+  FormLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Slider,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import { Controller, Control, FieldErrors } from 'react-hook-form';
+import { Question, QuestionOption } from '@/types/schema';
+
+const ETC_VALUE = '__etc__';
+
+function withEtc(options: QuestionOption[], allowEtc?: boolean): QuestionOption[] {
+  if (!allowEtc) return options;
+  return [...options, { id: ETC_VALUE, label: '기타(직접입력)', value: ETC_VALUE }];
+}
+
+interface Props {
+  question: Question;
+  control: Control<Record<string, unknown>>;
+  errors: FieldErrors<Record<string, unknown>>;
+}
+
+export default function QuestionField({ question: q, control, errors }: Props) {
+  const err = errors[q.id];
+  const errText = err?.message ? String(err.message) : undefined;
+  const rules = q.required ? { required: '필수 항목입니다' } : {};
+
+  // 안내문: 입력 없음
+  if (q.type === 'info') {
+    return (
+      <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1.5 }}>
+        <Typography variant="body2" whiteSpace="pre-wrap" color="text.secondary">
+          {q.label}
+        </Typography>
+      </Box>
+    );
+  }
+
+  const labelNode = (
+    <FormLabel sx={{ mb: 0.5, color: 'text.primary', fontWeight: 600, display: 'block' }}>
+      {q.label}
+      {q.required && <span style={{ color: '#d32f2f' }}> *</span>}
+    </FormLabel>
+  );
+
+  const description = q.description ? (
+    <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+      {q.description}
+    </Typography>
+  ) : null;
+
+  switch (q.type) {
+    case 'radio':
+    case 'boolean': {
+      const options: QuestionOption[] =
+        q.type === 'boolean'
+          ? [
+              { id: 'y', label: '예', value: 'yes' },
+              { id: 'n', label: '아니오', value: 'no' },
+            ]
+          : withEtc(q.options ?? [], q.allowEtc);
+      return (
+        <FormControl error={!!err} component="fieldset" fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            rules={rules}
+            defaultValue=""
+            render={({ field }) => (
+              <RadioGroup {...field}>
+                {options.map((o) => (
+                  <FormControlLabel key={o.id} value={o.value} control={<Radio />} label={o.label} />
+                ))}
+              </RadioGroup>
+            )}
+          />
+          {errText && <FormHelperText>{errText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    case 'checkbox': {
+      const options = withEtc(q.options ?? [], q.allowEtc);
+      return (
+        <FormControl error={!!err} component="fieldset" fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            rules={
+              q.required
+                ? { validate: (v) => (Array.isArray(v) && v.length > 0) || '하나 이상 선택하세요' }
+                : {}
+            }
+            defaultValue={[]}
+            render={({ field }) => {
+              const value: string[] = Array.isArray(field.value) ? field.value : [];
+              const toggle = (v: string) =>
+                value.includes(v) ? value.filter((x) => x !== v) : [...value, v];
+              return (
+                <FormGroup>
+                  {options.map((o) => (
+                    <FormControlLabel
+                      key={o.id}
+                      control={
+                        <Checkbox
+                          checked={value.includes(o.value)}
+                          onChange={() => field.onChange(toggle(o.value))}
+                        />
+                      }
+                      label={o.label}
+                    />
+                  ))}
+                </FormGroup>
+              );
+            }}
+          />
+          {errText && <FormHelperText>{errText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    case 'select': {
+      const options = withEtc(q.options ?? [], q.allowEtc);
+      return (
+        <FormControl fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            rules={rules}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField {...field} select size="small" error={!!err} helperText={errText}>
+                {options.map((o) => (
+                  <MenuItem key={o.id} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+        </FormControl>
+      );
+    }
+
+    case 'text':
+    case 'textarea': {
+      return (
+        <FormControl fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            rules={rules}
+            defaultValue=""
+            render={({ field }) => (
+              <TextField
+                {...field}
+                size="small"
+                fullWidth
+                multiline={q.type === 'textarea'}
+                minRows={q.type === 'textarea' ? 3 : undefined}
+                placeholder={q.placeholder}
+                error={!!err}
+                helperText={errText}
+              />
+            )}
+          />
+        </FormControl>
+      );
+    }
+
+    case 'number': {
+      return (
+        <FormControl fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            defaultValue=""
+            rules={{
+              ...rules,
+              validate: (v) => {
+                if (v === '' || v == null) return q.required ? '필수 항목입니다' : true;
+                const n = Number(v);
+                if (Number.isNaN(n)) return '숫자를 입력하세요';
+                if (q.min != null && n < q.min) return `${q.min} 이상 입력하세요`;
+                if (q.max != null && n > q.max) return `${q.max} 이하 입력하세요`;
+                return true;
+              },
+            }}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                type="number"
+                size="small"
+                placeholder={q.placeholder}
+                inputProps={{ min: q.min, max: q.max, step: q.step }}
+                error={!!err}
+                helperText={errText}
+                sx={{ maxWidth: 220 }}
+              />
+            )}
+          />
+        </FormControl>
+      );
+    }
+
+    case 'date': {
+      return (
+        <FormControl fullWidth>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            rules={rules}
+            defaultValue={null}
+            render={({ field }) => (
+              <DatePicker
+                value={field.value ? dayjs(field.value as string) : null}
+                onChange={(d) => field.onChange(d ? d.format('YYYY-MM-DD') : null)}
+                slotProps={{
+                  textField: {
+                    size: 'small',
+                    error: !!err,
+                    helperText: errText,
+                    sx: { maxWidth: 260 },
+                  },
+                }}
+              />
+            )}
+          />
+        </FormControl>
+      );
+    }
+
+    case 'scale': {
+      const min = q.min ?? 0;
+      const max = q.max ?? 10;
+      const step = q.step ?? 1;
+      return (
+        <FormControl fullWidth error={!!err}>
+          {labelNode}
+          {description}
+          <Controller
+            name={q.id}
+            control={control}
+            defaultValue={min}
+            rules={rules}
+            render={({ field }) => (
+              <Box sx={{ px: 1, maxWidth: 420 }}>
+                <Slider
+                  value={typeof field.value === 'number' ? field.value : min}
+                  onChange={(_, v) => field.onChange(v)}
+                  min={min}
+                  max={max}
+                  step={step}
+                  marks
+                  valueLabelDisplay="auto"
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {min}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {max}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          />
+          {errText && <FormHelperText>{errText}</FormHelperText>}
+        </FormControl>
+      );
+    }
+
+    case 'signature': {
+      // Phase3 예정 — 자리표시자
+      return (
+        <FormControl fullWidth>
+          {labelNode}
+          {description}
+          <Box
+            sx={{
+              border: '1px dashed',
+              borderColor: 'divider',
+              borderRadius: 1.5,
+              height: 120,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'text.disabled',
+            }}
+          >
+            서명 영역 (Phase3)
+          </Box>
+        </FormControl>
+      );
+    }
+
+    default:
+      return null;
+  }
+}
