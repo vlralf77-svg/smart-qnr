@@ -6,7 +6,6 @@ interface SmartQnrBridge {
   convertDocument: (payload: {
     fileName: string;
     data: ArrayBuffer;
-    apiKey?: string;
   }) => Promise<{ schemaText: string; rawText: string }>;
 }
 

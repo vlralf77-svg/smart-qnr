@@ -1,5 +1,5 @@
 // QNR002 문서 업로드/변환
-// 데스크톱(Electron) 앱: PDF/DOCX 업로드 → 텍스트 추출 → Claude 변환 → 초안 스키마.
+// 데스크톱(Electron) 앱: PDF/DOCX 업로드 → 텍스트 추출 → 로컬 규칙 기반 변환(오픈소스, 외부 API 미사용) → 초안 스키마.
 // 웹(dev) 환경: 문서 변환은 데스크톱 전용, JSON 임포트/빈 문진만 제공.
 // HWP/HWPX 는 후속 단계 지원 예정.
 import { useState } from 'react';
@@ -14,27 +14,20 @@ import {
   Collapse,
   Container,
   Divider,
-  IconButton,
-  InputAdornment,
   Paper,
   Stack,
   TextField,
   Toolbar,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import KeyIcon from '@mui/icons-material/Key';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { parseLlmSchemaText } from '@/utils/schemaValidator';
 import { createEmptyForm } from '@/utils/schemaFactory';
 import { uid } from '@/utils/id';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useFormsStore } from '@/store/useFormsStore';
 
-const API_KEY_STORAGE = 'smartqnr-api-key';
 const isElectron = typeof window !== 'undefined' && !!window.smartqnr?.isElectron;
 
 export default function UploadConvert() {
@@ -42,18 +35,11 @@ export default function UploadConvert() {
   const { loadForm } = useEditorStore();
   const { saveForm } = useFormsStore();
 
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(API_KEY_STORAGE) ?? '');
-  const [showKey, setShowKey] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [text, setText] = useState('');
-
-  const persistKey = (v: string) => {
-    setApiKey(v);
-    localStorage.setItem(API_KEY_STORAGE, v);
-  };
 
   const openInEditor = (schema: ReturnType<typeof createEmptyForm>, warn: string[]) => {
     setWarnings(warn);
@@ -62,22 +48,17 @@ export default function UploadConvert() {
     navigate(`/editor/${schema.id}`);
   };
 
-  // 데스크톱: 문서 파일 → 변환
+  // 데스크톱: 문서 파일 → 로컬 규칙 기반 변환(오픈소스, 네트워크 미사용)
   const handleDocument = async (file: File) => {
     setError('');
     setWarnings([]);
-    if (!apiKey.trim()) {
-      setError('먼저 Claude API 키를 입력하세요.');
-      return;
-    }
     setBusy(true);
     try {
-      setProgress(`"${file.name}" 텍스트 추출 및 AI 변환 중… (수십 초 소요될 수 있습니다)`);
+      setProgress(`"${file.name}" 텍스트 추출 및 변환 중…`);
       const data = await file.arrayBuffer();
       const { schemaText, rawText } = await window.smartqnr!.convertDocument({
         fileName: file.name,
         data,
-        apiKey: apiKey.trim(),
       });
       try {
         const { schema, warnings } = parseLlmSchemaText(schemaText);
@@ -90,7 +71,7 @@ export default function UploadConvert() {
           type: 'info',
           label: '자동 변환에 실패하여 원문을 그대로 담았습니다. 아래 내용을 참고해 문항을 직접 구성하세요.\n\n' + rawText.slice(0, 4000),
         });
-        openInEditor(fb, ['AI 변환 결과 파싱 실패 → 원문 기반 빈 문진으로 폴백']);
+        openInEditor(fb, ['변환 결과 파싱 실패 → 원문 기반 빈 문진으로 폴백']);
       }
     } catch (e) {
       setError('변환 실패: ' + (e as Error).message);
@@ -132,7 +113,8 @@ export default function UploadConvert() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
           자동 변환 결과는 항상 <b>초안</b>입니다. 반드시 에디터에서 검수·수정하세요. 현재 <b>PDF·DOCX</b>를
-          지원하며 <b>HWP/HWPX</b>는 후속 단계에서 추가됩니다.
+          지원하며 <b>HWP/HWPX</b>는 후속 단계에서 추가됩니다. 변환은 <b>로컬 규칙 기반(오픈소스)</b>으로
+          동작하며 외부 API를 호출하지 않습니다.
         </Alert>
 
         {/* 1. 문서 파일 변환 (데스크톱 전용) */}
@@ -143,7 +125,7 @@ export default function UploadConvert() {
             </Typography>
             <Chip
               size="small"
-              label={isElectron ? '데스크톱 앱' : '데스크톱 앱 전용'}
+              label={isElectron ? '데스크톱 앱 · 로컬 처리' : '데스크톱 앱 전용'}
               color={isElectron ? 'success' : 'default'}
             />
           </Stack>
@@ -155,50 +137,25 @@ export default function UploadConvert() {
             </Alert>
           ) : (
             <>
-              <TextField
-                label="Claude API 키"
-                size="small"
-                fullWidth
-                type={showKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => persistKey(e.target.value)}
-                placeholder="sk-ant-..."
-                sx={{ mt: 1, mb: 2 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <KeyIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => setShowKey((s) => !s)} edge="end">
-                        {showKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                helperText="키는 이 PC(localStorage)에만 저장됩니다. 변환 대상은 양식 문서(환자정보 없음)입니다."
-              />
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                정규식·휴리스틱으로 섹션·문항·선택지·유형을 추론합니다(외부 서버 전송 없음, 완전 오프라인
+                동작). 표현이 다양한 양식은 정확도가 낮을 수 있으니 변환 후 에디터에서 꼭 확인하세요.
+              </Typography>
 
-              <Tooltip title={apiKey.trim() ? '' : 'API 키를 먼저 입력하세요'}>
-                <span>
-                  <Button
-                    component="label"
-                    variant="contained"
-                    startIcon={busy ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
-                    disabled={busy || !apiKey.trim()}
-                  >
-                    {busy ? '변환 중…' : 'PDF · DOCX 파일 선택'}
-                    <input
-                      hidden
-                      type="file"
-                      accept=".pdf,.docx"
-                      onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
-                    />
-                  </Button>
-                </span>
-              </Tooltip>
+              <Button
+                component="label"
+                variant="contained"
+                startIcon={busy ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
+                disabled={busy}
+              >
+                {busy ? '변환 중…' : 'PDF · DOCX 파일 선택'}
+                <input
+                  hidden
+                  type="file"
+                  accept=".pdf,.docx"
+                  onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
+                />
+              </Button>
 
               <Collapse in={!!progress}>
                 <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>

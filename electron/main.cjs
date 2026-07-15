@@ -35,12 +35,13 @@ function setupAutoUpdate() {
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
 }
 
-// 문서 → 문진 변환 IPC (§6): 파일 바이트 + API 키 → 스키마 JSON 문자열
+// 문서 → 문진 변환 IPC (§6): 파일 바이트 → 스키마 JSON 문자열
+// 로컬 규칙 기반 변환(오픈소스) — 외부 API 호출 없음, 완전 오프라인 동작.
 ipcMain.handle('convert:document', async (_event, payload) => {
-  const { fileName, data, apiKey } = payload || {};
+  const { fileName, data } = payload || {};
   const buffer = Buffer.from(data); // data: ArrayBuffer/Uint8Array from renderer
   const { rawText, layoutHints } = await extractText(buffer, fileName);
-  const schemaText = await convertToSchema({ rawText, layoutHints, apiKey });
+  const schemaText = await convertToSchema({ rawText, layoutHints });
   return { schemaText, rawText };
 });
 
