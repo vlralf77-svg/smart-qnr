@@ -43,6 +43,14 @@ export interface QuestionOption {
   value: string;
 }
 
+/** 에디터 캔버스 상의 위치·크기 (12열 그리드 단위). 없으면 문항 순서대로 자동 배치. */
+export interface QuestionLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -60,6 +68,8 @@ export interface Question {
   step?: number;
   /** 조건부 표시 (Phase2) */
   condition?: QuestionCondition;
+  /** 캔버스 위치·크기 (드래그로 편집). 데스크톱 렌더링에서만 사용, 모바일은 세로 스택으로 폴백 */
+  layout?: QuestionLayout;
 }
 
 export interface Section {

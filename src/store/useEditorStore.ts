@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import {
   FormSchema,
   Question,
+  QuestionLayout,
   QuestionOption,
   QuestionType,
   Section,
@@ -14,6 +15,7 @@ import {
   createSection,
   createEmptyForm,
 } from '@/utils/schemaFactory';
+import { createDefaultLayout, createDuplicateLayout } from '@/utils/gridLayout';
 
 interface Selection {
   sectionId: string;
@@ -45,7 +47,8 @@ interface EditorState {
   changeQuestionType: (sectionId: string, questionId: string, type: QuestionType) => void;
   removeQuestion: (sectionId: string, questionId: string) => void;
   duplicateQuestion: (sectionId: string, questionId: string) => void;
-  reorderQuestions: (sectionId: string, fromIndex: number, toIndex: number) => void;
+  /** 캔버스 드래그·리사이즈로 문항 위치/크기 변경 */
+  updateQuestionLayout: (sectionId: string, questionId: string, layout: QuestionLayout) => void;
 
   // 선택지
   addOption: (sectionId: string, questionId: string) => void;
@@ -151,15 +154,18 @@ export const useEditorStore = create<EditorState>((set) => ({
   addQuestion: (sectionId, type = 'text') =>
     set((st) => {
       if (!st.form) return st;
-      const question = createQuestion(type);
+      let newQuestionId = '';
+      const form = mapSections(st.form, (secs) =>
+        mapSection(secs, sectionId, (s) => {
+          const question = createQuestion(type);
+          question.layout = createDefaultLayout(s.questions);
+          newQuestionId = question.id;
+          return { ...s, questions: [...s.questions, question] };
+        }),
+      );
       return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: [...s.questions, question],
-          })),
-        ),
-        selected: { sectionId, questionId: question.id },
+        form,
+        selected: { sectionId, questionId: newQuestionId },
         dirty: true,
       };
     }),
@@ -224,6 +230,7 @@ export const useEditorStore = create<EditorState>((set) => ({
             id: copy.id,
             label: `${src.label} (복사)`,
             options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
+            layout: createDuplicateLayout(src, s.questions),
           };
           newId = cloned.id;
           const questions = s.questions.slice();
@@ -238,14 +245,14 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
-  reorderQuestions: (sectionId, fromIndex, toIndex) =>
+  updateQuestionLayout: (sectionId, questionId, layout) =>
     set((st) => {
       if (!st.form) return st;
       return {
         form: mapSections(st.form, (secs) =>
           mapSection(secs, sectionId, (s) => ({
             ...s,
-            questions: moveItem(s.questions, fromIndex, toIndex),
+            questions: mapQuestion(s.questions, questionId, (q) => ({ ...q, layout })),
           })),
         ),
         dirty: true,

@@ -6,7 +6,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/ko';
 import { AnswerValue, FormSchema } from '@/types/schema';
 import { isQuestionVisible } from '@/utils/conditions';
-import QuestionField from './QuestionField';
+import SectionQuestions from './SectionQuestions';
 
 interface Props {
   schema: FormSchema;
@@ -55,11 +55,7 @@ export default function FormRenderer({ schema, preview = false, onSubmit }: Prop
                   {section.title}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-                <Stack spacing={2.5}>
-                  {visibleQuestions.map((q) => (
-                    <QuestionField key={q.id} question={q} control={control} errors={errors} />
-                  ))}
-                </Stack>
+                <SectionQuestions questions={visibleQuestions} control={control} errors={errors} />
               </Paper>
             );
           })}

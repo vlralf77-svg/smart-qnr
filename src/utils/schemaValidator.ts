@@ -80,6 +80,16 @@ function normalizeQuestion(raw: unknown, warnings: string[], seen: Set<string>):
     }
   }
 
+  const layout = (q.layout ?? {}) as Record<string, unknown>;
+  if (
+    typeof layout.x === 'number' &&
+    typeof layout.y === 'number' &&
+    typeof layout.w === 'number' &&
+    typeof layout.h === 'number'
+  ) {
+    question.layout = { x: layout.x, y: layout.y, w: layout.w, h: layout.h };
+  }
+
   return question;
 }
 

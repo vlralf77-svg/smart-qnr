@@ -1,25 +1,10 @@
-// 아웃라인의 섹션 1개 (제목 편집 + 문항 정렬 리스트 + 문항 추가/섹션 삭제)
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+// 아웃라인의 섹션 1개 (제목 편집 + 자유 배치 캔버스 + 문항 추가/섹션 삭제)
 import { Box, IconButton, Paper, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { Section, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
-import SortableRow from './SortableRow';
-import QuestionRow from './QuestionRow';
+import LayoutCanvas from './LayoutCanvas';
 import AddQuestionMenu from './AddQuestionMenu';
 
 interface Props {
@@ -29,29 +14,7 @@ interface Props {
 }
 
 export default function SectionBlock({ section, sectionDragHandle, canDeleteSection }: Props) {
-  const {
-    selected,
-    select,
-    addQuestion,
-    removeQuestion,
-    duplicateQuestion,
-    reorderQuestions,
-    updateSection,
-    removeSection,
-  } = useEditorStore();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const from = section.questions.findIndex((q) => q.id === active.id);
-    const to = section.questions.findIndex((q) => q.id === over.id);
-    if (from >= 0 && to >= 0) reorderQuestions(section.id, from, to);
-  };
+  const { addQuestion, updateSection, removeSection } = useEditorStore();
 
   return (
     <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -85,30 +48,7 @@ export default function SectionBlock({ section, sectionDragHandle, canDeleteSect
           문항이 없습니다. 아래에서 추가하세요.
         </Typography>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext
-            items={section.questions.map((q) => q.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <Stack spacing={0.25}>
-              {section.questions.map((q, idx) => (
-                <SortableRow key={q.id} id={q.id}>
-                  {(handle) => (
-                    <QuestionRow
-                      question={q}
-                      index={idx}
-                      selected={selected?.questionId === q.id}
-                      dragHandleProps={handle}
-                      onSelect={() => select({ sectionId: section.id, questionId: q.id })}
-                      onDuplicate={() => duplicateQuestion(section.id, q.id)}
-                      onDelete={() => removeQuestion(section.id, q.id)}
-                    />
-                  )}
-                </SortableRow>
-              ))}
-            </Stack>
-          </SortableContext>
-        </DndContext>
+        <LayoutCanvas sectionId={section.id} questions={section.questions} />
       )}
 
       <Box sx={{ pl: 4, mt: 1 }}>
