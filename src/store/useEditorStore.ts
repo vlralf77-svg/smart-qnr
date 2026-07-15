@@ -5,6 +5,7 @@ import {
   Question,
   QuestionLayout,
   QuestionOption,
+  QuestionOverlay,
   QuestionType,
   Section,
 } from '@/types/schema';
@@ -49,6 +50,10 @@ interface EditorState {
   duplicateQuestion: (sectionId: string, questionId: string) => void;
   /** 캔버스 드래그·리사이즈로 문항 위치/크기 변경 */
   updateQuestionLayout: (sectionId: string, questionId: string, layout: QuestionLayout) => void;
+  /** PDF 오버레이 모드: 필드 위치/크기(%) 변경 */
+  updateQuestionOverlay: (sectionId: string, questionId: string, overlay: QuestionOverlay) => void;
+  /** PDF 오버레이 모드: 지정 위치에 필드 추가 */
+  addOverlayQuestion: (sectionId: string, type: QuestionType, overlay: QuestionOverlay) => void;
 
   // 선택지
   addOption: (sectionId: string, questionId: string) => void;
@@ -257,6 +262,36 @@ export const useEditorStore = create<EditorState>((set) => ({
         ),
         dirty: true,
       };
+    }),
+
+  updateQuestionOverlay: (sectionId, questionId, overlay) =>
+    set((st) => {
+      if (!st.form) return st;
+      return {
+        form: mapSections(st.form, (secs) =>
+          mapSection(secs, sectionId, (s) => ({
+            ...s,
+            questions: mapQuestion(s.questions, questionId, (q) => ({ ...q, overlay })),
+          })),
+        ),
+        dirty: true,
+      };
+    }),
+
+  addOverlayQuestion: (sectionId, type, overlay) =>
+    set((st) => {
+      if (!st.form) return st;
+      let newId = '';
+      const form = mapSections(st.form, (secs) =>
+        mapSection(secs, sectionId, (s) => {
+          const q = createQuestion(type);
+          q.overlay = overlay;
+          delete q.layout;
+          newId = q.id;
+          return { ...s, questions: [...s.questions, q] };
+        }),
+      );
+      return { form, selected: newId ? { sectionId, questionId: newId } : st.selected, dirty: true };
     }),
 
   addOption: (sectionId, questionId) =>

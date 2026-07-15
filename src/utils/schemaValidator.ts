@@ -1,6 +1,7 @@
 // 스키마 유효성 검증·정규화 (§4.2 / §6.3)
 // 신뢰할 수 없는 입력(JSON 임포트, LLM 변환 결과)을 안전한 FormSchema 로 보정한다.
 import {
+  FormPage,
   FormSchema,
   Question,
   QuestionOption,
@@ -90,6 +91,23 @@ function normalizeQuestion(raw: unknown, warnings: string[], seen: Set<string>):
     question.layout = { x: layout.x, y: layout.y, w: layout.w, h: layout.h };
   }
 
+  const ov = (q.overlay ?? {}) as Record<string, unknown>;
+  if (
+    typeof ov.page === 'number' &&
+    typeof ov.xPct === 'number' &&
+    typeof ov.yPct === 'number' &&
+    typeof ov.wPct === 'number' &&
+    typeof ov.hPct === 'number'
+  ) {
+    question.overlay = {
+      page: ov.page,
+      xPct: ov.xPct,
+      yPct: ov.yPct,
+      wPct: ov.wPct,
+      hPct: ov.hPct,
+    };
+  }
+
   return question;
 }
 
@@ -138,6 +156,18 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
     createdAt: asString(obj.createdAt) || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+
+  // PDF 배경 페이지 보존
+  if (Array.isArray(obj.pages)) {
+    const pages: FormPage[] = [];
+    for (const raw of obj.pages) {
+      const p = (raw ?? {}) as Record<string, unknown>;
+      if (typeof p.image === 'string' && typeof p.width === 'number' && typeof p.height === 'number') {
+        pages.push({ image: p.image, width: p.width, height: p.height });
+      }
+    }
+    if (pages.length) schema.pages = pages;
+  }
 
   return { schema, warnings };
 }

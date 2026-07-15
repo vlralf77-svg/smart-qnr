@@ -4,9 +4,10 @@ import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/ko';
-import { AnswerValue, FormSchema } from '@/types/schema';
+import { AnswerValue, FormSchema, isOverlayForm } from '@/types/schema';
 import { isQuestionVisible } from '@/utils/conditions';
 import SectionQuestions from './SectionQuestions';
+import OverlayRenderer from './OverlayRenderer';
 
 interface Props {
   schema: FormSchema;
@@ -29,6 +30,8 @@ export default function FormRenderer({ schema, preview = false, onSubmit }: Prop
     onSubmit?.(data as Record<string, AnswerValue>);
   });
 
+  const overlay = isOverlayForm(schema);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
       <Box component="form" onSubmit={submit} noValidate>
@@ -44,21 +47,25 @@ export default function FormRenderer({ schema, preview = false, onSubmit }: Prop
             )}
           </Box>
 
-          {schema.sections.map((section) => {
-            const visibleQuestions = section.questions.filter((q) =>
-              isQuestionVisible(q, answers),
-            );
-            if (visibleQuestions.length === 0) return null;
-            return (
-              <Paper key={section.id} variant="outlined" sx={{ p: 2.5 }}>
-                <Typography variant="subtitle1" fontWeight={700} mb={0.5}>
-                  {section.title}
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <SectionQuestions questions={visibleQuestions} control={control} errors={errors} />
-              </Paper>
-            );
-          })}
+          {overlay ? (
+            <OverlayRenderer schema={schema} control={control} errors={errors} />
+          ) : (
+            schema.sections.map((section) => {
+              const visibleQuestions = section.questions.filter((q) =>
+                isQuestionVisible(q, answers),
+              );
+              if (visibleQuestions.length === 0) return null;
+              return (
+                <Paper key={section.id} variant="outlined" sx={{ p: 2.5 }}>
+                  <Typography variant="subtitle1" fontWeight={700} mb={0.5}>
+                    {section.title}
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <SectionQuestions questions={visibleQuestions} control={control} errors={errors} />
+                </Paper>
+              );
+            })
+          )}
 
           {!preview && (
             <Button type="submit" variant="contained" size="large" fullWidth>

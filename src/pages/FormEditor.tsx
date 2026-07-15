@@ -18,9 +18,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SaveIcon from '@mui/icons-material/Save';
 import PublishIcon from '@mui/icons-material/Publish';
+import { isOverlayForm } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useFormsStore } from '@/store/useFormsStore';
 import EditorOutline from '@/components/editor/EditorOutline';
+import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 
@@ -130,7 +132,7 @@ export default function FormEditor() {
             />
           </Paper>
 
-          <EditorOutline form={form} />
+          {isOverlayForm(form) ? <OverlayEditor form={form} /> : <EditorOutline form={form} />}
         </Box>
 
         {/* 우: 선택 문항 편집 */}

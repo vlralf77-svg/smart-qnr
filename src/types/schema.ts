@@ -51,6 +51,22 @@ export interface QuestionLayout {
   h: number;
 }
 
+/** PDF 배경 오버레이 모드에서의 위치·크기 (페이지 대비 %). 원본 PDF 위에 입력필드를 얹는다. */
+export interface QuestionOverlay {
+  page: number; // 0-based 페이지 인덱스
+  xPct: number; // 0~100 (왼쪽)
+  yPct: number; // 0~100 (위)
+  wPct: number; // 0~100 (너비)
+  hPct: number; // 0~100 (높이)
+}
+
+/** PDF 페이지 배경 이미지 1장 */
+export interface FormPage {
+  image: string; // data URL (PNG) — 렌더된 PDF 페이지
+  width: number; // 렌더 px 너비
+  height: number; // 렌더 px 높이
+}
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -70,6 +86,8 @@ export interface Question {
   condition?: QuestionCondition;
   /** 캔버스 위치·크기 (드래그로 편집). 데스크톱 렌더링에서만 사용, 모바일은 세로 스택으로 폴백 */
   layout?: QuestionLayout;
+  /** PDF 배경 오버레이 모드에서의 위치(%). 폼에 pages 가 있을 때 사용 */
+  overlay?: QuestionOverlay;
 }
 
 export interface Section {
@@ -87,8 +105,15 @@ export interface FormSchema {
   version: number;
   status: FormStatus;
   sections: Section[];
+  /** PDF 배경 이미지들. 존재하면 이 폼은 "오버레이 모드"(원본 PDF 위에 필드 배치) */
+  pages?: FormPage[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** 폼이 PDF 오버레이 모드인지 여부 */
+export function isOverlayForm(form: FormSchema): boolean {
+  return Array.isArray(form.pages) && form.pages.length > 0;
 }
 
 // ------------------------------------------------------------

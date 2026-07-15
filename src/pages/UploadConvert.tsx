@@ -1,6 +1,7 @@
 // QNR002 문서 업로드/변환
-// 데스크톱(Electron) 앱: PDF/DOCX 업로드 → 텍스트 추출 → 로컬 규칙 기반 변환(오픈소스, 외부 API 미사용) → 초안 스키마.
-// 웹(dev) 환경: 문서 변환은 데스크톱 전용, JSON 임포트/빈 문진만 제공.
+//  - PDF: pdfjs 로 원본 그대로 배경 렌더 + 입력필드 오버레이 (웹/데스크톱 모두, 외부 API 미사용)
+//  - DOCX: 로컬 규칙 기반 텍스트 변환 (데스크톱 앱 전용)
+//  - JSON 임포트 / 빈 문진: 어디서나
 // HWP/HWPX 는 후속 단계 지원 예정.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,8 +23,11 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { parseLlmSchemaText } from '@/utils/schemaValidator';
 import { createEmptyForm } from '@/utils/schemaFactory';
+import { pdfToOverlayForm } from '@/utils/pdfImport';
 import { uid } from '@/utils/id';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -48,8 +52,28 @@ export default function UploadConvert() {
     navigate(`/editor/${schema.id}`);
   };
 
-  // 데스크톱: 문서 파일 → 로컬 규칙 기반 변환(오픈소스, 네트워크 미사용)
-  const handleDocument = async (file: File) => {
+  // PDF → 원본 배경 + 입력필드 오버레이 (웹/데스크톱 공통, pdfjs 로컬 처리)
+  const handlePdf = async (file: File) => {
+    setError('');
+    setWarnings([]);
+    setBusy(true);
+    try {
+      setProgress(`"${file.name}" 페이지 렌더링 및 필드 자동 배치 중…`);
+      const data = await file.arrayBuffer();
+      const { schema, pageCount, fieldCount } = await pdfToOverlayForm(data, file.name);
+      openInEditor(schema, [
+        `${pageCount}개 페이지, 필드 ${fieldCount}개 자동 배치됨 — 위치·유형을 확인·조정하세요`,
+      ]);
+    } catch (e) {
+      setError('PDF 변환 실패: ' + (e as Error).message);
+    } finally {
+      setBusy(false);
+      setProgress('');
+    }
+  };
+
+  // DOCX → 로컬 규칙 기반 텍스트 변환 (데스크톱 앱 전용, 외부 API 미사용)
+  const handleDocx = async (file: File) => {
     setError('');
     setWarnings([]);
     setBusy(true);
@@ -64,7 +88,6 @@ export default function UploadConvert() {
         const { schema, warnings } = parseLlmSchemaText(schemaText);
         openInEditor(schema, warnings);
       } catch {
-        // §6.3 폴백: 파싱 실패 시 원문을 info 문항으로 담은 빈 문진 제공
         const fb = createEmptyForm(`${file.name} (변환 초안)`);
         fb.sections[0].questions.push({
           id: uid('q'),
@@ -112,56 +135,84 @@ export default function UploadConvert() {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          자동 변환 결과는 항상 <b>초안</b>입니다. 반드시 에디터에서 검수·수정하세요. 현재 <b>PDF·DOCX</b>를
-          지원하며 <b>HWP/HWPX</b>는 후속 단계에서 추가됩니다. 변환은 <b>로컬 규칙 기반(오픈소스)</b>으로
-          동작하며 외부 API를 호출하지 않습니다.
+          자동 변환 결과는 항상 <b>초안</b>입니다. 반드시 에디터에서 검수·수정하세요. 모든 변환은{' '}
+          <b>로컬(오픈소스)</b>에서 처리되며 외부 API를 호출하지 않습니다. <b>HWP/HWPX</b>는 후속
+          단계에서 추가됩니다.
         </Alert>
 
-        {/* 1. 문서 파일 변환 (데스크톱 전용) */}
+        {/* 1-A. PDF → 원본 배경 + 입력필드 오버레이 (웹/데스크톱 공통) */}
         <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
           <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+            <PictureAsPdfIcon color="error" />
             <Typography variant="subtitle1" fontWeight={700}>
-              문서 파일에서 자동 변환
+              PDF 문진 변환 (원본 그대로 + 입력필드)
+            </Typography>
+            <Chip size="small" label="권장" color="success" />
+          </Stack>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            원본 PDF를 <b>그대로 배경으로</b> 보여주고, 체크박스(□○)·빈칸을 감지해 그 위에 입력필드를
+            자동으로 얹습니다. 결과가 원본 PDF와 시각적으로 동일하며, 표·레이아웃이 그대로 유지됩니다.
+            자동 배치가 완벽하지 않으면 에디터에서 필드를 드래그해 조정하세요.
+          </Typography>
+          <Button
+            component="label"
+            variant="contained"
+            color="error"
+            startIcon={busy ? <CircularProgress size={16} color="inherit" /> : <PictureAsPdfIcon />}
+            disabled={busy}
+          >
+            {busy ? '변환 중…' : 'PDF 파일 선택'}
+            <input
+              hidden
+              type="file"
+              accept=".pdf"
+              onChange={(e) => e.target.files?.[0] && handlePdf(e.target.files[0])}
+            />
+          </Button>
+          <Collapse in={!!progress}>
+            <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
+              {progress}
+            </Alert>
+          </Collapse>
+        </Paper>
+
+        {/* 1-B. DOCX → 규칙 기반 텍스트 변환 (데스크톱 전용) */}
+        <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+            <DescriptionIcon color="primary" />
+            <Typography variant="subtitle1" fontWeight={700}>
+              DOCX 텍스트 변환
             </Typography>
             <Chip
               size="small"
-              label={isElectron ? '데스크톱 앱 · 로컬 처리' : '데스크톱 앱 전용'}
+              label={isElectron ? '데스크톱 앱' : '데스크톱 앱 전용'}
               color={isElectron ? 'success' : 'default'}
             />
           </Stack>
-
           {!isElectron ? (
             <Alert severity="warning" sx={{ mt: 1 }}>
-              문서 파일 변환은 <b>SmartQnR 데스크톱(.exe) 앱</b>에서만 동작합니다. 웹 환경에서는 아래 JSON
-              임포트 또는 빈 문진을 이용하세요.
+              DOCX 변환은 <b>SmartQnR 데스크톱(.exe) 앱</b>에서만 동작합니다. (PDF 변환은 웹에서도 가능)
             </Alert>
           ) : (
             <>
               <Typography variant="body2" color="text.secondary" mb={2}>
-                정규식·휴리스틱으로 섹션·문항·선택지·유형을 추론합니다(외부 서버 전송 없음, 완전 오프라인
-                동작). 표현이 다양한 양식은 정확도가 낮을 수 있으니 변환 후 에디터에서 꼭 확인하세요.
+                DOCX의 텍스트를 규칙 기반으로 문항·선택지로 추론합니다. 표 중심 양식은 정확도가 낮을 수
+                있어, 복잡한 양식은 PDF로 저장 후 위의 PDF 변환을 권장합니다.
               </Typography>
-
               <Button
                 component="label"
-                variant="contained"
-                startIcon={busy ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
+                variant="outlined"
+                startIcon={busy ? <CircularProgress size={16} /> : <UploadFileIcon />}
                 disabled={busy}
               >
-                {busy ? '변환 중…' : 'PDF · DOCX 파일 선택'}
+                DOCX 파일 선택
                 <input
                   hidden
                   type="file"
-                  accept=".pdf,.docx"
-                  onChange={(e) => e.target.files?.[0] && handleDocument(e.target.files[0])}
+                  accept=".docx"
+                  onChange={(e) => e.target.files?.[0] && handleDocx(e.target.files[0])}
                 />
               </Button>
-
-              <Collapse in={!!progress}>
-                <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
-                  {progress}
-                </Alert>
-              </Collapse>
             </>
           )}
         </Paper>
