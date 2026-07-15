@@ -4,6 +4,8 @@ name: Build Windows EXE
 on:
   workflow_dispatch:
   push:
+    branches:
+      - claude/review-and-proceed-ul70h0
     tags:
       - 'v*'
 
