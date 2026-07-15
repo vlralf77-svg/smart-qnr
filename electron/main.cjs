@@ -1,8 +1,18 @@
 // SmartQnR 관리 프로그램 (Windows exe) — Electron 메인 프로세스
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('node:path');
+const { extractText, convertToSchema } = require('./convert.cjs');
 
 const isDev = !!process.env.ELECTRON_START_URL;
+
+// 문서 → 문진 변환 IPC (§6): 파일 바이트 + API 키 → 스키마 JSON 문자열
+ipcMain.handle('convert:document', async (_event, payload) => {
+  const { fileName, data, apiKey } = payload || {};
+  const buffer = Buffer.from(data); // data: ArrayBuffer/Uint8Array from renderer
+  const { rawText, layoutHints } = await extractText(buffer, fileName);
+  const schemaText = await convertToSchema({ rawText, layoutHints, apiKey });
+  return { schemaText, rawText };
+});
 
 function createWindow() {
   const win = new BrowserWindow({
