@@ -28,7 +28,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useFormsStore } from '@/store/useFormsStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 
 const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success' | 'warning' }> = {
@@ -40,6 +42,7 @@ const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success'
 export default function FormList() {
   const navigate = useNavigate();
   const { forms, saveForm, deleteForm } = useFormsStore();
+  const logout = useAuthStore((s) => s.logout);
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(
@@ -63,9 +66,21 @@ export default function FormList() {
           <Typography variant="h6" sx={{ flex: 1 }}>
             SmartQnR · 문진 관리
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.8 }}>
-            LHospital
+          <Typography variant="caption" sx={{ opacity: 0.8, mr: 1 }}>
+            admin
           </Typography>
+          <Tooltip title="로그아웃">
+            <IconButton
+              color="inherit"
+              size="small"
+              onClick={() => {
+                logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
