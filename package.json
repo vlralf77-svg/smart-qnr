@@ -52,6 +52,7 @@
   "build": {
     "appId": "com.lhospital.smartqnr",
     "productName": "SmartQnR 문진관리",
+    "npmRebuild": false,
     "directories": {
       "output": "release"
     },
@@ -65,7 +66,8 @@
     ],
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "!**/node_modules/canvas/**"
     ],
     "win": {
       "target": [
