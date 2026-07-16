@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smartqnr-server
+  datasource:
+    # 환경변수로 덮어쓸 수 있음(운영). 기본값은 로컬 개발용.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartqnr}
+    username: ${DB_USER:smartqnr}
+    password: ${DB_PASSWORD:smartqnr}
+  jpa:
+    hibernate:
+      # 개발: 스키마 자동 생성/갱신. 운영에서는 validate + 마이그레이션 도구(Flyway) 권장.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+# 로그인/토큰 설정 — 운영에서는 반드시 환경변수로 덮어쓸 것
+app:
+  auth:
+    username: ${AUTH_USER:admin}
+    password: ${AUTH_PASSWORD:lit123qwe!}
+    jwt-secret: ${JWT_SECRET:change-this-smartqnr-dev-secret}
+    expiry-hours: ${JWT_EXPIRY_HOURS:12}

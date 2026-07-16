@@ -1,0 +1,16 @@
+# 로컬 개발용 PostgreSQL. `docker compose up -d` 로 띄운 뒤 서버를 실행하세요.
+services:
+  db:
+    image: postgres:16
+    container_name: smartqnr-db
+    environment:
+      POSTGRES_DB: smartqnr
+      POSTGRES_USER: smartqnr
+      POSTGRES_PASSWORD: smartqnr
+    ports:
+      - "5432:5432"
+    volumes:
+      - smartqnr-pgdata:/var/lib/postgresql/data
+
+volumes:
+  smartqnr-pgdata:
