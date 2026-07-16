@@ -16,7 +16,13 @@ import {
   createSection,
   createEmptyForm,
 } from '@/utils/schemaFactory';
-import { createDefaultLayout, createDuplicateLayout } from '@/utils/gridLayout';
+import {
+  createDefaultLayout,
+  createDuplicateLayout,
+  GRID_COLS,
+  DEFAULT_QUESTION_W,
+  DEFAULT_QUESTION_H,
+} from '@/utils/gridLayout';
 
 interface Selection {
   sectionId: string;
@@ -37,6 +43,8 @@ interface EditorState {
   redo: () => void;
   /** 현재 선택된 문항 삭제(Delete 키) */
   deleteSelected: () => void;
+  /** 선택된 문항을 방향키로 이동. dir 은 화면 기준, coarse 는 큰 이동(Shift) */
+  nudgeSelected: (dir: 'left' | 'right' | 'up' | 'down', coarse: boolean) => void;
 
   // 초기화
   loadForm: (form: FormSchema) => void;
@@ -161,6 +169,58 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { selected, removeQuestion } = get();
     if (selected) removeQuestion(selected.sectionId, selected.questionId);
   },
+
+  nudgeSelected: (dir, coarse) =>
+    set((st) => {
+      if (!st.form || !st.selected) return st;
+      const { sectionId, questionId } = st.selected;
+      const section = st.form.sections.find((s) => s.id === sectionId);
+      const q = section?.questions.find((x) => x.id === questionId);
+      if (!q) return st;
+
+      if (q.overlay) {
+        // PDF 오버레이: % 단위 이동
+        const step = coarse ? 2 : 0.3;
+        const ov = q.overlay;
+        const dx = dir === 'left' ? -step : dir === 'right' ? step : 0;
+        const dy = dir === 'up' ? -step : dir === 'down' ? step : 0;
+        const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + dx));
+        const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + dy));
+        return {
+          form: mapSections(st.form, (secs) =>
+            mapSection(secs, sectionId, (s) => ({
+              ...s,
+              questions: mapQuestion(s.questions, questionId, (qq) => ({
+                ...qq,
+                overlay: { ...ov, xPct, yPct },
+              })),
+            })),
+          ),
+          dirty: true,
+        };
+      }
+
+      // 자유 캔버스: 그리드 칸 단위 이동
+      const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
+      const stepX = coarse ? 2 : 1;
+      const stepY = coarse ? 2 : 1;
+      const dx = dir === 'left' ? -stepX : dir === 'right' ? stepX : 0;
+      const dy = dir === 'up' ? -stepY : dir === 'down' ? stepY : 0;
+      const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + dx));
+      const y = Math.max(0, layout.y + dy);
+      return {
+        form: mapSections(st.form, (secs) =>
+          mapSection(secs, sectionId, (s) => ({
+            ...s,
+            questions: mapQuestion(s.questions, questionId, (qq) => ({
+              ...qq,
+              layout: { ...layout, x, y },
+            })),
+          })),
+        ),
+        dirty: true,
+      };
+    }),
 
   loadForm: (form) => set({ form, selected: null, dirty: false, _past: [], _future: [] }),
   newForm: () =>

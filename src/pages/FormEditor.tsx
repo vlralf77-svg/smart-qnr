@@ -33,8 +33,18 @@ import PreviewDialog from '@/components/editor/PreviewDialog';
 export default function FormEditor() {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { form, selected, loadForm, newForm, updateMeta, dirty, undo, redo, deleteSelected } =
-    useEditorStore();
+  const {
+    form,
+    selected,
+    loadForm,
+    newForm,
+    updateMeta,
+    dirty,
+    undo,
+    redo,
+    deleteSelected,
+    nudgeSelected,
+  } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
   const { getForm, saveForm, publishForm } = useFormsStore();
@@ -78,11 +88,24 @@ export default function FormEditor() {
           e.preventDefault();
           deleteSelected();
         }
+      } else if (e.key.startsWith('Arrow') && !isEditable(e.target)) {
+        // 선택된 컴포넌트를 방향키로 이동(Shift = 크게)
+        if (!useEditorStore.getState().selected) return;
+        const dir =
+          e.key === 'ArrowLeft'
+            ? 'left'
+            : e.key === 'ArrowRight'
+              ? 'right'
+              : e.key === 'ArrowUp'
+                ? 'up'
+                : 'down';
+        e.preventDefault();
+        nudgeSelected(dir, e.shiftKey);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo, deleteSelected]);
+  }, [undo, redo, deleteSelected, nudgeSelected]);
 
   if (!form) return null;
 
