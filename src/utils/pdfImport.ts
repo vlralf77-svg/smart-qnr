@@ -19,7 +19,12 @@ function uid(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${seq.toString(36)}`;
 }
 
-const CHECKBOX_RE = /[□○◯▢☐■◻◼⬜⬛]/g;
+// 체크 가능한 마커: 네모/동그라미 + 동그라미 숫자(①-⑳), 괄호숫자(⑴-⒇),
+// 딩벳 동그라미(❶-❿, ➀-➓), ⓪, 체크표시 등
+const CHECKBOX_RE =
+  /[□○◯▢☐■◻◼⬜⬛✓✔☑◇◆①-⑳⑴-⒇⓪❶-❿➀-➓]/gu;
+const MARKER_SPLIT_RE =
+  /[\s]{2,}|[□○◯▢☐■◻◼⬜⬛✓✔☑◇◆①-⑳⑴-⒇⓪❶-❿➀-➓]/u;
 const BLANK_RE = /_{3,}|\.{4,}/g; // 밑줄/점선 빈칸
 
 interface DetectedField {
@@ -80,8 +85,8 @@ function detectFieldsInPage(
       const idx = m.index;
       const cx = bbox.left + perChar * idx;
       const size = bbox.height * 1.1;
-      // 라벨: 해당 글자 뒤 텍스트(같은 아이템 내)
-      const label = item.str.slice(idx + 1).trim().split(/\s{2,}|□|○/)[0]?.trim() || '';
+      // 라벨: 해당 글자 뒤 텍스트(같은 아이템 내, 다음 마커 전까지)
+      const label = item.str.slice(idx + 1).trim().split(MARKER_SPLIT_RE)[0]?.trim() || '';
       const p = toPct({ left: cx, top: bbox.top, width: size, height: size });
       fields.push({ type: 'boolean', page: pageIndex, ...p, label });
     }

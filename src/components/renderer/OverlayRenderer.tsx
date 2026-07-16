@@ -17,16 +17,35 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
   };
 
   if (q.type === 'boolean' || q.type === 'radio') {
+    // 체크박스: 박스를 꽉 채우고 클릭 영역을 넓게
     return (
       <Controller
         {...common}
         defaultValue={false}
         render={({ field }) => (
-          <Checkbox
-            checked={!!field.value}
-            onChange={(e) => field.onChange(e.target.checked)}
-            sx={{ p: 0, width: '100%', height: '100%' }}
-          />
+          <Box
+            onClick={() => field.onChange(!field.value)}
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <Checkbox
+              checked={!!field.value}
+              onChange={(e) => field.onChange(e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              size="small"
+              sx={{
+                p: 0,
+                color: 'primary.main',
+                '& .MuiSvgIcon-root': { fontSize: 'min(4vw, 26px)' },
+              }}
+            />
+          </Box>
         )}
       />
     );
@@ -39,7 +58,12 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
         {...common}
         defaultValue=""
         render={({ field }) => (
-          <Select {...field} size="small" fullWidth sx={{ height: '100%', fontSize: 12 }}>
+          <Select
+            {...field}
+            size="small"
+            fullWidth
+            sx={{ height: '100%', fontSize: 12, bgcolor: 'rgba(255,255,255,0.9)' }}
+          >
             {options.map((o) => (
               <MenuItem key={o.id} value={o.value}>
                 {o.label}
@@ -55,7 +79,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
     return null;
   }
 
-  // text / textarea / number / date
+  // text / textarea / number / date → 채울 수 있는 흰 박스로 표시
   const type = q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text';
   return (
     <Controller
@@ -68,9 +92,16 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
           size="small"
           fullWidth
           multiline={q.type === 'textarea'}
-          variant="standard"
-          InputProps={{ sx: { fontSize: 12, height: '100%' } }}
-          sx={{ height: '100%' }}
+          placeholder="입력"
+          sx={{
+            height: '100%',
+            '& .MuiOutlinedInput-root': {
+              height: '100%',
+              bgcolor: 'rgba(255,255,255,0.92)',
+              fontSize: 13,
+            },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
+          }}
         />
       )}
     />

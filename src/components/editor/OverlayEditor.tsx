@@ -1,11 +1,28 @@
 // PDF 배경 위에 입력필드를 얹어 편집 — 드래그로 이동, 모서리로 크기 조절 (react-rnd)
+// + PDF 위를 클릭해 그 자리에 필드 배치(표 빈칸 등)
+import { useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { Box, Chip, IconButton, Paper, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Chip,
+  IconButton,
+  Paper,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
+import BlockIcon from '@mui/icons-material/Block';
 import { FormSchema, Question, QuestionType, QUESTION_TYPE_META } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
 import AddQuestionMenu from './AddQuestionMenu';
+
+type PlaceMode = 'off' | 'boolean' | 'text';
 
 interface PageProps {
   sectionId: string;
@@ -18,19 +35,43 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
   const { selected, select, updateQuestionOverlay, removeQuestion, addOverlayQuestion } =
     useEditorStore();
+  const [placeMode, setPlaceMode] = useState<PlaceMode>('off');
 
   const fields = questions.filter((q) => q.overlay && q.overlay.page === pageIndex);
 
   const pctToPx = (pct: number, dim: number) => (pct / 100) * dim;
   const pxToPct = (px: number, dim: number) => (dim > 0 ? (px / dim) * 100 : 0);
 
+  // 화면 비율에 맞춰 정사각형(체크박스)에 가까운 hPct 계산
+  const squareH = (wPct: number) => (size.height > 0 ? wPct * (size.width / size.height) : wPct);
+
   const addAtCenter = (type: QuestionType) => {
     addOverlayQuestion(sectionId, type, {
       page: pageIndex,
-      xPct: 40,
+      xPct: 42,
       yPct: 45,
-      wPct: type === 'boolean' || type === 'radio' ? 6 : 20,
-      hPct: 4,
+      wPct: type === 'boolean' || type === 'radio' ? 4 : 20,
+      hPct: type === 'boolean' || type === 'radio' ? squareH(4) : 4,
+    });
+  };
+
+  // PDF 배경 클릭 → 클릭 위치에 필드 배치
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (placeMode === 'off' || !ref.current) {
+      select(null);
+      return;
+    }
+    const rect = ref.current.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+    const wPct = placeMode === 'boolean' ? 4 : 16;
+    const hPct = placeMode === 'boolean' ? squareH(4) : 4;
+    addOverlayQuestion(sectionId, placeMode, {
+      page: pageIndex,
+      xPct: Math.max(0, xPct - wPct / 2),
+      yPct: Math.max(0, yPct - hPct / 2),
+      wPct,
+      hPct,
     });
   };
 
@@ -40,11 +81,45 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
         <Typography variant="caption" color="text.secondary">
           {pageIndex + 1} 페이지 · 필드 {fields.length}개
         </Typography>
-        <AddQuestionMenu onAdd={addAtCenter} label="이 페이지에 필드 추가" />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Tooltip title="클릭 배치: 켜면 PDF 위를 클릭한 자리에 필드가 생깁니다(표 빈칸 등)">
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={placeMode}
+              onChange={(_e, v) => setPlaceMode((v as PlaceMode) ?? 'off')}
+            >
+              <ToggleButton value="off" sx={{ px: 1 }}>
+                <BlockIcon sx={{ fontSize: 16, mr: 0.5 }} /> 끄기
+              </ToggleButton>
+              <ToggleButton value="boolean" sx={{ px: 1 }}>
+                <CheckBoxOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} /> 체크박스
+              </ToggleButton>
+              <ToggleButton value="text" sx={{ px: 1 }}>
+                <TextFieldsIcon sx={{ fontSize: 16, mr: 0.5 }} /> 텍스트
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Tooltip>
+          <AddQuestionMenu onAdd={addAtCenter} label="기타 유형 추가" />
+        </Stack>
       </Stack>
 
-      <Box ref={ref} sx={{ position: 'relative', width: '100%', userSelect: 'none' }}>
-        <img src={image} alt={`page-${pageIndex + 1}`} style={{ width: '100%', display: 'block' }} />
+      <Box
+        ref={ref}
+        sx={{
+          position: 'relative',
+          width: '100%',
+          userSelect: 'none',
+          cursor: placeMode === 'off' ? 'default' : 'crosshair',
+        }}
+      >
+        <img
+          src={image}
+          alt={`page-${pageIndex + 1}`}
+          style={{ width: '100%', display: 'block' }}
+          onClick={handleBackgroundClick}
+          draggable={false}
+        />
 
         {size.width > 0 &&
           fields.map((q) => {
@@ -101,7 +176,7 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
                   <Chip
                     label={meta.label}
                     size="small"
-                    sx={{ height: 16, fontSize: 9, m: 0.25, bgcolor: 'rgba(255,255,255,0.8)' }}
+                    sx={{ height: 15, fontSize: 8, m: 0.2, bgcolor: 'rgba(255,255,255,0.85)' }}
                   />
                   {isSel && (
                     <IconButton
@@ -138,15 +213,15 @@ interface Props {
 
 export default function OverlayEditor({ form }: Props) {
   const pages = form.pages ?? [];
-  // 오버레이 모드에서는 모든 문항을 첫 섹션에 담는다(§ pdfImport)
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
 
   return (
     <Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-        원본 PDF 위의 파란 박스가 입력필드입니다. 박스를 드래그해 위치를, 모서리를 끌어 크기를
-        조정하세요. 클릭하면 오른쪽에서 유형·라벨을 편집할 수 있습니다.
+        파란 박스가 입력필드입니다. 박스를 드래그해 위치를, 모서리를 끌어 크기를 조정하고, 클릭하면
+        오른쪽에서 유형·라벨을 편집합니다. <b>표 안의 빈칸</b>은 상단 <b>클릭 배치</b>를 켜고 원하는
+        자리를 클릭해 필드를 추가하세요.
       </Typography>
       {pages.map((p, i) => (
         <PageOverlay
