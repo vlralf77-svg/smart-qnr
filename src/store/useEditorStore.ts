@@ -104,6 +104,8 @@ interface EditorState {
   toggleSelect: (sectionId: string, questionId: string) => void;
   /** 드래그 영역 선택: 문항 id 목록으로 선택을 교체 */
   setSelection: (sectionId: string, questionIds: string[]) => void;
+  /** 선택된 문항들에 글자 크기(px)를 일괄 적용 */
+  setFontSizeForSelected: (fontSize: number) => void;
 }
 
 // undo/redo 로 form 을 되돌리는 동안엔 이력 기록을 건너뛴다.
@@ -534,6 +536,22 @@ export const useEditorStore = create<EditorState>((set) => ({
         ? { sectionId, questionId: questionIds[questionIds.length - 1] }
         : null,
     })),
+
+  setFontSizeForSelected: (fontSize) =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const ids = new Set(st.selectedIds);
+      const clamped = Math.max(6, Math.min(72, Math.round(fontSize)));
+      return {
+        form: mapSections(st.form, (secs) =>
+          secs.map((s) => ({
+            ...s,
+            questions: s.questions.map((q) => (ids.has(q.id) ? { ...q, fontSize: clamped } : q)),
+          })),
+        ),
+        dirty: true,
+      };
+    }),
 }));
 
 // form 이 바뀔 때마다 직전 스냅샷을 이력에 기록(undo/redo 중이면 건너뜀).

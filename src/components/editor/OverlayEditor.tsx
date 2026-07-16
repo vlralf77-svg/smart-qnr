@@ -6,7 +6,9 @@ import {
   Box,
   Chip,
   IconButton,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -17,6 +19,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import BlockIcon from '@mui/icons-material/Block';
+import FormatSizeIcon from '@mui/icons-material/FormatSize';
 import { CellRegion, FormSchema, Question, QuestionType, QUESTION_TYPE_META } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
@@ -367,6 +370,13 @@ export default function OverlayEditor({ form }: Props) {
   const pages = form.pages ?? [];
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
+  const { selectedIds, setFontSizeForSelected } = useEditorStore();
+
+  // 선택된 문항들의 대표 글자 크기(모두 같으면 그 값, 아니면 빈값)
+  const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
+  const sizes = new Set(selectedQuestions.map((q) => q.fontSize ?? 13));
+  const currentFont = sizes.size === 1 ? [...sizes][0] : '';
+  const FONT_OPTIONS = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
 
   return (
     <Box>
@@ -377,6 +387,37 @@ export default function OverlayEditor({ form }: Props) {
         이동, <b>Shift+방향키</b>=크기 조절, <b>Delete</b>=삭제, <b>Ctrl+Z</b>=실행 취소. <b>표 안의
         빈칸</b>은 상단 <b>클릭 배치</b>를 켜고 원하는 자리를 클릭해 필드를 추가하세요.
       </Typography>
+
+      <Paper
+        variant="outlined"
+        sx={{ p: 1, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
+      >
+        <FormatSizeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Typography variant="body2" color="text.secondary">
+          글자 크기 일괄 적용
+        </Typography>
+        <Select
+          size="small"
+          displayEmpty
+          value={currentFont === '' ? '' : String(currentFont)}
+          disabled={selectedIds.length === 0}
+          onChange={(e) => setFontSizeForSelected(Number(e.target.value))}
+          sx={{ minWidth: 96 }}
+          renderValue={(v) => (v ? `${v}px` : '크기 선택')}
+        >
+          {FONT_OPTIONS.map((s) => (
+            <MenuItem key={s} value={String(s)}>
+              {s}px
+            </MenuItem>
+          ))}
+        </Select>
+        <Typography variant="caption" color="text.secondary">
+          {selectedIds.length > 0
+            ? `${selectedIds.length}개 선택됨 — 선택한 텍스트 입력에 적용`
+            : '먼저 필드를 선택하세요(드래그/클릭)'}
+        </Typography>
+      </Paper>
+
       {pages.map((p, i) => (
         <PageOverlay
           key={i}

@@ -81,6 +81,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
 
   // text / textarea / number / date → 채울 수 있는 흰 박스로 표시
   const type = q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text';
+  const fontSize = q.fontSize ?? 13;
   return (
     <Controller
       {...common}
@@ -98,7 +99,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
             '& .MuiOutlinedInput-root': {
               height: '100%',
               bgcolor: 'rgba(255,255,255,0.92)',
-              fontSize: 13,
+              fontSize,
             },
             '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
           }}

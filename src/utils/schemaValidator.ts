@@ -58,6 +58,7 @@ function normalizeQuestion(raw: unknown, warnings: string[], seen: Set<string>):
 
   if (typeof q.description === 'string') question.description = q.description;
   if (typeof q.placeholder === 'string') question.placeholder = q.placeholder;
+  if (typeof q.fontSize === 'number' && q.fontSize > 0) question.fontSize = q.fontSize;
 
   if (OPTION_TYPES.includes(type)) {
     const rawOpts = Array.isArray(q.options) ? q.options : [];
