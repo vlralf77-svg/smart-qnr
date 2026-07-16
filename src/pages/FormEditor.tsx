@@ -44,6 +44,8 @@ export default function FormEditor() {
     redo,
     deleteSelected,
     nudgeSelected,
+    copySelected,
+    paste,
   } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
@@ -82,6 +84,18 @@ export default function FormEditor() {
       ) {
         e.preventDefault();
         redo();
+      } else if (mod && (e.key === 'c' || e.key === 'C') && !isEditable(e.target)) {
+        // 선택 컴포넌트 복사
+        if (useEditorStore.getState().selectedIds.length > 0) {
+          e.preventDefault();
+          copySelected();
+        }
+      } else if (mod && (e.key === 'v' || e.key === 'V') && !isEditable(e.target)) {
+        // 붙여넣기
+        if (useEditorStore.getState()._clipboard.length > 0) {
+          e.preventDefault();
+          paste();
+        }
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditable(e.target)) {
         // 입력창에 포커스가 없을 때만 선택 컴포넌트 삭제
         if (useEditorStore.getState().selected) {
@@ -106,7 +120,7 @@ export default function FormEditor() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo, deleteSelected, nudgeSelected]);
+  }, [undo, redo, deleteSelected, nudgeSelected, copySelected, paste]);
 
   if (!form) return null;
 

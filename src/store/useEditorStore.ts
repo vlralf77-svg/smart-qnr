@@ -106,6 +106,13 @@ interface EditorState {
   setSelection: (sectionId: string, questionIds: string[]) => void;
   /** 선택된 문항들에 글자 크기(px)를 일괄 적용 */
   setFontSizeForSelected: (fontSize: number) => void;
+
+  // 복사/붙여넣기
+  _clipboard: Question[];
+  /** 선택된 문항을 클립보드로 복사(Ctrl+C) */
+  copySelected: () => void;
+  /** 클립보드 내용을 붙여넣기(Ctrl+V) — 살짝 옮겨 배치하고 선택 */
+  paste: () => void;
 }
 
 // undo/redo 로 form 을 되돌리는 동안엔 이력 기록을 건너뛴다.
@@ -146,6 +153,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   dirty: false,
   _past: [],
   _future: [],
+  _clipboard: [],
 
   undo: () =>
     set((st) => {
@@ -549,6 +557,60 @@ export const useEditorStore = create<EditorState>((set) => ({
             questions: s.questions.map((q) => (ids.has(q.id) ? { ...q, fontSize: clamped } : q)),
           })),
         ),
+        dirty: true,
+      };
+    }),
+
+  copySelected: () =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const ids = new Set(st.selectedIds);
+      const items: Question[] = [];
+      for (const s of st.form.sections)
+        for (const q of s.questions)
+          if (ids.has(q.id)) items.push(JSON.parse(JSON.stringify(q)) as Question);
+      return { _clipboard: items };
+    }),
+
+  paste: () =>
+    set((st) => {
+      if (!st.form || st._clipboard.length === 0) return st;
+      const targetSectionId = st.selected?.sectionId ?? st.form.sections[0]?.id;
+      if (!targetSectionId) return st;
+      const newIds: string[] = [];
+      const clones = st._clipboard.map((src) => {
+        const fresh = createQuestion(src.type);
+        const cloned: Question = {
+          ...(JSON.parse(JSON.stringify(src)) as Question),
+          id: fresh.id,
+          options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
+        };
+        // 살짝 옮겨 원본과 겹치지 않게
+        if (cloned.overlay) {
+          cloned.overlay = {
+            ...cloned.overlay,
+            xPct: Math.min(100 - cloned.overlay.wPct, cloned.overlay.xPct + 2),
+            yPct: Math.min(100 - cloned.overlay.hPct, cloned.overlay.yPct + 2),
+          };
+        } else if (cloned.layout) {
+          cloned.layout = {
+            ...cloned.layout,
+            x: Math.min(GRID_COLS - cloned.layout.w, cloned.layout.x + 1),
+            y: cloned.layout.y + 1,
+          };
+        }
+        newIds.push(cloned.id);
+        return cloned;
+      });
+      return {
+        form: mapSections(st.form, (secs) =>
+          mapSection(secs, targetSectionId, (s) => ({
+            ...s,
+            questions: [...s.questions, ...clones],
+          })),
+        ),
+        selected: { sectionId: targetSectionId, questionId: newIds[newIds.length - 1] },
+        selectedIds: newIds,
         dirty: true,
       };
     }),
