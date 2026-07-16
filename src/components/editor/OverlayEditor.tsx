@@ -284,9 +284,9 @@ export default function OverlayEditor({ form }: Props) {
     <Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
         파란 박스가 입력필드입니다. 박스를 드래그해 위치를, 모서리를 끌어 크기를 조정하고, 클릭하면
-        오른쪽에서 유형·라벨을 편집합니다. 선택 후 <b>방향키</b>로 미세 이동(Shift=크게), <b>Delete</b>로
-        삭제, <b>Ctrl+Z</b>로 실행 취소할 수 있습니다. <b>표 안의 빈칸</b>은 상단 <b>클릭 배치</b>를 켜고
-        원하는 자리를 클릭해 필드를 추가하세요.
+        오른쪽에서 유형·라벨을 편집합니다. 선택 후 <b>방향키</b>=이동, <b>Ctrl+방향키</b>=미세 이동,
+        <b>Shift+방향키</b>=크기 조절, <b>Delete</b>=삭제, <b>Ctrl+Z</b>=실행 취소. <b>표 안의 빈칸</b>은
+        상단 <b>클릭 배치</b>를 켜고 원하는 자리를 클릭해 필드를 추가하세요.
       </Typography>
       {pages.map((p, i) => (
         <PageOverlay

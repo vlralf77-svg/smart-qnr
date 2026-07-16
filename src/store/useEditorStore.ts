@@ -43,8 +43,14 @@ interface EditorState {
   redo: () => void;
   /** 현재 선택된 문항 삭제(Delete 키) */
   deleteSelected: () => void;
-  /** 선택된 문항을 방향키로 이동. dir 은 화면 기준, coarse 는 큰 이동(Shift) */
-  nudgeSelected: (dir: 'left' | 'right' | 'up' | 'down', coarse: boolean) => void;
+  /**
+   * 선택된 문항을 방향키로 조작.
+   * - move: 일반 이동, fine: 미세 이동(Ctrl), resize: 크기 조절(Shift)
+   */
+  nudgeSelected: (
+    dir: 'left' | 'right' | 'up' | 'down',
+    mode: 'move' | 'fine' | 'resize',
+  ) => void;
 
   // 초기화
   loadForm: (form: FormSchema) => void;
@@ -170,7 +176,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (selected) removeQuestion(selected.sectionId, selected.questionId);
   },
 
-  nudgeSelected: (dir, coarse) =>
+  nudgeSelected: (dir, mode) =>
     set((st) => {
       if (!st.form || !st.selected) return st;
       const { sectionId, questionId } = st.selected;
@@ -178,48 +184,53 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const q = section?.questions.find((x) => x.id === questionId);
       if (!q) return st;
 
-      if (q.overlay) {
-        // PDF 오버레이: % 단위 이동
-        const step = coarse ? 2 : 0.3;
-        const ov = q.overlay;
-        const dx = dir === 'left' ? -step : dir === 'right' ? step : 0;
-        const dy = dir === 'up' ? -step : dir === 'down' ? step : 0;
-        const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + dx));
-        const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + dy));
-        return {
-          form: mapSections(st.form, (secs) =>
-            mapSection(secs, sectionId, (s) => ({
-              ...s,
-              questions: mapQuestion(s.questions, questionId, (qq) => ({
-                ...qq,
-                overlay: { ...ov, xPct, yPct },
-              })),
-            })),
-          ),
-          dirty: true,
-        };
-      }
+      const horiz = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+      const vert = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
 
-      // 자유 캔버스: 그리드 칸 단위 이동
-      const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
-      const stepX = coarse ? 2 : 1;
-      const stepY = coarse ? 2 : 1;
-      const dx = dir === 'left' ? -stepX : dir === 'right' ? stepX : 0;
-      const dy = dir === 'up' ? -stepY : dir === 'down' ? stepY : 0;
-      const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + dx));
-      const y = Math.max(0, layout.y + dy);
-      return {
-        form: mapSections(st.form, (secs) =>
+      const applyOverlay = (patch: Partial<QuestionOverlay>) =>
+        mapSections(st.form!, (secs) =>
           mapSection(secs, sectionId, (s) => ({
             ...s,
             questions: mapQuestion(s.questions, questionId, (qq) => ({
               ...qq,
-              layout: { ...layout, x, y },
+              overlay: { ...qq.overlay!, ...patch },
             })),
           })),
-        ),
-        dirty: true,
-      };
+        );
+      const applyLayout = (layout: QuestionLayout) =>
+        mapSections(st.form!, (secs) =>
+          mapSection(secs, sectionId, (s) => ({
+            ...s,
+            questions: mapQuestion(s.questions, questionId, (qq) => ({ ...qq, layout })),
+          })),
+        );
+
+      if (q.overlay) {
+        // PDF 오버레이: % 단위
+        const ov = q.overlay;
+        if (mode === 'resize') {
+          const step = 0.5;
+          const MIN = 1.5;
+          const wPct = Math.max(MIN, Math.min(100 - ov.xPct, ov.wPct + horiz * step));
+          const hPct = Math.max(MIN, Math.min(100 - ov.yPct, ov.hPct + vert * step));
+          return { form: applyOverlay({ wPct, hPct }), dirty: true };
+        }
+        const step = mode === 'fine' ? 0.1 : 0.5;
+        const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + horiz * step));
+        const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + vert * step));
+        return { form: applyOverlay({ xPct, yPct }), dirty: true };
+      }
+
+      // 자유 캔버스: 그리드 칸 단위(정수)
+      const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
+      if (mode === 'resize') {
+        const w = Math.max(1, Math.min(GRID_COLS - layout.x, layout.w + horiz));
+        const h = Math.max(1, layout.h + vert);
+        return { form: applyLayout({ ...layout, w, h }), dirty: true };
+      }
+      const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + horiz));
+      const y = Math.max(0, layout.y + vert);
+      return { form: applyLayout({ ...layout, x, y }), dirty: true };
     }),
 
   loadForm: (form) => set({ form, selected: null, dirty: false, _past: [], _future: [] }),

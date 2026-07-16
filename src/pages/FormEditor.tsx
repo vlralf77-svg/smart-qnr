@@ -89,7 +89,7 @@ export default function FormEditor() {
           deleteSelected();
         }
       } else if (e.key.startsWith('Arrow') && !isEditable(e.target)) {
-        // 선택된 컴포넌트를 방향키로 이동(Shift = 크게)
+        // 선택된 컴포넌트: 방향키=이동, Ctrl+방향키=미세 이동, Shift+방향키=크기 조절
         if (!useEditorStore.getState().selected) return;
         const dir =
           e.key === 'ArrowLeft'
@@ -99,8 +99,9 @@ export default function FormEditor() {
               : e.key === 'ArrowUp'
                 ? 'up'
                 : 'down';
+        const mode = e.shiftKey ? 'resize' : e.ctrlKey || e.metaKey ? 'fine' : 'move';
         e.preventDefault();
-        nudgeSelected(dir, e.shiftKey);
+        nudgeSelected(dir, mode);
       }
     };
     window.addEventListener('keydown', onKey);
