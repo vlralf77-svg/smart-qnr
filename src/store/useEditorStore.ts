@@ -23,10 +23,20 @@ interface Selection {
   questionId: string;
 }
 
+const HISTORY_LIMIT = 60;
+
 interface EditorState {
   form: FormSchema | null;
   selected: Selection | null;
   dirty: boolean;
+
+  // 실행 취소 이력
+  _past: FormSchema[];
+  _future: FormSchema[];
+  undo: () => void;
+  redo: () => void;
+  /** 현재 선택된 문항 삭제(Delete 키) */
+  deleteSelected: () => void;
 
   // 초기화
   loadForm: (form: FormSchema) => void;
@@ -75,6 +85,9 @@ interface EditorState {
   select: (sel: Selection | null) => void;
 }
 
+// undo/redo 로 form 을 되돌리는 동안엔 이력 기록을 건너뛴다.
+let timeTraveling = false;
+
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   const next = arr.slice();
   const [item] = next.splice(from, 1);
@@ -103,14 +116,56 @@ function mapQuestion(
   return questions.map((q) => (q.id === questionId ? fn(q) : q));
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
+export const useEditorStore = create<EditorState>((set, get) => ({
   form: null,
   selected: null,
   dirty: false,
+  _past: [],
+  _future: [],
 
-  loadForm: (form) => set({ form, selected: null, dirty: false }),
-  newForm: () => set({ form: createEmptyForm(), selected: null, dirty: false }),
-  reset: () => set({ form: null, selected: null, dirty: false }),
+  undo: () =>
+    set((st) => {
+      if (st._past.length === 0 || !st.form) return st;
+      const prev = st._past[st._past.length - 1];
+      timeTraveling = true;
+      queueMicrotask(() => {
+        timeTraveling = false;
+      });
+      return {
+        form: prev,
+        _past: st._past.slice(0, -1),
+        _future: [st.form, ...st._future].slice(0, HISTORY_LIMIT),
+        selected: null,
+        dirty: true,
+      };
+    }),
+
+  redo: () =>
+    set((st) => {
+      if (st._future.length === 0 || !st.form) return st;
+      const next = st._future[0];
+      timeTraveling = true;
+      queueMicrotask(() => {
+        timeTraveling = false;
+      });
+      return {
+        form: next,
+        _past: [...st._past, st.form].slice(-HISTORY_LIMIT),
+        _future: st._future.slice(1),
+        selected: null,
+        dirty: true,
+      };
+    }),
+
+  deleteSelected: () => {
+    const { selected, removeQuestion } = get();
+    if (selected) removeQuestion(selected.sectionId, selected.questionId);
+  },
+
+  loadForm: (form) => set({ form, selected: null, dirty: false, _past: [], _future: [] }),
+  newForm: () =>
+    set({ form: createEmptyForm(), selected: null, dirty: false, _past: [], _future: [] }),
+  reset: () => set({ form: null, selected: null, dirty: false, _past: [], _future: [] }),
 
   updateMeta: (patch) =>
     set((st) => (st.form ? { form: { ...st.form, ...patch }, dirty: true } : st)),
@@ -364,3 +419,13 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   select: (sel) => set({ selected: sel }),
 }));
+
+// form 이 바뀔 때마다 직전 스냅샷을 이력에 기록(undo/redo 중이면 건너뜀).
+useEditorStore.subscribe((state, prev) => {
+  if (timeTraveling) return;
+  if (state.form !== prev.form && prev.form) {
+    const past = [...useEditorStore.getState()._past, prev.form].slice(-HISTORY_LIMIT);
+    // form 은 그대로이므로 이 setState 는 다시 이력을 기록하지 않는다.
+    useEditorStore.setState({ _past: past, _future: [] });
+  }
+});

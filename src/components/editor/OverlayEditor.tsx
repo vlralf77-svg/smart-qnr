@@ -201,7 +201,8 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
                   x: pctToPx(ov.xPct, size.width),
                   y: pctToPx(ov.yPct, size.height),
                 }}
-                onMouseDown={() => select({ sectionId, questionId: q.id })}
+                onDragStart={() => select({ sectionId, questionId: q.id })}
+                onResizeStart={() => select({ sectionId, questionId: q.id })}
                 onDragStop={(_e, d) => {
                   updateQuestionOverlay(sectionId, q.id, {
                     ...ov,

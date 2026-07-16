@@ -18,6 +18,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import SaveIcon from '@mui/icons-material/Save';
 import PublishIcon from '@mui/icons-material/Publish';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
 import { isOverlayForm } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -29,7 +33,10 @@ import PreviewDialog from '@/components/editor/PreviewDialog';
 export default function FormEditor() {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { form, selected, loadForm, newForm, updateMeta, dirty } = useEditorStore();
+  const { form, selected, loadForm, newForm, updateMeta, dirty, undo, redo, deleteSelected } =
+    useEditorStore();
+  const canUndo = useEditorStore((s) => s._past.length > 0);
+  const canRedo = useEditorStore((s) => s._future.length > 0);
   const { getForm, saveForm, publishForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
   const [toast, setToast] = useState('');
@@ -45,6 +52,37 @@ export default function FormEditor() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
+
+  // 키보드 단축키: Ctrl/⌘+Z 실행취소, Ctrl+Shift+Z·Ctrl+Y 다시실행, Delete 선택 삭제
+  useEffect(() => {
+    const isEditable = (el: EventTarget | null) => {
+      const n = el as HTMLElement | null;
+      if (!n) return false;
+      const tag = n.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || n.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        undo();
+      } else if (
+        mod &&
+        ((e.shiftKey && (e.key === 'z' || e.key === 'Z')) || e.key === 'y' || e.key === 'Y')
+      ) {
+        e.preventDefault();
+        redo();
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditable(e.target)) {
+        // 입력창에 포커스가 없을 때만 선택 컴포넌트 삭제
+        if (useEditorStore.getState().selected) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo, deleteSelected]);
 
   if (!form) return null;
 
@@ -72,6 +110,22 @@ export default function FormEditor() {
           <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/')}>
             목록
           </Button>
+          <Stack direction="row" spacing={0.5} sx={{ ml: 1 }}>
+            <Tooltip title="실행 취소 (Ctrl+Z)">
+              <span>
+                <IconButton color="inherit" size="small" disabled={!canUndo} onClick={undo}>
+                  <UndoIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="다시 실행 (Ctrl+Shift+Z)">
+              <span>
+                <IconButton color="inherit" size="small" disabled={!canRedo} onClick={redo}>
+                  <RedoIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
           <Box sx={{ flex: 1, textAlign: 'center' }}>
             <Typography variant="subtitle1" noWrap>
               {form.title || '제목 없는 문진'}
