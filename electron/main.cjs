@@ -25,7 +25,9 @@ function setupAutoUpdate() {
       message: `새 버전(${info.version})이 다운로드되었습니다.`,
       detail: '지금 재시작하면 최신 버전으로 적용됩니다.',
     });
-    if (res.response === 0) autoUpdater.quitAndInstall();
+    // isSilent=true → 설치 마법사(다음·설치 버튼) 없이 무인 설치,
+    // isForceRunAfter=true → 설치 완료 후 앱 자동 재실행
+    if (res.response === 0) autoUpdater.quitAndInstall(true, true);
   });
   autoUpdater.on('error', (err) => {
     console.error('[auto-update] ', err == null ? 'unknown' : (err.stack || err).toString());
