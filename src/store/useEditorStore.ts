@@ -33,7 +33,10 @@ const HISTORY_LIMIT = 60;
 
 interface EditorState {
   form: FormSchema | null;
+  /** 편집 패널이 다루는 기준(primary) 선택 */
   selected: Selection | null;
+  /** 다중 선택된 문항 id 목록(기준 선택 포함). 일괄 삭제·이동에 사용 */
+  selectedIds: string[];
   dirty: boolean;
 
   // 실행 취소 이력
@@ -97,6 +100,10 @@ interface EditorState {
 
   // 선택
   select: (sel: Selection | null) => void;
+  /** Ctrl+클릭: 선택 목록에서 해당 문항을 토글(기존 선택 유지) */
+  toggleSelect: (sectionId: string, questionId: string) => void;
+  /** 드래그 영역 선택: 문항 id 목록으로 선택을 교체 */
+  setSelection: (sectionId: string, questionIds: string[]) => void;
 }
 
 // undo/redo 로 form 을 되돌리는 동안엔 이력 기록을 건너뛴다.
@@ -130,9 +137,10 @@ function mapQuestion(
   return questions.map((q) => (q.id === questionId ? fn(q) : q));
 }
 
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   form: null,
   selected: null,
+  selectedIds: [],
   dirty: false,
   _past: [],
   _future: [],
@@ -150,6 +158,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         _past: st._past.slice(0, -1),
         _future: [st.form, ...st._future].slice(0, HISTORY_LIMIT),
         selected: null,
+        selectedIds: [],
         dirty: true,
       };
     }),
@@ -167,76 +176,82 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         _past: [...st._past, st.form].slice(-HISTORY_LIMIT),
         _future: st._future.slice(1),
         selected: null,
+        selectedIds: [],
         dirty: true,
       };
     }),
 
-  deleteSelected: () => {
-    const { selected, removeQuestion } = get();
-    if (selected) removeQuestion(selected.sectionId, selected.questionId);
-  },
+  deleteSelected: () =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const ids = new Set(st.selectedIds);
+      return {
+        form: mapSections(st.form, (secs) =>
+          secs.map((s) => ({ ...s, questions: s.questions.filter((q) => !ids.has(q.id)) })),
+        ),
+        selected: null,
+        selectedIds: [],
+        dirty: true,
+      };
+    }),
 
   nudgeSelected: (dir, mode) =>
     set((st) => {
-      if (!st.form || !st.selected) return st;
-      const { sectionId, questionId } = st.selected;
-      const section = st.form.sections.find((s) => s.id === sectionId);
-      const q = section?.questions.find((x) => x.id === questionId);
-      if (!q) return st;
-
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const ids = new Set(st.selectedIds);
       const horiz = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
       const vert = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
 
-      const applyOverlay = (patch: Partial<QuestionOverlay>) =>
-        mapSections(st.form!, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (qq) => ({
-              ...qq,
-              overlay: { ...qq.overlay!, ...patch },
-            })),
-          })),
-        );
-      const applyLayout = (layout: QuestionLayout) =>
-        mapSections(st.form!, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (qq) => ({ ...qq, layout })),
-          })),
-        );
-
-      if (q.overlay) {
-        // PDF 오버레이: % 단위
-        const ov = q.overlay;
-        if (mode === 'resize') {
-          const step = 0.5;
-          const MIN = 1.5;
-          const wPct = Math.max(MIN, Math.min(100 - ov.xPct, ov.wPct + horiz * step));
-          const hPct = Math.max(MIN, Math.min(100 - ov.yPct, ov.hPct + vert * step));
-          return { form: applyOverlay({ wPct, hPct }), dirty: true };
+      const transform = (q: Question): Question => {
+        if (!ids.has(q.id)) return q;
+        if (q.overlay) {
+          // PDF 오버레이: % 단위
+          const ov = q.overlay;
+          if (mode === 'resize') {
+            const step = 0.5;
+            const MIN = 1.5;
+            const wPct = Math.max(MIN, Math.min(100 - ov.xPct, ov.wPct + horiz * step));
+            const hPct = Math.max(MIN, Math.min(100 - ov.yPct, ov.hPct + vert * step));
+            return { ...q, overlay: { ...ov, wPct, hPct } };
+          }
+          const step = mode === 'fine' ? 0.1 : 0.5;
+          const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + horiz * step));
+          const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + vert * step));
+          return { ...q, overlay: { ...ov, xPct, yPct } };
         }
-        const step = mode === 'fine' ? 0.1 : 0.5;
-        const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + horiz * step));
-        const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + vert * step));
-        return { form: applyOverlay({ xPct, yPct }), dirty: true };
-      }
+        // 자유 캔버스: 그리드 칸 단위(정수)
+        const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
+        if (mode === 'resize') {
+          const w = Math.max(1, Math.min(GRID_COLS - layout.x, layout.w + horiz));
+          const h = Math.max(1, layout.h + vert);
+          return { ...q, layout: { ...layout, w, h } };
+        }
+        const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + horiz));
+        const y = Math.max(0, layout.y + vert);
+        return { ...q, layout: { ...layout, x, y } };
+      };
 
-      // 자유 캔버스: 그리드 칸 단위(정수)
-      const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
-      if (mode === 'resize') {
-        const w = Math.max(1, Math.min(GRID_COLS - layout.x, layout.w + horiz));
-        const h = Math.max(1, layout.h + vert);
-        return { form: applyLayout({ ...layout, w, h }), dirty: true };
-      }
-      const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + horiz));
-      const y = Math.max(0, layout.y + vert);
-      return { form: applyLayout({ ...layout, x, y }), dirty: true };
+      return {
+        form: mapSections(st.form, (secs) =>
+          secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
+        ),
+        dirty: true,
+      };
     }),
 
-  loadForm: (form) => set({ form, selected: null, dirty: false, _past: [], _future: [] }),
+  loadForm: (form) =>
+    set({ form, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
   newForm: () =>
-    set({ form: createEmptyForm(), selected: null, dirty: false, _past: [], _future: [] }),
-  reset: () => set({ form: null, selected: null, dirty: false, _past: [], _future: [] }),
+    set({
+      form: createEmptyForm(),
+      selected: null,
+      selectedIds: [],
+      dirty: false,
+      _past: [],
+      _future: [],
+    }),
+  reset: () =>
+    set({ form: null, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
 
   updateMeta: (patch) =>
     set((st) => (st.form ? { form: { ...st.form, ...patch }, dirty: true } : st)),
@@ -297,6 +312,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return {
         form,
         selected: { sectionId, questionId: newQuestionId },
+        selectedIds: [newQuestionId],
         dirty: true,
       };
     }),
@@ -342,6 +358,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           })),
         ),
         selected: st.selected?.questionId === questionId ? null : st.selected,
+        selectedIds: st.selectedIds.filter((id) => id !== questionId),
         dirty: true,
       };
     }),
@@ -372,6 +389,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return {
         form,
         selected: newId ? { sectionId, questionId: newId } : st.selected,
+        selectedIds: newId ? [newId] : st.selectedIds,
         dirty: true,
       };
     }),
@@ -417,7 +435,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           return { ...s, questions: [...s.questions, q] };
         }),
       );
-      return { form, selected: newId ? { sectionId, questionId: newId } : st.selected, dirty: true };
+      return {
+        form,
+        selected: newId ? { sectionId, questionId: newId } : st.selected,
+        selectedIds: newId ? [newId] : st.selectedIds,
+        dirty: true,
+      };
     }),
 
   addOption: (sectionId, questionId) =>
@@ -488,7 +511,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       };
     }),
 
-  select: (sel) => set({ selected: sel }),
+  select: (sel) => set({ selected: sel, selectedIds: sel ? [sel.questionId] : [] }),
+
+  toggleSelect: (sectionId, questionId) =>
+    set((st) => {
+      const has = st.selectedIds.includes(questionId);
+      const selectedIds = has
+        ? st.selectedIds.filter((id) => id !== questionId)
+        : [...st.selectedIds, questionId];
+      const selected: Selection | null = selectedIds.length
+        ? has && st.selected?.questionId === questionId
+          ? { sectionId, questionId: selectedIds[selectedIds.length - 1] }
+          : { sectionId, questionId }
+        : null;
+      return { selectedIds, selected };
+    }),
+
+  setSelection: (sectionId, questionIds) =>
+    set(() => ({
+      selectedIds: questionIds,
+      selected: questionIds.length
+        ? { sectionId, questionId: questionIds[questionIds.length - 1] }
+        : null,
+    })),
 }));
 
 // form 이 바뀔 때마다 직전 스냅샷을 이력에 기록(undo/redo 중이면 건너뜀).

@@ -1,6 +1,6 @@
 // PDF 배경 위에 입력필드를 얹어 편집 — 드래그로 이동, 모서리로 크기 조절 (react-rnd)
 // + PDF 위를 클릭해 그 자리에 필드 배치(표 빈칸 등)
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import {
   Box,
@@ -46,9 +46,21 @@ function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): 
 
 function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
-  const { selected, select, updateQuestionOverlay, removeQuestion, addOverlayQuestion } =
-    useEditorStore();
+  const {
+    selectedIds,
+    select,
+    toggleSelect,
+    setSelection,
+    updateQuestionOverlay,
+    removeQuestion,
+    addOverlayQuestion,
+  } = useEditorStore();
   const [placeMode, setPlaceMode] = useState<PlaceMode>('off');
+  const imgRef = useRef<HTMLImageElement>(null);
+  // 드래그 영역 선택(rubber-band) 사각형(컨테이너 기준 px)
+  const [band, setBand] = useState<{ left: number; top: number; w: number; h: number } | null>(
+    null,
+  );
 
   const fields = questions.filter((q) => q.overlay && q.overlay.page === pageIndex);
 
@@ -70,10 +82,8 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
 
   // PDF 배경 클릭 → 클릭 위치에 필드 배치 (표 셀 안이면 셀 크기에 자동 스냅)
   const handleBackgroundClick = (e: React.MouseEvent) => {
-    if (placeMode === 'off' || !ref.current) {
-      select(null);
-      return;
-    }
+    // off 모드의 선택/해제는 mousedown~up(드래그 영역 선택)이 담당하므로 여기선 무시
+    if (placeMode === 'off' || !ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
@@ -118,11 +128,64 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
     });
   };
 
+  // 배경(빈 곳)에서 마우스를 누르면 드래그 영역 선택 시작
+  const handleBackgroundMouseDown = (e: React.MouseEvent) => {
+    // 배치 모드에서는 클릭 배치가 우선, 배경(img)에서 시작할 때만 영역 선택
+    if (placeMode !== 'off' || e.target !== imgRef.current || !ref.current) return;
+    if (e.button !== 0) return;
+    const container = ref.current;
+    const rect = container.getBoundingClientRect();
+    const start = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+    const move = (ev: MouseEvent) => {
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      setBand({
+        left: Math.min(start.x, x),
+        top: Math.min(start.y, y),
+        w: Math.abs(x - start.x),
+        h: Math.abs(y - start.y),
+      });
+    };
+    const up = (ev: MouseEvent) => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      setBand(null);
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const bx = Math.min(start.x, x);
+      const by = Math.min(start.y, y);
+      const bw = Math.abs(x - start.x);
+      const bh = Math.abs(y - start.y);
+      // 거의 안 움직였으면 클릭으로 보고 선택 해제
+      if (bw < 4 && bh < 4) {
+        select(null);
+        return;
+      }
+      const W = rect.width;
+      const H = rect.height;
+      const hit: string[] = [];
+      for (const q of fields) {
+        const ov = q.overlay!;
+        const fx = (ov.xPct / 100) * W;
+        const fy = (ov.yPct / 100) * H;
+        const fw = (ov.wPct / 100) * W;
+        const fh = (ov.hPct / 100) * H;
+        // 영역과 겹치면 선택
+        if (fx < bx + bw && fx + fw > bx && fy < by + bh && fy + fh > by) hit.push(q.id);
+      }
+      setSelection(sectionId, hit);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
   return (
     <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5} px={0.5}>
         <Typography variant="caption" color="text.secondary">
           {pageIndex + 1} 페이지 · 필드 {fields.length}개
+          {selectedIds.length > 1 ? ` · ${selectedIds.length}개 선택됨` : ''}
         </Typography>
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="클릭 배치: 켜면 PDF 위를 클릭한 자리에 필드가 생깁니다(표 빈칸 등)">
@@ -149,6 +212,7 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
 
       <Box
         ref={ref}
+        onMouseDown={handleBackgroundMouseDown}
         sx={{
           position: 'relative',
           width: '100%',
@@ -157,6 +221,7 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
         }}
       >
         <img
+          ref={imgRef}
           src={image}
           alt={`page-${pageIndex + 1}`}
           style={{ width: '100%', display: 'block' }}
@@ -184,11 +249,34 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
             />
           ))}
 
+        {/* 드래그 영역 선택 사각형 */}
+        {band && (
+          <Box
+            sx={{
+              position: 'absolute',
+              left: band.left,
+              top: band.top,
+              width: band.w,
+              height: band.h,
+              border: '1.5px dashed',
+              borderColor: 'primary.main',
+              bgcolor: 'rgba(30,58,95,0.10)',
+              pointerEvents: 'none',
+              zIndex: 30,
+            }}
+          />
+        )}
+
         {size.width > 0 &&
           fields.map((q) => {
             const ov = q.overlay!;
-            const isSel = selected?.questionId === q.id;
+            const isSel = selectedIds.includes(q.id);
             const meta = QUESTION_TYPE_META[q.type];
+            // Ctrl(⌘)+클릭이면 선택 토글(기존 선택 유지), 아니면 단일 선택
+            const pickField = (e: { ctrlKey?: boolean; metaKey?: boolean }) => {
+              if (e.ctrlKey || e.metaKey) toggleSelect(sectionId, q.id);
+              else if (!selectedIds.includes(q.id)) select({ sectionId, questionId: q.id });
+            };
             return (
               <Rnd
                 key={q.id}
@@ -201,8 +289,8 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
                   x: pctToPx(ov.xPct, size.width),
                   y: pctToPx(ov.yPct, size.height),
                 }}
-                onDragStart={() => select({ sectionId, questionId: q.id })}
-                onResizeStart={() => select({ sectionId, questionId: q.id })}
+                onDragStart={(e) => pickField(e as unknown as MouseEvent)}
+                onResizeStart={(e) => pickField(e as unknown as MouseEvent)}
                 onDragStop={(_e, d) => {
                   updateQuestionOverlay(sectionId, q.id, {
                     ...ov,
@@ -284,9 +372,10 @@ export default function OverlayEditor({ form }: Props) {
     <Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
         파란 박스가 입력필드입니다. 박스를 드래그해 위치를, 모서리를 끌어 크기를 조정하고, 클릭하면
-        오른쪽에서 유형·라벨을 편집합니다. 선택 후 <b>방향키</b>=이동, <b>Ctrl+방향키</b>=미세 이동,
-        <b>Shift+방향키</b>=크기 조절, <b>Delete</b>=삭제, <b>Ctrl+Z</b>=실행 취소. <b>표 안의 빈칸</b>은
-        상단 <b>클릭 배치</b>를 켜고 원하는 자리를 클릭해 필드를 추가하세요.
+        오른쪽에서 유형·라벨을 편집합니다. 빈 곳을 <b>드래그</b>하면 영역 안의 필드가 <b>일괄 선택</b>,
+        <b>Ctrl+클릭</b>으로 선택에 추가/제외됩니다. 선택 후 <b>방향키</b>=이동, <b>Ctrl+방향키</b>=미세
+        이동, <b>Shift+방향키</b>=크기 조절, <b>Delete</b>=삭제, <b>Ctrl+Z</b>=실행 취소. <b>표 안의
+        빈칸</b>은 상단 <b>클릭 배치</b>를 켜고 원하는 자리를 클릭해 필드를 추가하세요.
       </Typography>
       {pages.map((p, i) => (
         <PageOverlay
