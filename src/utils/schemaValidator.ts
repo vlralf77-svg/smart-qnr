@@ -163,7 +163,26 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
     for (const raw of obj.pages) {
       const p = (raw ?? {}) as Record<string, unknown>;
       if (typeof p.image === 'string' && typeof p.width === 'number' && typeof p.height === 'number') {
-        pages.push({ image: p.image, width: p.width, height: p.height });
+        const page: FormPage = { image: p.image, width: p.width, height: p.height };
+        if (Array.isArray(p.cells)) {
+          const cells = p.cells
+            .map((c) => (c ?? {}) as Record<string, unknown>)
+            .filter(
+              (c) =>
+                typeof c.xPct === 'number' &&
+                typeof c.yPct === 'number' &&
+                typeof c.wPct === 'number' &&
+                typeof c.hPct === 'number',
+            )
+            .map((c) => ({
+              xPct: c.xPct as number,
+              yPct: c.yPct as number,
+              wPct: c.wPct as number,
+              hPct: c.hPct as number,
+            }));
+          if (cells.length) page.cells = cells;
+        }
+        pages.push(page);
       }
     }
     if (pages.length) schema.pages = pages;

@@ -17,7 +17,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import BlockIcon from '@mui/icons-material/Block';
-import { FormSchema, Question, QuestionType, QUESTION_TYPE_META } from '@/types/schema';
+import { CellRegion, FormSchema, Question, QuestionType, QUESTION_TYPE_META } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
 import AddQuestionMenu from './AddQuestionMenu';
@@ -28,10 +28,23 @@ interface PageProps {
   sectionId: string;
   pageIndex: number;
   image: string;
+  cells?: CellRegion[];
   questions: Question[];
 }
 
-function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
+function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): CellRegion | undefined {
+  if (!cells) return undefined;
+  // 클릭 지점을 포함하는 가장 작은 셀
+  let best: CellRegion | undefined;
+  for (const c of cells) {
+    if (xPct >= c.xPct && xPct <= c.xPct + c.wPct && yPct >= c.yPct && yPct <= c.yPct + c.hPct) {
+      if (!best || c.wPct * c.hPct < best.wPct * best.hPct) best = c;
+    }
+  }
+  return best;
+}
+
+function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
   const { selected, select, updateQuestionOverlay, removeQuestion, addOverlayQuestion } =
     useEditorStore();
@@ -55,7 +68,7 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
     });
   };
 
-  // PDF 배경 클릭 → 클릭 위치에 필드 배치
+  // PDF 배경 클릭 → 클릭 위치에 필드 배치 (표 셀 안이면 셀 크기에 자동 스냅)
   const handleBackgroundClick = (e: React.MouseEvent) => {
     if (placeMode === 'off' || !ref.current) {
       select(null);
@@ -64,6 +77,36 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
     const rect = ref.current.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const cell = findCell(cells, xPct, yPct);
+    if (cell) {
+      const padX = Math.min(0.6, cell.wPct * 0.06);
+      const padY = Math.min(0.6, cell.hPct * 0.08);
+      if (placeMode === 'text') {
+        // 텍스트: 셀 전체를 채움
+        addOverlayQuestion(sectionId, 'text', {
+          page: pageIndex,
+          xPct: cell.xPct + padX,
+          yPct: cell.yPct + padY,
+          wPct: cell.wPct - padX * 2,
+          hPct: cell.hPct - padY * 2,
+        });
+      } else {
+        // 체크박스: 셀 중앙에 정사각형
+        const boxH = Math.min(cell.hPct - padY * 2, squareH(cell.wPct));
+        const boxW = size.height > 0 ? boxH * (size.height / size.width) : cell.wPct * 0.5;
+        addOverlayQuestion(sectionId, 'boolean', {
+          page: pageIndex,
+          xPct: cell.xPct + cell.wPct / 2 - boxW / 2,
+          yPct: cell.yPct + cell.hPct / 2 - boxH / 2,
+          wPct: boxW,
+          hPct: boxH,
+        });
+      }
+      return;
+    }
+
+    // 셀 밖: 고정 크기
     const wPct = placeMode === 'boolean' ? 4 : 16;
     const hPct = placeMode === 'boolean' ? squareH(4) : 4;
     addOverlayQuestion(sectionId, placeMode, {
@@ -120,6 +163,26 @@ function PageOverlay({ sectionId, pageIndex, image, questions }: PageProps) {
           onClick={handleBackgroundClick}
           draggable={false}
         />
+
+        {/* 클릭 배치 모드일 때 감지된 표 셀 힌트(클릭은 통과) */}
+        {placeMode !== 'off' &&
+          cells?.map((c, ci) => (
+            <Box
+              key={ci}
+              sx={{
+                position: 'absolute',
+                left: `${c.xPct}%`,
+                top: `${c.yPct}%`,
+                width: `${c.wPct}%`,
+                height: `${c.hPct}%`,
+                border: '1px dashed',
+                borderColor: 'success.main',
+                bgcolor: 'rgba(46,125,50,0.06)',
+                pointerEvents: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          ))}
 
         {size.width > 0 &&
           fields.map((q) => {
@@ -229,6 +292,7 @@ export default function OverlayEditor({ form }: Props) {
           sectionId={sectionId}
           pageIndex={i}
           image={p.image}
+          cells={p.cells}
           questions={questions}
         />
       ))}

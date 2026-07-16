@@ -3,7 +3,8 @@
 //  - 텍스트 좌표를 분석해 체크박스(□○)·빈칸(___)에 입력필드를 자동 배치(근사)
 //  - 자동 배치가 완벽하지 않아도, 배경 PDF 위에서 드래그로 미세조정 가능
 import * as pdfjsLib from 'pdfjs-dist';
-import { FormPage, FormSchema, Question } from '@/types/schema';
+import { CellRegion, FormPage, FormSchema, Question } from '@/types/schema';
+import { extractTableCells } from './pdfCells';
 
 // Vite 가 워커를 에셋으로 방출하고 URL 을 재작성한다(Electron file:// 에서도 동작).
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -150,7 +151,27 @@ export async function pdfToOverlayForm(
 
     await page.render({ canvasContext: ctx, viewport }).promise;
     const image = canvas.toDataURL('image/png');
-    pages.push({ image, width: canvas.width, height: canvas.height });
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    // 표 셀(칸) 영역 추출 → % 로 저장(클릭 배치 시 자동 크기 스냅)
+    let cells: CellRegion[] | undefined;
+    try {
+      const raw = await extractTableCells(page, {
+        transform: viewport.transform,
+        width: cw,
+        height: ch,
+      });
+      cells = raw.map((r) => ({
+        xPct: (r.left / cw) * 100,
+        yPct: (r.top / ch) * 100,
+        wPct: (r.w / cw) * 100,
+        hPct: (r.h / ch) * 100,
+      }));
+    } catch {
+      cells = undefined;
+    }
+    pages.push({ image, width: cw, height: ch, cells: cells && cells.length ? cells : undefined });
 
     const textContent = await page.getTextContent();
     const items: TextItemLike[] = textContent.items
@@ -160,8 +181,8 @@ export async function pdfToOverlayForm(
       items,
       viewport.transform,
       RENDER_SCALE,
-      canvas.width,
-      canvas.height,
+      cw,
+      ch,
       i - 1,
     );
     for (const f of detected) questions.push(detectedToQuestion(f));

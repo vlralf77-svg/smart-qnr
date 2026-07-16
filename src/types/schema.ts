@@ -60,11 +60,20 @@ export interface QuestionOverlay {
   hPct: number; // 0~100 (높이)
 }
 
+/** 표 셀 등 감지된 사각형 영역 (페이지 대비 %). 클릭 배치 시 자동 크기 스냅에 사용 */
+export interface CellRegion {
+  xPct: number;
+  yPct: number;
+  wPct: number;
+  hPct: number;
+}
+
 /** PDF 페이지 배경 이미지 1장 */
 export interface FormPage {
   image: string; // data URL (PNG) — 렌더된 PDF 페이지
   width: number; // 렌더 px 너비
   height: number; // 렌더 px 높이
+  cells?: CellRegion[]; // 감지된 표 셀 영역(%)
 }
 
 export interface Question {
