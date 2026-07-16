@@ -25,7 +25,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # optional 의존성(pdfjs-dist의 네이티브 canvas 등)은 제외 — 브라우저 canvas 사용,
+        # Windows 러너에서 네이티브 컴파일(Visual Studio) 실패 방지
+        run: npm ci --omit=optional
 
       - name: Build renderer (vite)
         run: npm run build
