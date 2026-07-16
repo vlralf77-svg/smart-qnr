@@ -15,15 +15,40 @@ function setupAutoUpdate() {
   } catch {
     return; // 패키징에 electron-updater 미포함 시 무시
   }
+  const fs = require('node:fs');
+  // 이미 안내한 버전을 기록해 "매 실행마다 반복 알림"을 방지한다.
+  const notifiedFile = path.join(app.getPath('userData'), 'update-notified.json');
+  const readNotified = () => {
+    try {
+      return JSON.parse(fs.readFileSync(notifiedFile, 'utf8')).version;
+    } catch {
+      return null;
+    }
+  };
+  const writeNotified = (v) => {
+    try {
+      fs.writeFileSync(notifiedFile, JSON.stringify({ version: v }));
+    } catch {
+      /* 무시 */
+    }
+  };
+
   autoUpdater.autoDownload = true;
+  // '나중에'를 눌러도 앱을 종료할 때 조용히 설치된다(다음 실행부터 최신).
+  autoUpdater.autoInstallOnAppQuit = true;
+
   autoUpdater.on('update-downloaded', async (info) => {
+    // 같은 버전은 한 번만 안내(반복 팝업 제거). 안내를 건너뛰어도 종료 시 자동 설치됨.
+    if (readNotified() === info.version) return;
+    writeNotified(info.version);
     const res = await dialog.showMessageBox({
       type: 'info',
       buttons: ['지금 재시작', '나중에'],
       defaultId: 0,
       title: '업데이트 준비 완료',
-      message: `새 버전(${info.version})이 다운로드되었습니다.`,
-      detail: '지금 재시작하면 최신 버전으로 적용됩니다.',
+      message: `새 버전(${info.version})이 준비되었습니다.`,
+      detail:
+        "지금 재시작하면 바로 적용됩니다. '나중에'를 선택하면 다음에 앱을 종료할 때 자동으로 설치되며, 이 안내는 다시 표시되지 않습니다.",
     });
     // isSilent=true → 설치 마법사(다음·설치 버튼) 없이 무인 설치,
     // isForceRunAfter=true → 설치 완료 후 앱 자동 재실행
