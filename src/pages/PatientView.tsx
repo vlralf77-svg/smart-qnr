@@ -6,7 +6,6 @@ import {
   AppBar,
   Box,
   Button,
-  Chip,
   Container,
   Paper,
   Stack,
@@ -15,24 +14,23 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
 
-// 섹션별 파스텔 색상(편집기 섹션 색상 순서와 동일한 색조: 파랑→초록→주황…)
-//  header=연한 배경, text=진한 같은 계열 글자, accent=중간 톤(번호 배지·답변 강조바)
+// 섹션별 색상 — 채도를 낮춘 고급스러운 톤(편집기 섹션 색상 순서와 동일 색조)
+//  tint=아주 옅은 배경, bar=중간 톤 강조, text=읽기 좋은 진한 같은 계열
 const SECTION_PALETTE = [
-  { header: '#e3f2fd', text: '#1565c0', accent: '#64b5f6' }, // 파랑
-  { header: '#e8f5e9', text: '#2e7d32', accent: '#81c784' }, // 초록
-  { header: '#fff3e0', text: '#e65100', accent: '#ffb74d' }, // 주황
-  { header: '#f3e5f5', text: '#6a1b9a', accent: '#ba68c8' }, // 보라
-  { header: '#e0f7fa', text: '#00838f', accent: '#4dd0e1' }, // 청록
-  { header: '#fce4ec', text: '#ad1457', accent: '#f06292' }, // 분홍
-  { header: '#efebe9', text: '#4e342e', accent: '#a1887f' }, // 갈색
-  { header: '#eceff1', text: '#37474f', accent: '#90a4ae' }, // 청회색
+  { tint: '#f3f6ff', bar: '#5b7cfa', text: '#3a4db3' }, // 블루
+  { tint: '#f0faf5', bar: '#3f9d7c', text: '#2f7a5f' }, // 그린
+  { tint: '#fdf6ec', bar: '#d59a4e', text: '#9c6a1c' }, // 앰버
+  { tint: '#f7f4ff', bar: '#8b6fd0', text: '#6a4fb0' }, // 바이올렛
+  { tint: '#edf9fa', bar: '#3fa3ad', text: '#2b7d86' }, // 틸
+  { tint: '#fdf2f6', bar: '#d6738f', text: '#ad546e' }, // 로즈
+  { tint: '#f3f5f8', bar: '#6b7a90', text: '#48546a' }, // 슬레이트
+  { tint: '#f8f4f1', bar: '#a17c68', text: '#7a5a48' }, // 브라운
 ];
 
 function fmtDate(ts?: string): string {
@@ -121,7 +119,7 @@ export default function PatientView() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
       <AppBar position="static" color="secondary" elevation={0}>
         <Toolbar variant="dense">
           <Button
@@ -154,39 +152,67 @@ export default function PatientView() {
         ) : (
           <>
             {/* 헤더(hero) */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.2 }}>
+            <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  color: 'text.disabled',
+                  textTransform: 'uppercase',
+                }}
+              >
+                문진 응답
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: 24, sm: 30 },
+                  fontWeight: 800,
+                  letterSpacing: -0.5,
+                  lineHeight: 1.2,
+                  mt: 0.5,
+                  color: '#12213a',
+                }}
+              >
                 {form.title}
               </Typography>
               <Stack
                 direction="row"
-                spacing={1}
+                spacing={1.25}
                 alignItems="center"
                 flexWrap="wrap"
                 useFlexGap
-                sx={{ mt: 1.2 }}
+                sx={{ mt: 1.75 }}
               >
-                <Chip
-                  size="small"
-                  color="success"
-                  icon={<CheckCircleOutlineIcon />}
-                  label="작성완료"
-                  sx={{ fontWeight: 700 }}
-                />
-                <Typography variant="body2" color="text.secondary">
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.25,
+                    py: 0.4,
+                    borderRadius: 999,
+                    bgcolor: '#eaf7f0',
+                    border: '1px solid #cfece0',
+                  }}
+                >
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#2e9d6e' }} />
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#227954' }}>
+                    작성 완료
+                  </Typography>
+                </Box>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                   {fmtDate(response.submittedAt)}
                 </Typography>
-                <Typography variant="body2" color="text.disabled">
-                  ·
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
                   환자 {response.patientId}
                 </Typography>
               </Stack>
             </Box>
 
             {/* 섹션 카드 — PC 2단(masonry), 모바일 1단 */}
-            <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 2.5 }}>
+            <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 3 }}>
               {form.sections.map((section, si) => {
                 const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
                 if (qs.length === 0) return null;
@@ -196,13 +222,14 @@ export default function PatientView() {
                     key={section.id}
                     elevation={0}
                     sx={{
-                      borderRadius: 3,
+                      borderRadius: 4,
                       overflow: 'hidden',
-                      border: '1px solid',
-                      borderColor: 'divider',
+                      border: '1px solid rgba(15,23,42,0.06)',
                       breakInside: 'avoid',
-                      mb: 2.5,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      mb: 3,
+                      bgcolor: '#fff',
+                      boxShadow:
+                        '0 1px 2px rgba(15,23,42,0.04), 0 16px 32px -18px rgba(15,23,42,0.16)',
                     }}
                   >
                     {/* 섹션 헤더 */}
@@ -210,24 +237,25 @@ export default function PatientView() {
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
-                        px: 2,
-                        py: 1.4,
-                        bgcolor: pal.header,
+                        gap: 1.25,
+                        px: 2.75,
+                        py: 1.9,
+                        bgcolor: pal.tint,
+                        borderBottom: '1px solid rgba(15,23,42,0.05)',
                       }}
                     >
                       <Box
-                        sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: pal.text, flexShrink: 0 }}
+                        sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: pal.bar, flexShrink: 0 }}
                       />
                       <Typography
-                        variant="subtitle2"
-                        fontWeight={800}
-                        sx={{ color: pal.text, letterSpacing: 0.2 }}
+                        sx={{ fontSize: 14, fontWeight: 800, letterSpacing: 0.2, color: pal.text }}
                       >
                         {section.title}
                       </Typography>
                       <Box sx={{ flex: 1 }} />
-                      <Typography variant="caption" sx={{ color: pal.text, opacity: 0.75 }}>
+                      <Typography
+                        sx={{ fontSize: 11, fontWeight: 700, color: pal.text, opacity: 0.55 }}
+                      >
                         {qs.length}문항
                       </Typography>
                     </Box>
@@ -237,56 +265,54 @@ export default function PatientView() {
                       {qs.map((q, idx) => {
                         const ans = formatAnswer(q, answers[q.id] ?? null);
                         const unanswered = ans === '(미응답)';
+                        const n = qNo[q.id];
                         return (
                           <Box
                             key={q.id}
                             sx={{
                               display: 'flex',
-                              gap: 1.5,
-                              px: 2,
-                              py: 1.5,
-                              borderTop: idx === 0 ? 'none' : '1px solid',
-                              borderColor: 'divider',
+                              gap: 1.75,
+                              px: 2.75,
+                              py: 1.9,
+                              borderTop: idx === 0 ? 'none' : '1px solid rgba(15,23,42,0.05)',
                             }}
                           >
-                            {/* 번호 */}
+                            {/* 번호(2자리 제로패딩) */}
                             <Typography
                               component="span"
                               sx={{
-                                fontSize: 12.5,
-                                fontWeight: 800,
-                                color: pal.text,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: pal.bar,
+                                mt: '3px',
                                 minWidth: 16,
-                                textAlign: 'right',
-                                mt: '2px',
                                 flexShrink: 0,
+                                letterSpacing: 0.5,
                                 fontVariantNumeric: 'tabular-nums',
                               }}
                             >
-                              {qNo[q.id]}
+                              {n < 10 ? `0${n}` : n}
                             </Typography>
                             {/* 라벨(질문) + 값(답변) */}
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography
-                                variant="caption"
                                 sx={{
                                   display: 'block',
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  letterSpacing: 0.4,
                                   color: 'text.secondary',
-                                  fontWeight: 600,
-                                  letterSpacing: 0.2,
                                 }}
                               >
                                 {q.label}
                               </Typography>
                               <Typography
-                                variant="body1"
                                 sx={{
-                                  mt: 0.4,
-                                  pl: 1.25,
-                                  borderLeft: '2px solid',
-                                  borderColor: unanswered ? 'transparent' : pal.accent,
+                                  mt: 0.6,
+                                  fontSize: 16,
+                                  lineHeight: 1.45,
                                   fontWeight: unanswered ? 400 : 600,
-                                  color: unanswered ? 'text.disabled' : 'text.primary',
+                                  color: unanswered ? 'text.disabled' : '#1a2438',
                                   fontStyle: unanswered ? 'italic' : 'normal',
                                   whiteSpace: 'pre-wrap',
                                   wordBreak: 'break-word',
