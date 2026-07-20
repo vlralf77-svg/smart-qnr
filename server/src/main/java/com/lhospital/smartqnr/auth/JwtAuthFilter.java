@@ -24,9 +24,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    // 인증 불필요: 로그인, CORS preflight, 비 API 경로
+    // 인증 불필요: 로그인, 환자 공개 API, CORS preflight, 비 API 경로
     return "OPTIONS".equalsIgnoreCase(request.getMethod())
         || path.startsWith("/api/auth/")
+        || path.startsWith("/api/public/")
         || !path.startsWith("/api/");
   }
 

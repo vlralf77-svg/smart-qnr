@@ -7,9 +7,11 @@ import {
   Button,
   Chip,
   Divider,
+  FormControlLabel,
   Paper,
   Snackbar,
   Stack,
+  Switch,
   TextField,
   Toolbar,
   Typography,
@@ -240,6 +242,16 @@ export default function FormEditor() {
               minRows={2}
               value={form.description ?? ''}
               onChange={(e) => updateMeta({ description: e.target.value })}
+              sx={{ mb: 1 }}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={!!form.testFlag}
+                  onChange={(e) => updateMeta({ testFlag: e.target.checked })}
+                />
+              }
+              label="테스트 대상 (환자 화면에 노출)"
             />
           </Paper>
 

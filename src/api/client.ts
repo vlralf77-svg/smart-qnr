@@ -107,4 +107,18 @@ export const api = {
   responsesByForm(formId: string): Promise<FormResponse[]> {
     return request<FormResponse[]>(`/api/forms/${encodeURIComponent(formId)}/responses`);
   },
+
+  // 환자(공개) — 인증 불필요. 테스트 대상(testFlag) 문진만 조회.
+  publicListForms(): Promise<FormSchema[]> {
+    return request<FormSchema[]>('/api/public/forms');
+  },
+  publicGetForm(id: string): Promise<FormSchema> {
+    return request<FormSchema>(`/api/public/forms/${encodeURIComponent(id)}`);
+  },
+  publicSubmitResponse(response: FormResponse): Promise<FormResponse> {
+    return request<FormResponse>('/api/public/responses', {
+      method: 'POST',
+      body: JSON.stringify(response),
+    });
+  },
 };

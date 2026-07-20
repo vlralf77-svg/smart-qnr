@@ -29,6 +29,10 @@ public class FormEntity {
   @Column(nullable = false)
   private int version;
 
+  /** 테스트 대상 문진 여부 — 환자 화면에서 이 값이 true 인 문진만 조회 */
+  @Column(name = "test_flag", nullable = false)
+  private boolean testFlag;
+
   /** 프론트 FormSchema 전체(JSON). PostgreSQL jsonb 컬럼. */
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "schema_json", nullable = false, columnDefinition = "jsonb")
@@ -70,6 +74,14 @@ public class FormEntity {
 
   public void setVersion(int version) {
     this.version = version;
+  }
+
+  public boolean isTestFlag() {
+    return testFlag;
+  }
+
+  public void setTestFlag(boolean testFlag) {
+    this.testFlag = testFlag;
   }
 
   public String getSchemaJson() {

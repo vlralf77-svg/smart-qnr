@@ -29,6 +29,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
@@ -103,6 +104,14 @@ export default function FormList() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<AssignmentIndIcon />}
+              onClick={() => window.open('#/patient/login', '_blank')}
+            >
+              환자 화면
+            </Button>
             <Button
               variant="outlined"
               startIcon={<UploadFileIcon />}

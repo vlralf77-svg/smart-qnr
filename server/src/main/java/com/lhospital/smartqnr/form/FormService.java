@@ -31,6 +31,11 @@ public class FormService {
     return repo.findByStatusOrderByUpdatedAtDesc("published").stream().map(this::toJson).toList();
   }
 
+  /** 환자 화면용: 테스트 대상(testFlag=true) 문진 */
+  public List<JsonNode> listTest() {
+    return repo.findByTestFlagTrueOrderByUpdatedAtDesc().stream().map(this::toJson).toList();
+  }
+
   public Optional<JsonNode> get(String id) {
     return repo.findById(id).map(this::toJson);
   }
@@ -56,6 +61,7 @@ public class FormService {
     e.setTitle(textOr(node, "title", "제목 없는 문진"));
     e.setStatus(textOr(node, "status", "draft"));
     e.setVersion(node.path("version").asInt(1));
+    e.setTestFlag(node.path("testFlag").asBoolean(false));
     e.setSchemaJson(node.toString());
     e.setCreatedAt(isNew ? now : e.getCreatedAt());
     e.setUpdatedAt(now);

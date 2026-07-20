@@ -65,7 +65,7 @@ interface EditorState {
   reset: () => void;
 
   // 폼 메타
-  updateMeta: (patch: Partial<Pick<FormSchema, 'title' | 'description'>>) => void;
+  updateMeta: (patch: Partial<Pick<FormSchema, 'title' | 'description' | 'testFlag'>>) => void;
 
   // 섹션
   addSection: () => void;

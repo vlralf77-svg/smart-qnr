@@ -159,6 +159,7 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
   };
 
   if (obj.canvas === true) schema.canvas = true;
+  if (obj.testFlag === true) schema.testFlag = true;
 
   // PDF 배경 페이지 보존
   if (Array.isArray(obj.pages)) {

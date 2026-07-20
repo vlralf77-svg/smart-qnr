@@ -7,4 +7,6 @@ public interface FormRepository extends JpaRepository<FormEntity, String> {
   List<FormEntity> findAllByOrderByUpdatedAtDesc();
 
   List<FormEntity> findByStatusOrderByUpdatedAtDesc(String status);
+
+  List<FormEntity> findByTestFlagTrueOrderByUpdatedAtDesc();
 }
