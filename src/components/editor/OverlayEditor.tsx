@@ -29,6 +29,7 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import NearMeOutlinedIcon from '@mui/icons-material/NearMeOutlined';
 import FormatSizeIcon from '@mui/icons-material/FormatSize';
+import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
 import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
 import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
 import AlignHorizontalRightIcon from '@mui/icons-material/AlignHorizontalRight';
@@ -634,6 +635,7 @@ export default function OverlayEditor({ form }: Props) {
     assignSelectedToSection,
     ungroupSection,
     updateSection,
+    moveSelectedToPage,
   } = useEditorStore();
   const [placeType, setPlaceType] = useState<QuestionType | null>(null);
   const multi = selectedIds.length >= 2;
@@ -643,6 +645,10 @@ export default function OverlayEditor({ form }: Props) {
   const sizes = new Set(selectedQuestions.map((q) => q.fontSize ?? 13));
   const currentFont = sizes.size === 1 ? [...sizes][0] : '';
   const FONT_OPTIONS = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
+
+  // 선택 항목이 모두 같은 페이지면 그 페이지를 표시(아니면 빈 값)
+  const selPages = new Set(selectedQuestions.map((q) => q.overlay?.page ?? 0));
+  const currentPage = selPages.size === 1 ? [...selPages][0] : '';
 
   // 답변(제시) 순서번호 + 섹션 색상 계산: 섹션 순서 → 섹션 내 읽기순서
   const orderMap: Record<string, number> = {};
@@ -710,6 +716,27 @@ export default function OverlayEditor({ form }: Props) {
                 {FONT_OPTIONS.map((s) => (
                   <MenuItem key={s} value={String(s)}>
                     {s}px
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
+          </Tooltip>
+
+          <Tooltip title="선택한 컴포넌트를 다른 페이지로 이동">
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <LayersOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Select
+                size="small"
+                displayEmpty
+                value={currentPage === '' ? '' : String(currentPage)}
+                disabled={!hasSelection || pages.length <= 1}
+                onChange={(e) => moveSelectedToPage(Number(e.target.value))}
+                sx={{ minWidth: 108 }}
+                renderValue={(v) => (v !== '' ? `${Number(v) + 1}페이지` : '페이지 이동')}
+              >
+                {pages.map((_, i) => (
+                  <MenuItem key={i} value={String(i)}>
+                    {i + 1}페이지로 이동
                   </MenuItem>
                 ))}
               </Select>
@@ -864,6 +891,7 @@ export default function OverlayEditor({ form }: Props) {
           여러 개 선택 시 <b>정렬·크기 맞춤</b>(기준=마지막 선택), <b>방향키</b> 이동, <b>Delete</b> 삭제,
           <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소. 각 필드의 <b>번호=답변 순서</b>이며,
           여러 개를 선택해 <b>새 섹션으로 묶으면</b> 모바일에서 섹션(단계)별로 나뉘어 표시됩니다.
+          선택 후 상단 <b>페이지 이동</b>으로 다른 페이지로 옮길 수 있습니다.
         </Typography>
       </Paper>
 

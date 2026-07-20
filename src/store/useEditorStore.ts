@@ -118,6 +118,8 @@ interface EditorState {
   setFontSizeForSelected: (fontSize: number) => void;
   /** 빈 캔버스 페이지 추가(여러 페이지 문진) */
   addBlankPage: () => void;
+  /** 선택된 오버레이 필드를 다른 페이지로 이동(위치·크기는 유지) */
+  moveSelectedToPage: (pageIndex: number) => void;
   /**
    * 다중 선택한 필드를 마지막 선택(기준)에 맞춰 정렬/크기 통일.
    * left/right/top/bottom/centerX/centerY = 정렬, matchW/matchH/matchSize = 크기 맞춤
@@ -697,6 +699,27 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
       return {
         form: { ...st.form, pages: [...(st.form.pages ?? []), page], updatedAt: new Date().toISOString() },
+        dirty: true,
+      };
+    }),
+
+  moveSelectedToPage: (pageIndex) =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const pages = st.form.pages ?? [];
+      if (pageIndex < 0 || pageIndex >= pages.length) return st;
+      const ids = new Set(st.selectedIds);
+      return {
+        form: mapSections(st.form, (secs) =>
+          secs.map((s) => ({
+            ...s,
+            questions: s.questions.map((q) =>
+              ids.has(q.id) && q.overlay
+                ? { ...q, overlay: { ...q.overlay, page: pageIndex } }
+                : q,
+            ),
+          })),
+        ),
         dirty: true,
       };
     }),
