@@ -274,7 +274,6 @@ function PageOverlay({
   const defaultSize = (type: QuestionType): { w: number; h: number } => {
     switch (type) {
       case 'boolean':
-      case 'radio':
         return { w: 4, h: squareH(4) };
       case 'textarea':
         return { w: 26, h: 10 };

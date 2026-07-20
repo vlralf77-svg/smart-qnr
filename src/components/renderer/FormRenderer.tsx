@@ -1,6 +1,6 @@
 // 발행 스키마를 응답 화면으로 렌더 (§4.4 QNR004) — 에디터 미리보기에도 재사용
 import { useForm } from 'react-hook-form';
-import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material';
+import { Box, Button, Divider, Paper, Stack, Typography, useMediaQuery } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/ko';
@@ -8,6 +8,7 @@ import { AnswerValue, FormSchema, isOverlayForm } from '@/types/schema';
 import { isQuestionVisible } from '@/utils/conditions';
 import SectionQuestions from './SectionQuestions';
 import OverlayRenderer from './OverlayRenderer';
+import MobileWizard from './MobileWizard';
 
 interface Props {
   schema: FormSchema;
@@ -31,6 +32,7 @@ export default function FormRenderer({
     control,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<Record<string, unknown>>({ mode: 'onBlur', defaultValues });
 
@@ -41,6 +43,27 @@ export default function FormRenderer({
   });
 
   const overlay = isOverlayForm(schema);
+  // 모바일/태블릿(<768px)에서는 스크롤 대신 섹션 기반 위저드로 표시
+  const isMobile = useMediaQuery('(max-width:767px)');
+
+  // 모바일: 섹션 기반 위저드 (오버레이/캔버스/일반 섹션 모두 QuestionField로 표시)
+  if (isMobile) {
+    return (
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
+        <Box component="form" onSubmit={submit} noValidate>
+          <MobileWizard
+            schema={schema}
+            control={control}
+            errors={errors}
+            trigger={trigger}
+            onSubmit={submit}
+            preview={preview}
+            submitLabel={submitLabel}
+          />
+        </Box>
+      </LocalizationProvider>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">

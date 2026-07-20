@@ -67,8 +67,8 @@ export default function QuestionField({ question: q, control, errors }: Props) {
       const options: QuestionOption[] =
         q.type === 'boolean'
           ? [
-              { id: 'y', label: '예', value: 'yes' },
-              { id: 'n', label: '아니오', value: 'no' },
+              { id: 'y', label: '예', value: 'true' },
+              { id: 'n', label: '아니오', value: 'false' },
             ]
           : withEtc(q.options ?? [], q.allowEtc);
       return (
