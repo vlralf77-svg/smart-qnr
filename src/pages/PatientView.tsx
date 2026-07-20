@@ -93,8 +93,17 @@ export default function PatientView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
-  const questions = form ? form.sections.flatMap((s) => s.questions) : [];
   const answers = response?.answers ?? {};
+  // 섹션 순서대로 전체 질문 번호 매김(안내문 제외)
+  const qNo: Record<string, number> = {};
+  if (form) {
+    let n = 0;
+    form.sections.forEach((s) =>
+      s.questions.forEach((q) => {
+        if (q.type !== 'info') qNo[q.id] = ++n;
+      }),
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -137,44 +146,92 @@ export default function PatientView() {
             </Typography>
             <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={2}>
-              {questions
-                .filter((q) => q.type !== 'info')
-                .map((q, i) => {
-                  const ans = formatAnswer(q, answers[q.id] ?? null);
-                  const unanswered = ans === '(미응답)';
-                  return (
-                    <Box
-                      key={q.id}
-                      sx={{ pl: 1.5, borderLeft: '3px solid', borderColor: 'secondary.main' }}
-                    >
-                      {/* 질문: 번호 + 굵은 라벨 */}
-                      <Typography variant="subtitle2" fontWeight={700} color="text.primary">
-                        {i + 1}. {q.label}
+            <Stack spacing={2.5}>
+              {form.sections.map((section) => {
+                const qs = section.questions.filter((q) => q.type !== 'info');
+                if (qs.length === 0) return null;
+                return (
+                  <Box
+                    key={section.id}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* 섹션명 헤더 */}
+                    <Box sx={{ px: 2, py: 1.2, bgcolor: 'secondary.main', color: '#fff' }}>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        {section.title}
                       </Typography>
-                      {/* 답변: 강조 박스 안에 굵게(미응답은 흐린 이탤릭) */}
-                      <Box
-                        sx={{
-                          mt: 0.5,
-                          px: 1.5,
-                          py: 1,
-                          bgcolor: 'action.hover',
-                          borderRadius: 1.5,
-                        }}
-                      >
-                        <Typography
-                          variant="body1"
-                          fontWeight={unanswered ? 400 : 700}
-                          color={unanswered ? 'text.disabled' : 'text.primary'}
-                          fontStyle={unanswered ? 'italic' : 'normal'}
-                          sx={{ whiteSpace: 'pre-wrap' }}
-                        >
-                          {ans}
-                        </Typography>
-                      </Box>
                     </Box>
-                  );
-                })}
+
+                    {/* 섹션 내 질문·답변 */}
+                    <Stack divider={<Divider flexItem />} sx={{ p: 0 }}>
+                      {qs.map((q) => {
+                        const ans = formatAnswer(q, answers[q.id] ?? null);
+                        const unanswered = ans === '(미응답)';
+                        return (
+                          <Box key={q.id} sx={{ px: 2, py: 1.5 }}>
+                            {/* 질문 */}
+                            <Stack direction="row" spacing={1} alignItems="flex-start">
+                              <Box
+                                sx={{
+                                  minWidth: 22,
+                                  height: 22,
+                                  px: 0.5,
+                                  borderRadius: '11px',
+                                  bgcolor: 'secondary.main',
+                                  color: '#fff',
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  lineHeight: '22px',
+                                  textAlign: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {qNo[q.id]}
+                              </Box>
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={700}
+                                color="text.primary"
+                                sx={{ mt: '1px' }}
+                              >
+                                {q.label}
+                              </Typography>
+                            </Stack>
+                            {/* 답변 */}
+                            <Box
+                              sx={{
+                                mt: 0.75,
+                                ml: '30px',
+                                px: 1.5,
+                                py: 1,
+                                bgcolor: 'action.hover',
+                                borderLeft: '3px solid',
+                                borderColor: unanswered ? 'divider' : 'primary.main',
+                                borderRadius: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="body1"
+                                fontWeight={unanswered ? 400 : 700}
+                                color={unanswered ? 'text.disabled' : 'text.primary'}
+                                fontStyle={unanswered ? 'italic' : 'normal'}
+                                sx={{ whiteSpace: 'pre-wrap' }}
+                              >
+                                {ans}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Box>
+                );
+              })}
             </Stack>
           </Paper>
         )}
