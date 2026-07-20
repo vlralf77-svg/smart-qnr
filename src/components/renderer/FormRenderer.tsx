@@ -14,15 +14,25 @@ interface Props {
   /** true면 미리보기(제출 버튼 비활성/숨김) */
   preview?: boolean;
   onSubmit?: (answers: Record<string, AnswerValue>) => void;
+  /** 기존 응답으로 미리 채우기(수정 모드) */
+  defaultValues?: Record<string, unknown>;
+  /** 제출 버튼 라벨 */
+  submitLabel?: string;
 }
 
-export default function FormRenderer({ schema, preview = false, onSubmit }: Props) {
+export default function FormRenderer({
+  schema,
+  preview = false,
+  onSubmit,
+  defaultValues,
+  submitLabel,
+}: Props) {
   const {
     control,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<Record<string, unknown>>({ mode: 'onBlur' });
+  } = useForm<Record<string, unknown>>({ mode: 'onBlur', defaultValues });
 
   const answers = watch() as Record<string, AnswerValue>;
 
@@ -69,7 +79,7 @@ export default function FormRenderer({ schema, preview = false, onSubmit }: Prop
 
           {!preview && (
             <Button type="submit" variant="contained" size="large" fullWidth>
-              제출하기
+              {submitLabel ?? '제출하기'}
             </Button>
           )}
         </Stack>

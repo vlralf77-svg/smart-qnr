@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EditIcon from '@mui/icons-material/Edit';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -106,6 +107,16 @@ export default function PatientView() {
           >
             목록
           </Button>
+          <Box sx={{ flex: 1 }} />
+          {response && (
+            <Button
+              color="inherit"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/patient/respond/${formId}`)}
+            >
+              수정
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 

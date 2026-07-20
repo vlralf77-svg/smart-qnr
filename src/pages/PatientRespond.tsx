@@ -26,7 +26,12 @@ export default function PatientRespond() {
   const navigate = useNavigate();
   const patientNo = usePatientStore((s) => s.patientNo);
   const localForms = useFormsStore((s) => s.forms);
+  const localResponses = useFormsStore((s) => s.responses);
   const [form, setForm] = useState<FormSchema | undefined>();
+  // 기존 응답(있으면 수정 모드)
+  const [prev, setPrev] = useState<{ responseId: string; answers: Record<string, AnswerValue> } | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
 
@@ -41,8 +46,21 @@ export default function PatientRespond() {
         } catch {
           if (!cancelled) setForm(undefined);
         }
+        try {
+          const list = patientNo ? await api.publicMyResponses(patientNo) : [];
+          const r = list
+            .filter((x) => x.formId === formId)
+            .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0];
+          if (!cancelled && r) setPrev({ responseId: r.responseId, answers: r.answers ?? {} });
+        } catch {
+          /* 무시 */
+        }
       } else {
         setForm(localForms.find((f) => f.id === formId && f.testFlag));
+        const r = localResponses
+          .filter((x) => x.formId === formId && x.patientId === patientNo)
+          .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0];
+        if (r) setPrev({ responseId: r.responseId, answers: r.answers ?? {} });
       }
       if (!cancelled) setLoading(false);
     })();
@@ -55,7 +73,8 @@ export default function PatientRespond() {
   const handleSubmit = async (answers: Record<string, AnswerValue>) => {
     if (!form) return;
     const response = {
-      responseId: uid('resp'),
+      // 수정이면 기존 응답 id 로 갱신, 아니면 새로 발급
+      responseId: prev?.responseId ?? uid('resp'),
       formId: form.id,
       formVersion: form.version,
       patientId: patientNo ?? undefined,
@@ -108,7 +127,12 @@ export default function PatientRespond() {
           </Paper>
         ) : (
           <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-            <FormRenderer schema={form} onSubmit={handleSubmit} />
+            <FormRenderer
+              schema={form}
+              onSubmit={handleSubmit}
+              defaultValues={prev?.answers}
+              submitLabel={prev ? '수정 완료' : '제출하기'}
+            />
           </Paper>
         )}
       </Container>
