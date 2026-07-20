@@ -142,7 +142,7 @@ export default function PatientView() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="md" sx={{ py: { xs: 2, sm: 3 } }}>
         {loading ? (
           <Typography color="text.secondary">불러오는 중…</Typography>
         ) : !form ? (
@@ -159,7 +159,8 @@ export default function PatientView() {
             </Typography>
             <Divider sx={{ my: 2 }} />
 
-            <Stack spacing={2.5}>
+            {/* PC 는 2단(masonry)으로 한번에 더 많이 보이게, 모바일은 1단 */}
+            <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 2.5 }}>
               {form.sections.map((section, si) => {
                 const qs = section.questions.filter((q) => q.type !== 'info');
                 if (qs.length === 0) return null;
@@ -172,6 +173,8 @@ export default function PatientView() {
                       borderColor: pal.accent,
                       borderRadius: 2,
                       overflow: 'hidden',
+                      breakInside: 'avoid',
+                      mb: 2.5,
                     }}
                   >
                     {/* 섹션명 헤더(섹션별 파스텔 배경) */}
@@ -255,7 +258,7 @@ export default function PatientView() {
                   </Box>
                 );
               })}
-            </Stack>
+            </Box>
           </Paper>
         )}
       </Container>
