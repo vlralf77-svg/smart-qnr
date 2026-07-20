@@ -132,6 +132,7 @@ export default function PatientRespond() {
               onSubmit={handleSubmit}
               defaultValues={prev?.answers}
               submitLabel={prev ? '수정 완료' : '제출하기'}
+              allowSubmitAnywhere={!!prev}
             />
           </Paper>
         )}

@@ -17,6 +17,8 @@ interface Props {
   defaultValues?: Record<string, unknown>;
   /** 제출 버튼 라벨 */
   submitLabel?: string;
+  /** true면 마지막 단계까지 안 가도 어느 단계에서나 완료(제출) 가능 — 수정모드용 */
+  allowSubmitAnywhere?: boolean;
 }
 
 export default function FormRenderer({
@@ -25,6 +27,7 @@ export default function FormRenderer({
   onSubmit,
   defaultValues,
   submitLabel,
+  allowSubmitAnywhere,
 }: Props) {
   const {
     control,
@@ -48,6 +51,7 @@ export default function FormRenderer({
           onSubmit={submit}
           preview={preview}
           submitLabel={submitLabel}
+          allowSubmitAnywhere={allowSubmitAnywhere}
         />
       </Box>
     </LocalizationProvider>

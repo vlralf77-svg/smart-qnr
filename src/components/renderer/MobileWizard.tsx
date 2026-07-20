@@ -41,6 +41,8 @@ interface Props {
   onSubmit: () => void;
   preview?: boolean;
   submitLabel?: string;
+  /** true면 마지막 단계가 아니어도 어느 단계에서나 완료(제출) 가능 — 수정모드용 */
+  allowSubmitAnywhere?: boolean;
 }
 
 export default function MobileWizard({
@@ -51,6 +53,7 @@ export default function MobileWizard({
   onSubmit,
   preview,
   submitLabel,
+  allowSubmitAnywhere,
 }: Props) {
   const steps = useMemo(() => buildSteps(schema), [schema]);
   const [step, setStep] = useState(0);
@@ -154,6 +157,21 @@ export default function MobileWizard({
           )
         )}
       </Stack>
+
+      {/* 수정모드: 마지막 단계가 아니어도 바로 완료(제출) 가능 */}
+      {allowSubmitAnywhere && !preview && !isLast && (
+        <Button
+          key="finish"
+          type="button"
+          variant="outlined"
+          color="secondary"
+          size="large"
+          fullWidth
+          onClick={onSubmit}
+        >
+          {submitLabel ?? '완료'}
+        </Button>
+      )}
     </Stack>
   );
 }
