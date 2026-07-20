@@ -140,16 +140,41 @@ export default function PatientView() {
             <Stack spacing={2}>
               {questions
                 .filter((q) => q.type !== 'info')
-                .map((q) => (
-                  <Box key={q.id}>
-                    <Typography variant="body2" fontWeight={700} color="text.secondary">
-                      {q.label}
-                    </Typography>
-                    <Typography variant="body1" sx={{ mt: 0.3, whiteSpace: 'pre-wrap' }}>
-                      {formatAnswer(q, answers[q.id] ?? null)}
-                    </Typography>
-                  </Box>
-                ))}
+                .map((q, i) => {
+                  const ans = formatAnswer(q, answers[q.id] ?? null);
+                  const unanswered = ans === '(미응답)';
+                  return (
+                    <Box
+                      key={q.id}
+                      sx={{ pl: 1.5, borderLeft: '3px solid', borderColor: 'secondary.main' }}
+                    >
+                      {/* 질문: 번호 + 굵은 라벨 */}
+                      <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                        {i + 1}. {q.label}
+                      </Typography>
+                      {/* 답변: 강조 박스 안에 굵게(미응답은 흐린 이탤릭) */}
+                      <Box
+                        sx={{
+                          mt: 0.5,
+                          px: 1.5,
+                          py: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body1"
+                          fontWeight={unanswered ? 400 : 700}
+                          color={unanswered ? 'text.disabled' : 'text.primary'}
+                          fontStyle={unanswered ? 'italic' : 'normal'}
+                          sx={{ whiteSpace: 'pre-wrap' }}
+                        >
+                          {ans}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
             </Stack>
           </Paper>
         )}
