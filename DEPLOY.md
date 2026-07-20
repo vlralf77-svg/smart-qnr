@@ -1,23 +1,32 @@
-# SmartQnR 서버 배포 (Docker)
+# SmartQnR 서버 실행 (Docker) — 내 PC 로컬 & 서버 공통
 
 DB(PostgreSQL) + WAS(Spring Boot·내장 Tomcat) + 웹서버(nginx) 3계층을
-Docker Compose 로 한 번에 띄웁니다.
+Docker Compose 로 한 번에 띄웁니다. **서버가 아니라 내 PC(Windows/Mac)에서도
+Docker Desktop 만 있으면 그대로 로컬 실행됩니다.**
 
 ```
 브라우저 ──▶ web(nginx :8081) ──┬─ 정적 프론트(React)
                                 └─ /api/* ──▶ backend(WAS :8080) ──▶ db(PostgreSQL :5432)
 ```
 
-## 빠른 시작
+## 내 PC에서 로컬 실행 (Docker Desktop)
 
-```bash
-cp .env.example .env          # 값 수정(비밀번호·JWT_SECRET 등)
-docker compose up -d --build  # db + backend + web 빌드·기동
-```
+1. **Docker Desktop** 설치·실행: https://www.docker.com/products/docker-desktop/
+2. 아래 중 하나로 기동:
+   - **Windows**: `start-local.bat` 더블클릭 (중지: `stop-local.bat`)
+   - **Mac/Linux**: `./start-local.sh` (중지: `./stop-local.sh`)
+   - 또는 수동:
+     ```bash
+     cp .env.example .env          # 값 수정(비밀번호·JWT_SECRET 등)
+     docker compose up -d --build  # db + backend + web 빌드·기동
+     ```
+3. 접속:
+   - 웹: http://localhost:8081  (프론트 + /api 프록시)
+   - API 직접: http://localhost:8080/api
+   - 로그인: `admin` / `lit123qwe!`
 
-- 웹: http://localhost:8081  (프론트 + /api 프록시)
-- API 직접: http://localhost:8080/api
-- 최초 기동 시 백엔드가 테이블(`forms`, `form_responses`)을 자동 생성합니다.
+최초 기동 시 백엔드가 테이블(`forms`, `form_responses`)을 자동 생성합니다.
+(첫 빌드는 이미지 다운로드·빌드로 몇 분 걸릴 수 있고, 이후엔 캐시로 빠릅니다.)
 
 중지/재시작:
 ```bash
