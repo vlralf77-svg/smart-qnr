@@ -49,19 +49,30 @@ export default function FormEditor() {
   } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
-  const { getForm, saveForm, publishForm } = useFormsStore();
+  const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
   const [toast, setToast] = useState('');
 
-  // 진입 시 폼 로드
+  // 진입 시 폼 로드 (백엔드 모드면 캐시에 없을 때 서버에서 단건 조회)
   useEffect(() => {
+    let cancelled = false;
     if (formId && formId !== 'new') {
       const existing = getForm(formId);
-      if (existing) loadForm(existing);
-      else navigate('/');
+      if (existing) {
+        loadForm(existing);
+      } else {
+        fetchForm(formId).then((f) => {
+          if (cancelled) return;
+          if (f) loadForm(f);
+          else navigate('/');
+        });
+      }
     } else {
       newForm();
     }
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
@@ -130,15 +141,23 @@ export default function FormEditor() {
         ?.questions.find((q) => q.id === selected.questionId)
     : undefined;
 
-  const handleSave = () => {
-    saveForm(form);
-    setToast('저장되었습니다');
+  const handleSave = async () => {
+    try {
+      await saveForm(form);
+      setToast('저장되었습니다');
+    } catch (e) {
+      setToast('저장 실패: ' + (e as Error).message);
+    }
   };
 
-  const handlePublish = () => {
-    saveForm(form);
-    publishForm(form.id);
-    setToast('발행되었습니다 (응답 화면에서 확인 가능)');
+  const handlePublish = async () => {
+    try {
+      await saveForm(form);
+      await publishForm(form.id);
+      setToast('발행되었습니다 (응답 화면에서 확인 가능)');
+    } catch (e) {
+      setToast('발행 실패: ' + (e as Error).message);
+    }
   };
 
   return (

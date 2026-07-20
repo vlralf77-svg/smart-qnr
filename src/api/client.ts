@@ -6,13 +6,19 @@
 //   await api.saveForm(schema);
 import { FormResponse, FormSchema } from '@/types/schema';
 
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(
+// 빈 문자열이면 같은 오리진('/api' 상대경로) — nginx 가 백엔드로 프록시.
+export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '').replace(
   /\/$/,
   '',
 );
 
-/** 백엔드 연동 사용 여부 (env 미설정 시 false → 프론트는 localStorage 로 동작) */
-export const isBackendEnabled = !!API_BASE;
+/**
+ * 백엔드 연동 사용 여부.
+ * - VITE_USE_BACKEND=1 이면 API 사용(도커 웹 빌드).
+ * - 미설정이면 false → 프론트는 localStorage 로 동작(데스크톱 오프라인).
+ */
+export const isBackendEnabled =
+  import.meta.env.VITE_USE_BACKEND === '1' || import.meta.env.VITE_USE_BACKEND === 'true';
 
 const TOKEN_KEY = 'smartqnr.token';
 
@@ -34,7 +40,7 @@ function setToken(t: string | null) {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!API_BASE) throw new Error('VITE_API_BASE_URL 이 설정되지 않았습니다.');
+  if (!isBackendEnabled) throw new Error('백엔드 연동이 비활성화되어 있습니다.');
   const headers = new Headers(init.headers);
   headers.set('Content-Type', 'application/json');
   const token = getToken();

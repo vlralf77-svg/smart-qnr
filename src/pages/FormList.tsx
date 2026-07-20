@@ -1,5 +1,5 @@
 // QNR001 문진 목록
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -41,9 +41,15 @@ const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success'
 
 export default function FormList() {
   const navigate = useNavigate();
-  const { forms, saveForm, deleteForm } = useFormsStore();
+  const { forms, saveForm, deleteForm, refreshForms } = useFormsStore();
   const logout = useAuthStore((s) => s.logout);
   const [query, setQuery] = useState('');
+
+  // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
+  useEffect(() => {
+    refreshForms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -56,7 +62,9 @@ export default function FormList() {
   );
 
   const seedSample = () => {
-    saveForm({ ...SAMPLE_FORM, id: `${SAMPLE_FORM.id}_${Date.now().toString(36)}` });
+    void saveForm({ ...SAMPLE_FORM, id: `${SAMPLE_FORM.id}_${Date.now().toString(36)}` }).catch(
+      () => {},
+    );
   };
 
   return (
@@ -194,7 +202,10 @@ export default function FormList() {
                           </span>
                         </Tooltip>
                         <Tooltip title="삭제">
-                          <IconButton size="small" onClick={() => deleteForm(f.id)}>
+                          <IconButton
+                            size="small"
+                            onClick={() => void deleteForm(f.id).catch(() => {})}
+                          >
                             <DeleteOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>

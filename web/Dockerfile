@@ -10,6 +10,8 @@ COPY . .
 # 브라우저에서 API 를 같은 오리진(/api)으로 호출 (nginx 가 백엔드로 프록시)
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+# 웹 빌드는 백엔드 연동 활성화(데스크톱 .exe 는 미설정 → localStorage)
+ENV VITE_USE_BACKEND=1
 RUN npm run build
 
 FROM nginx:1.27-alpine

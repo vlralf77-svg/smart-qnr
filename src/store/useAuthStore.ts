@@ -1,9 +1,10 @@
-// 관리 프로그램 로그인 게이트 (간단한 실행 잠금)
-// 주의: 자격증명이 클라이언트 코드에 포함되므로 강력한 인증이 아닙니다.
-// 내부 관리용 데스크톱 앱의 단순 접근 제한 용도입니다.
+// 관리 프로그램 로그인 게이트
+// - 백엔드 연동 시: 서버 /api/auth/login 으로 인증(JWT 발급).
+// - 오프라인(데스크톱): 고정 자격증명으로 간단 잠금.
 import { create } from 'zustand';
+import { api, isBackendEnabled } from '@/api/client';
 
-// 고정 자격증명 (요청 사양)
+// 오프라인 모드용 고정 자격증명 (요청 사양)
 const FIXED_ID = 'admin';
 const FIXED_PW = 'lit123qwe!';
 
@@ -21,24 +22,43 @@ function readAuthed(): boolean {
 interface AuthState {
   authed: boolean;
   error: string;
-  login: (id: string, pw: string) => boolean;
+  busy: boolean;
+  login: (id: string, pw: string) => Promise<boolean>;
   logout: () => void;
+}
+
+function markAuthed() {
+  try {
+    sessionStorage.setItem(SESSION_KEY, '1');
+  } catch {
+    /* 무시 */
+  }
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   authed: readAuthed(),
   error: '',
-  login: (id, pw) => {
-    if (id === FIXED_ID && pw === FIXED_PW) {
+  busy: false,
+  login: async (id, pw) => {
+    set({ busy: true, error: '' });
+    if (isBackendEnabled) {
       try {
-        sessionStorage.setItem(SESSION_KEY, '1');
-      } catch {
-        /* 무시 */
+        await api.login(id, pw); // 성공 시 토큰 저장
+        markAuthed();
+        set({ authed: true, error: '', busy: false });
+        return true;
+      } catch (e) {
+        set({ error: (e as Error).message || '로그인에 실패했습니다.', busy: false });
+        return false;
       }
-      set({ authed: true, error: '' });
+    }
+    // 오프라인 모드: 고정 자격증명
+    if (id === FIXED_ID && pw === FIXED_PW) {
+      markAuthed();
+      set({ authed: true, error: '', busy: false });
       return true;
     }
-    set({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    set({ error: '아이디 또는 비밀번호가 올바르지 않습니다.', busy: false });
     return false;
   },
   logout: () => {
@@ -47,6 +67,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       /* 무시 */
     }
+    if (isBackendEnabled) api.logout();
     set({ authed: false, error: '' });
   },
 }));

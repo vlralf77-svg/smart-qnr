@@ -1,5 +1,5 @@
 // QNR004 응답 화면 (환자용, 웹/모바일 공용)
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Box, Button, Container, Paper, Stack, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -11,10 +11,16 @@ import FormRenderer from '@/components/renderer/FormRenderer';
 export default function ResponseForm() {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { getForm, addResponse } = useFormsStore();
+  const addResponse = useFormsStore((s) => s.addResponse);
+  const fetchForm = useFormsStore((s) => s.fetchForm);
+  const form = useFormsStore((s) => s.forms.find((f) => f.id === formId));
   const [submitted, setSubmitted] = useState(false);
 
-  const form = useMemo(() => (formId ? getForm(formId) : undefined), [formId, getForm]);
+  // 백엔드 모드에서 캐시에 없으면 서버에서 단건 조회
+  useEffect(() => {
+    if (formId && !form) fetchForm(formId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formId]);
 
   if (!form) {
     return (
@@ -38,16 +44,20 @@ export default function ResponseForm() {
     );
   }
 
-  const handleSubmit = (answers: Record<string, AnswerValue>) => {
-    addResponse({
-      responseId: uid('resp'),
-      formId: form.id,
-      formVersion: form.version,
-      submittedAt: new Date().toISOString(),
-      answers,
-    });
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleSubmit = async (answers: Record<string, AnswerValue>) => {
+    try {
+      await addResponse({
+        responseId: uid('resp'),
+        formId: form.id,
+        formVersion: form.version,
+        submittedAt: new Date().toISOString(),
+        answers,
+      });
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      /* 제출 실패 시 화면 유지 */
+    }
   };
 
   return (

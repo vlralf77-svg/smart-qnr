@@ -32,9 +32,9 @@ export default function Login() {
 
   const from = (location.state as LocationState | null)?.from ?? '/';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(id.trim(), pw)) navigate(from, { replace: true });
+    if (await login(id.trim(), pw)) navigate(from, { replace: true });
   };
 
   return (

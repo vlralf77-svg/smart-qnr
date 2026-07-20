@@ -45,9 +45,14 @@ export default function UploadConvert() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [text, setText] = useState('');
 
-  const openInEditor = (schema: ReturnType<typeof createEmptyForm>, warn: string[]) => {
+  const openInEditor = async (schema: ReturnType<typeof createEmptyForm>, warn: string[]) => {
     setWarnings(warn);
-    saveForm(schema);
+    try {
+      await saveForm(schema);
+    } catch (e) {
+      setError('저장 실패: ' + (e as Error).message);
+      return;
+    }
     loadForm(schema);
     navigate(`/editor/${schema.id}`);
   };
@@ -61,7 +66,7 @@ export default function UploadConvert() {
       setProgress(`"${file.name}" 페이지 렌더링 및 필드 자동 배치 중…`);
       const data = await file.arrayBuffer();
       const { schema, pageCount, fieldCount } = await pdfToOverlayForm(data, file.name);
-      openInEditor(schema, [
+      await openInEditor(schema, [
         `${pageCount}개 페이지, 필드 ${fieldCount}개 자동 배치됨 — 위치·유형을 확인·조정하세요`,
       ]);
     } catch (e) {
@@ -86,7 +91,7 @@ export default function UploadConvert() {
       });
       try {
         const { schema, warnings } = parseLlmSchemaText(schemaText);
-        openInEditor(schema, warnings);
+        await openInEditor(schema, warnings);
       } catch {
         const fb = createEmptyForm(`${file.name} (변환 초안)`);
         fb.sections[0].questions.push({
@@ -94,7 +99,7 @@ export default function UploadConvert() {
           type: 'info',
           label: '자동 변환에 실패하여 원문을 그대로 담았습니다. 아래 내용을 참고해 문항을 직접 구성하세요.\n\n' + rawText.slice(0, 4000),
         });
-        openInEditor(fb, ['변환 결과 파싱 실패 → 원문 기반 빈 문진으로 폴백']);
+        await openInEditor(fb, ['변환 결과 파싱 실패 → 원문 기반 빈 문진으로 폴백']);
       }
     } catch (e) {
       setError('변환 실패: ' + (e as Error).message);
@@ -105,11 +110,11 @@ export default function UploadConvert() {
   };
 
   // JSON 임포트 (웹/데스크톱 공통)
-  const handleImport = () => {
+  const handleImport = async () => {
     setError('');
     try {
       const { schema, warnings } = parseLlmSchemaText(text);
-      openInEditor(schema, warnings);
+      await openInEditor(schema, warnings);
     } catch (e) {
       setError('JSON 파싱 실패: ' + (e as Error).message);
     }
