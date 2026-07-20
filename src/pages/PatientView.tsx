@@ -6,8 +6,8 @@ import {
   AppBar,
   Box,
   Button,
+  Chip,
   Container,
-  Divider,
   Paper,
   Stack,
   Toolbar,
@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
 import { api, isBackendEnabled } from '@/api/client';
@@ -151,103 +152,145 @@ export default function PatientView() {
         ) : !response ? (
           <Alert severity="warning">아직 작성한 내용이 없습니다.</Alert>
         ) : (
-          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="h6" fontWeight={700}>
-              {form.title}
-            </Typography>
-            <Typography variant="caption" color="success.main">
-              작성완료 · {fmtDate(response.submittedAt)} · 환자 {response.patientId}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
+          <>
+            {/* 헤더(hero) */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: -0.2 }}>
+                {form.title}
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+                useFlexGap
+                sx={{ mt: 1.2 }}
+              >
+                <Chip
+                  size="small"
+                  color="success"
+                  icon={<CheckCircleOutlineIcon />}
+                  label="작성완료"
+                  sx={{ fontWeight: 700 }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  {fmtDate(response.submittedAt)}
+                </Typography>
+                <Typography variant="body2" color="text.disabled">
+                  ·
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  환자 {response.patientId}
+                </Typography>
+              </Stack>
+            </Box>
 
-            {/* PC 는 2단(masonry)으로 한번에 더 많이 보이게, 모바일은 1단 */}
+            {/* 섹션 카드 — PC 2단(masonry), 모바일 1단 */}
             <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 2.5 }}>
               {form.sections.map((section, si) => {
                 const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
                 if (qs.length === 0) return null;
                 const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
                 return (
-                  <Box
+                  <Paper
                     key={section.id}
+                    elevation={0}
                     sx={{
-                      border: '1px solid',
-                      borderColor: pal.accent,
-                      borderRadius: 2,
+                      borderRadius: 3,
                       overflow: 'hidden',
+                      border: '1px solid',
+                      borderColor: 'divider',
                       breakInside: 'avoid',
                       mb: 2.5,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                     }}
                   >
-                    {/* 섹션명 헤더(섹션별 파스텔 배경) */}
+                    {/* 섹션 헤더 */}
                     <Box
                       sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
                         px: 2,
-                        py: 1.2,
+                        py: 1.4,
                         bgcolor: pal.header,
-                        color: pal.text,
-                        borderBottom: '1px solid',
-                        borderColor: pal.accent,
                       }}
                     >
-                      <Typography variant="subtitle2" fontWeight={700}>
+                      <Box
+                        sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: pal.text, flexShrink: 0 }}
+                      />
+                      <Typography
+                        variant="subtitle2"
+                        fontWeight={800}
+                        sx={{ color: pal.text, letterSpacing: 0.2 }}
+                      >
                         {section.title}
+                      </Typography>
+                      <Box sx={{ flex: 1 }} />
+                      <Typography variant="caption" sx={{ color: pal.text, opacity: 0.75 }}>
+                        {qs.length}문항
                       </Typography>
                     </Box>
 
-                    {/* 섹션 내 질문·답변 */}
-                    <Stack divider={<Divider flexItem />} sx={{ p: 0 }}>
-                      {qs.map((q) => {
+                    {/* 질문·답변 목록 */}
+                    <Box>
+                      {qs.map((q, idx) => {
                         const ans = formatAnswer(q, answers[q.id] ?? null);
                         const unanswered = ans === '(미응답)';
                         return (
-                          <Box key={q.id} sx={{ px: 2, py: 1.5 }}>
-                            {/* 질문 */}
-                            <Stack direction="row" spacing={1} alignItems="flex-start">
-                              <Box
-                                sx={{
-                                  minWidth: 22,
-                                  height: 22,
-                                  px: 0.5,
-                                  borderRadius: '11px',
-                                  bgcolor: pal.text,
-                                  color: '#fff',
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  lineHeight: '22px',
-                                  textAlign: 'center',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {qNo[q.id]}
-                              </Box>
+                          <Box
+                            key={q.id}
+                            sx={{
+                              display: 'flex',
+                              gap: 1.5,
+                              px: 2,
+                              py: 1.5,
+                              borderTop: idx === 0 ? 'none' : '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            {/* 번호 */}
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontSize: 12.5,
+                                fontWeight: 800,
+                                color: pal.text,
+                                minWidth: 16,
+                                textAlign: 'right',
+                                mt: '2px',
+                                flexShrink: 0,
+                                fontVariantNumeric: 'tabular-nums',
+                              }}
+                            >
+                              {qNo[q.id]}
+                            </Typography>
+                            {/* 라벨(질문) + 값(답변) */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography
-                                variant="subtitle2"
-                                fontWeight={700}
-                                color="text.primary"
-                                sx={{ mt: '1px' }}
+                                variant="caption"
+                                sx={{
+                                  display: 'block',
+                                  color: 'text.secondary',
+                                  fontWeight: 600,
+                                  letterSpacing: 0.2,
+                                }}
                               >
                                 {q.label}
                               </Typography>
-                            </Stack>
-                            {/* 답변 */}
-                            <Box
-                              sx={{
-                                mt: 0.75,
-                                ml: '30px',
-                                px: 1.5,
-                                py: 1,
-                                bgcolor: unanswered ? 'action.hover' : pal.header,
-                                borderLeft: '3px solid',
-                                borderColor: unanswered ? 'divider' : pal.accent,
-                                borderRadius: 1,
-                              }}
-                            >
                               <Typography
                                 variant="body1"
-                                fontWeight={unanswered ? 400 : 700}
-                                color={unanswered ? 'text.disabled' : 'text.primary'}
-                                fontStyle={unanswered ? 'italic' : 'normal'}
-                                sx={{ whiteSpace: 'pre-wrap' }}
+                                sx={{
+                                  mt: 0.4,
+                                  pl: 1.25,
+                                  borderLeft: '2px solid',
+                                  borderColor: unanswered ? 'transparent' : pal.accent,
+                                  fontWeight: unanswered ? 400 : 600,
+                                  color: unanswered ? 'text.disabled' : 'text.primary',
+                                  fontStyle: unanswered ? 'italic' : 'normal',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word',
+                                }}
                               >
                                 {ans}
                               </Typography>
@@ -255,12 +298,12 @@ export default function PatientView() {
                           </Box>
                         );
                       })}
-                    </Stack>
-                  </Box>
+                    </Box>
+                  </Paper>
                 );
               })}
             </Box>
-          </Paper>
+          </>
         )}
       </Container>
     </Box>
