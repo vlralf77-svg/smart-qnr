@@ -24,6 +24,8 @@ import NotesIcon from '@mui/icons-material/Notes';
 import NumbersIcon from '@mui/icons-material/Numbers';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ArrowDropDownCircleOutlinedIcon from '@mui/icons-material/ArrowDropDownCircleOutlined';
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import NearMeOutlinedIcon from '@mui/icons-material/NearMeOutlined';
 import FormatSizeIcon from '@mui/icons-material/FormatSize';
@@ -46,6 +48,8 @@ const PALETTE: { type: QuestionType; label: string; icon: React.ReactNode }[] = 
   { type: 'number', label: '숫자', icon: <NumbersIcon sx={{ fontSize: 16 }} /> },
   { type: 'date', label: '날짜', icon: <CalendarMonthIcon sx={{ fontSize: 16 }} /> },
   { type: 'boolean', label: '체크박스', icon: <CheckBoxOutlinedIcon sx={{ fontSize: 16 }} /> },
+  { type: 'radio', label: '단일 선택', icon: <RadioButtonCheckedIcon sx={{ fontSize: 16 }} /> },
+  { type: 'checkbox', label: '복수 선택', icon: <ChecklistIcon sx={{ fontSize: 16 }} /> },
   { type: 'select', label: '드롭다운', icon: <ArrowDropDownCircleOutlinedIcon sx={{ fontSize: 16 }} /> },
   { type: 'info', label: '안내문', icon: <InfoOutlinedIcon sx={{ fontSize: 16 }} /> },
 ];
@@ -70,20 +74,8 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
   const label = q.label || '입력';
   const labelSize = Math.max(9, Math.min(fs, 13));
 
-  // 체크박스/단일선택: [네모] 라벨 (가로)
-  if (q.type === 'boolean' || q.type === 'radio') {
-    const boxEl = (
-      <Box
-        sx={{
-          width: 16,
-          height: 16,
-          flexShrink: 0,
-          border: '1.5px solid #4a6fa5',
-          borderRadius: q.type === 'radio' ? '50%' : '2px',
-          bgcolor: 'rgba(255,255,255,0.92)',
-        }}
-      />
-    );
+  // 예/아니오: [네모] 라벨 (단일 체크박스)
+  if (q.type === 'boolean') {
     return (
       <Box
         sx={{
@@ -96,7 +88,16 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
           gap: 0.5,
         }}
       >
-        {boxEl}
+        <Box
+          sx={{
+            width: 16,
+            height: 16,
+            flexShrink: 0,
+            border: '1.5px solid #4a6fa5',
+            borderRadius: '2px',
+            bgcolor: 'rgba(255,255,255,0.92)',
+          }}
+        />
         {showLabel && (
           <Typography sx={{ fontSize: labelSize, color: 'text.primary', lineHeight: 1.1 }} noWrap>
             {q.label || '선택'}
@@ -122,9 +123,43 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
     );
   }
 
-  // 입력 계열: (라벨) + 컨트롤(세로)
+  // 입력/선택 계열: (라벨) + 컨트롤(세로)
   let control: React.ReactNode;
-  if (q.type === 'select' || q.type === 'checkbox') {
+  if (q.type === 'radio' || q.type === 'checkbox') {
+    // 선택지 수만큼 라디오(○)/체크박스(▢) + 라벨
+    const opts = q.options ?? [];
+    const round = q.type === 'radio';
+    control = (
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignContent: 'flex-start',
+          gap: 0.6,
+          overflow: 'hidden',
+        }}
+      >
+        {opts.map((o) => (
+          <Box key={o.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+            <Box
+              sx={{
+                width: 13,
+                height: 13,
+                flexShrink: 0,
+                border: '1.5px solid #4a6fa5',
+                borderRadius: round ? '50%' : '2px',
+                bgcolor: 'rgba(255,255,255,0.92)',
+              }}
+            />
+            <Typography sx={{ fontSize: Math.min(fs, 13), color: 'text.primary', lineHeight: 1.1 }} noWrap>
+              {o.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  } else if (q.type === 'select') {
     control = (
       <Box sx={{ ...INPUT_BOX, justifyContent: 'space-between', fontSize: fs, flex: 1 }}>
         <span style={{ opacity: 0.7 }}>{q.options?.[0]?.label ?? '선택'}</span>
@@ -237,8 +272,10 @@ function PageOverlay({
       case 'date':
         return { w: 14, h: 4 };
       case 'select':
-      case 'checkbox':
         return { w: 16, h: 5 };
+      case 'radio':
+      case 'checkbox':
+        return { w: 34, h: 6 };
       case 'info':
         return { w: 30, h: 5 };
       default:
@@ -261,7 +298,7 @@ function PageOverlay({
       });
       return;
     }
-    if (cell && (type === 'boolean' || type === 'radio')) {
+    if (cell && type === 'boolean') {
       const padY = Math.min(0.6, cell.hPct * 0.08);
       const boxH = Math.min(cell.hPct - padY * 2, squareH(cell.wPct));
       const boxW = size.height > 0 ? boxH * (size.height / size.width) : cell.wPct * 0.5;

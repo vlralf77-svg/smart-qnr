@@ -1,6 +1,17 @@
 // PDF 배경 위에 실제 입력 컨트롤을 얹어 응답받는 렌더러 (환자용/미리보기)
 // 라벨은 배경 PDF에 이미 있으므로, 각 필드는 최소한의 입력 컨트롤만 위치에 맞춰 표시.
-import { Box, Checkbox, MenuItem, Paper, Select, TextField } from '@mui/material';
+import {
+  Box,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  MenuItem,
+  Paper,
+  Radio,
+  RadioGroup,
+  Select,
+  TextField,
+} from '@mui/material';
 import { Control, Controller, FieldErrors } from 'react-hook-form';
 import { FormSchema, Question } from '@/types/schema';
 
@@ -16,8 +27,11 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
     control,
   };
 
-  if (q.type === 'boolean' || q.type === 'radio') {
-    // 체크박스: 박스를 꽉 채우고 클릭 영역을 넓게
+  const fontSize = q.fontSize ?? 13;
+  const labelSx = { m: 0, mr: 1, '& .MuiFormControlLabel-label': { fontSize } };
+
+  if (q.type === 'boolean') {
+    // 예/아니오 단일 체크박스: 박스를 꽉 채우고 클릭 영역을 넓게
     return (
       <Controller
         {...common}
@@ -39,11 +53,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
               onChange={(e) => field.onChange(e.target.checked)}
               onClick={(e) => e.stopPropagation()}
               size="small"
-              sx={{
-                p: 0,
-                color: 'primary.main',
-                '& .MuiSvgIcon-root': { fontSize: 'min(4vw, 26px)' },
-              }}
+              sx={{ p: 0, color: 'primary.main', '& .MuiSvgIcon-root': { fontSize: 'min(4vw, 26px)' } }}
             />
           </Box>
         )}
@@ -51,7 +61,75 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
     );
   }
 
-  if (q.type === 'checkbox' || q.type === 'select') {
+  if (q.type === 'radio') {
+    // 단일 선택: 선택지 수만큼 라디오
+    const options = q.options ?? [];
+    return (
+      <Controller
+        {...common}
+        defaultValue=""
+        render={({ field }) => (
+          <RadioGroup
+            row
+            value={field.value ?? ''}
+            onChange={(e) => field.onChange(e.target.value)}
+            sx={{ gap: 0.5 }}
+          >
+            {options.map((o) => (
+              <FormControlLabel
+                key={o.id}
+                value={o.value}
+                control={<Radio size="small" sx={{ p: 0.25 }} />}
+                label={o.label}
+                sx={labelSx}
+              />
+            ))}
+          </RadioGroup>
+        )}
+      />
+    );
+  }
+
+  if (q.type === 'checkbox') {
+    // 복수 선택: 선택지 수만큼 체크박스(값은 배열)
+    const options = q.options ?? [];
+    return (
+      <Controller
+        {...common}
+        defaultValue={[]}
+        render={({ field }) => {
+          const val: string[] = Array.isArray(field.value) ? (field.value as string[]) : [];
+          return (
+            <FormGroup row sx={{ gap: 0.5 }}>
+              {options.map((o) => (
+                <FormControlLabel
+                  key={o.id}
+                  control={
+                    <Checkbox
+                      size="small"
+                      sx={{ p: 0.25 }}
+                      checked={val.includes(o.value)}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.checked
+                            ? [...val, o.value]
+                            : val.filter((v) => v !== o.value),
+                        )
+                      }
+                    />
+                  }
+                  label={o.label}
+                  sx={labelSx}
+                />
+              ))}
+            </FormGroup>
+          );
+        }}
+      />
+    );
+  }
+
+  if (q.type === 'select') {
     const options = q.options ?? [];
     return (
       <Controller
@@ -62,7 +140,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
             {...field}
             size="small"
             fullWidth
-            sx={{ height: '100%', fontSize: 12, bgcolor: 'rgba(255,255,255,0.9)' }}
+            sx={{ height: '100%', fontSize, bgcolor: 'rgba(255,255,255,0.9)' }}
           >
             {options.map((o) => (
               <MenuItem key={o.id} value={o.value}>
@@ -81,7 +159,6 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
 
   // text / textarea / number / date → 채울 수 있는 흰 박스로 표시
   const type = q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text';
-  const fontSize = q.fontSize ?? 13;
   return (
     <Controller
       {...common}
@@ -128,7 +205,7 @@ export default function OverlayRenderer({ schema, control }: Props) {
               />
               {fields.map((q) => {
                 const ov = q.overlay!;
-                const isCheck = q.type === 'boolean' || q.type === 'radio';
+                const isCheck = q.type === 'boolean';
                 const withLabel = showLabel && q.type !== 'info';
                 const labelSize = Math.max(9, Math.min(q.fontSize ?? 13, 13));
                 const labelEl = withLabel ? (
