@@ -158,6 +158,8 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
     updatedAt: new Date().toISOString(),
   };
 
+  if (obj.canvas === true) schema.canvas = true;
+
   // PDF 배경 페이지 보존
   if (Array.isArray(obj.pages)) {
     const pages: FormPage[] = [];

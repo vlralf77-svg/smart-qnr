@@ -69,6 +69,7 @@ export function createBlankCanvasForm(title = '제목 없는 문진'): FormSchem
     status: 'draft',
     sections: [{ id: uid('sec'), title: '섹션 1', questions: [] }],
     pages: [{ image: blankPageDataUrl(BLANK_PAGE_W, BLANK_PAGE_H), width: BLANK_PAGE_W, height: BLANK_PAGE_H }],
+    canvas: true,
     createdAt: now,
     updatedAt: now,
   };

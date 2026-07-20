@@ -118,6 +118,8 @@ export interface FormSchema {
   sections: Section[];
   /** PDF 배경 이미지들. 존재하면 이 폼은 "오버레이 모드"(원본 PDF 위에 필드 배치) */
   pages?: FormPage[];
+  /** 빈 캔버스(흰 문서)로 직접 작성한 문진. 배경에 글자가 없으므로 각 필드에 라벨을 함께 표시한다. */
+  canvas?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

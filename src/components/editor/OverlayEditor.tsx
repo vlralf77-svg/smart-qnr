@@ -57,71 +57,109 @@ const INPUT_BOX = {
 };
 
 /** 편집기에서 컴포넌트를 실제 모양(WYSIWYG)으로 표시. 이벤트는 통과(pointerEvents none). */
-function FieldPreview({ q }: { q: Question }) {
+function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
   const fs = q.fontSize ?? 13;
   const label = q.label || '입력';
+  const labelSize = Math.max(9, Math.min(fs, 13));
 
-  let content: React.ReactNode;
+  // 체크박스/단일선택: [네모] 라벨 (가로)
   if (q.type === 'boolean' || q.type === 'radio') {
-    content = (
+    const boxEl = (
+      <Box
+        sx={{
+          width: 16,
+          height: 16,
+          flexShrink: 0,
+          border: '1.5px solid #4a6fa5',
+          borderRadius: q.type === 'radio' ? '50%' : '2px',
+          bgcolor: 'rgba(255,255,255,0.92)',
+        }}
+      />
+    );
+    return (
       <Box
         sx={{
           width: '100%',
           height: '100%',
+          pointerEvents: 'none',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: showLabel ? 'flex-start' : 'center',
+          gap: 0.5,
         }}
       >
-        <Box
-          sx={{
-            width: '70%',
-            height: '70%',
-            maxWidth: 22,
-            maxHeight: 22,
-            minWidth: 10,
-            minHeight: 10,
-            border: '1.5px solid #4a6fa5',
-            borderRadius: q.type === 'radio' ? '50%' : '2px',
-            bgcolor: 'rgba(255,255,255,0.92)',
-          }}
-        />
+        {boxEl}
+        {showLabel && (
+          <Typography sx={{ fontSize: labelSize, color: 'text.primary', lineHeight: 1.1 }} noWrap>
+            {q.label || '선택'}
+          </Typography>
+        )}
       </Box>
     );
-  } else if (q.type === 'select' || q.type === 'checkbox') {
-    content = (
-      <Box sx={{ ...INPUT_BOX, justifyContent: 'space-between', fontSize: fs }}>
+  }
+
+  if (q.type === 'info') {
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <Typography sx={{ fontSize: fs, color: 'text.primary', lineHeight: 1.2 }}>{label}</Typography>
+      </Box>
+    );
+  }
+
+  // 입력 계열: (라벨) + 컨트롤(세로)
+  let control: React.ReactNode;
+  if (q.type === 'select' || q.type === 'checkbox') {
+    control = (
+      <Box sx={{ ...INPUT_BOX, justifyContent: 'space-between', fontSize: fs, flex: 1 }}>
         <span style={{ opacity: 0.7 }}>{q.options?.[0]?.label ?? '선택'}</span>
         <span style={{ opacity: 0.5 }}>▾</span>
       </Box>
     );
-  } else if (q.type === 'info') {
-    content = (
-      <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
-        <Typography sx={{ fontSize: fs, color: 'text.primary', lineHeight: 1.2 }} noWrap>
-          {label}
-        </Typography>
-      </Box>
-    );
   } else {
-    // text / textarea / number / date
-    const ph =
-      q.type === 'date' ? 'YYYY-MM-DD' : q.type === 'number' ? '0' : q.placeholder || label;
-    content = (
+    const ph = q.type === 'date' ? 'YYYY-MM-DD' : q.type === 'number' ? '0' : q.placeholder || '입력';
+    control = (
       <Box
         sx={{
           ...INPUT_BOX,
           alignItems: q.type === 'textarea' ? 'flex-start' : 'center',
           pt: q.type === 'textarea' ? 0.3 : 0,
           fontSize: fs,
+          flex: 1,
         }}
       >
         <span style={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden' }}>{ph}</span>
       </Box>
     );
   }
+
   return (
-    <Box sx={{ width: '100%', height: '100%', pointerEvents: 'none' }}>{content}</Box>
+    <Box
+      sx={{
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {showLabel && (
+        <Typography
+          sx={{ fontSize: labelSize, color: 'text.primary', fontWeight: 600, lineHeight: 1.1, mb: 0.2 }}
+          noWrap
+        >
+          {label}
+        </Typography>
+      )}
+      {control}
+    </Box>
   );
 }
 
@@ -133,6 +171,7 @@ interface PageProps {
   questions: Question[];
   placeType: QuestionType | null;
   onPlaced: () => void;
+  showLabel?: boolean;
 }
 
 function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): CellRegion | undefined {
@@ -154,6 +193,7 @@ function PageOverlay({
   questions,
   placeType,
   onPlaced,
+  showLabel,
 }: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
   const {
@@ -432,7 +472,7 @@ function PageOverlay({
                     cursor: placeType ? 'crosshair' : 'move',
                   }}
                 >
-                  <FieldPreview q={q} />
+                  <FieldPreview q={q} showLabel={showLabel} />
                   {isSel && !placeType && (
                     <IconButton
                       size="small"
@@ -546,6 +586,7 @@ export default function OverlayEditor({ form }: Props) {
           questions={questions}
           placeType={placeType}
           onPlaced={() => setPlaceType(null)}
+          showLabel={!!form.canvas}
         />
       ))}
 
