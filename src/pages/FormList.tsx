@@ -33,6 +33,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
+import { APP_VERSION } from '@/version';
 
 const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success' | 'warning' }> = {
   draft: { label: '초안', color: 'default' },
@@ -75,6 +76,12 @@ export default function FormList() {
           <Typography variant="h6" sx={{ flex: 1 }}>
             SmartQnR · 문진 관리
           </Typography>
+          <Chip
+            label={`v${APP_VERSION}`}
+            size="small"
+            variant="outlined"
+            sx={{ mr: 1.5, color: 'inherit', borderColor: 'rgba(255,255,255,0.5)' }}
+          />
           <Typography variant="caption" sx={{ opacity: 0.8, mr: 1 }}>
             admin
           </Typography>

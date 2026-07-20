@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { usePatientStore, TEST_PATIENT_NO } from '@/store/usePatientStore';
+import { APP_VERSION } from '@/version';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
@@ -57,6 +58,9 @@ export default function PatientLogin() {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               환자번호를 입력해 주세요
+            </Typography>
+            <Typography variant="caption" color="text.disabled">
+              버전 v{APP_VERSION}
             </Typography>
           </Stack>
 

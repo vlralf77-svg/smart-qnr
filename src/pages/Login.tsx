@@ -17,6 +17,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuthStore } from '@/store/useAuthStore';
+import { APP_VERSION } from '@/version';
 
 interface LocationState {
   from?: string;
@@ -69,6 +70,9 @@ export default function Login() {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               로그인이 필요합니다
+            </Typography>
+            <Typography variant="caption" color="text.disabled">
+              버전 v{APP_VERSION}
             </Typography>
           </Stack>
 
