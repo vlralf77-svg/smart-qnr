@@ -641,68 +641,84 @@ export default function OverlayEditor({ form }: Props) {
             </Stack>
           </Tooltip>
         </Stack>
-        {/* 정렬/크기 맞추기 (2개 이상 선택 시) — 기준: 마지막 선택 */}
-        {multi && (
-          <Stack
-            direction="row"
-            spacing={0.5}
-            alignItems="center"
-            flexWrap="wrap"
-            useFlexGap
-            sx={{ mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider' }}
-          >
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-              정렬 <b>(기준: 마지막 선택)</b>
-            </Typography>
-            <Tooltip title="왼쪽 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('left')}>
+        {/* 정렬/크기 맞추기 — 항상 표시(2개 이상 선택해야 활성) · 기준: 마지막 선택 */}
+        <Stack
+          direction="row"
+          spacing={0.5}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider', opacity: multi ? 1 : 0.55 }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+            정렬 {multi ? <b>(기준: 마지막 선택)</b> : '(2개 이상 선택 시)'}
+          </Typography>
+          <Tooltip title="왼쪽 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('left')}>
                 <AlignHorizontalLeftIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="가로 가운데 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('centerX')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="가로 가운데 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('centerX')}>
                 <AlignHorizontalCenterIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="오른쪽 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('right')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="오른쪽 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('right')}>
                 <AlignHorizontalRightIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
-            <Tooltip title="위쪽 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('top')}>
+            </span>
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+          <Tooltip title="위쪽 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('top')}>
                 <AlignVerticalTopIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="세로 가운데 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('centerY')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="세로 가운데 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('centerY')}>
                 <AlignVerticalCenterIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="아래쪽 맞춤">
-              <IconButton size="small" onClick={() => alignSelected('bottom')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="아래쪽 맞춤">
+            <span>
+              <IconButton size="small" disabled={!multi} onClick={() => alignSelected('bottom')}>
                 <AlignVerticalBottomIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
-            <Tooltip title="너비 맞춤">
-              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchW')}>
+            </span>
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+          <Tooltip title="너비 맞춤">
+            <span>
+              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchW')}>
                 너비
               </Button>
-            </Tooltip>
-            <Tooltip title="높이 맞춤">
-              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchH')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="높이 맞춤">
+            <span>
+              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchH')}>
                 높이
               </Button>
-            </Tooltip>
-            <Tooltip title="크기(너비+높이) 맞춤">
-              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchSize')}>
+            </span>
+          </Tooltip>
+          <Tooltip title="크기(너비+높이) 맞춤">
+            <span>
+              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchSize')}>
                 크기
               </Button>
-            </Tooltip>
-          </Stack>
-        )}
+            </span>
+          </Tooltip>
+        </Stack>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b> 모드에서
