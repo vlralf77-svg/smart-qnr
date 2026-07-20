@@ -27,6 +27,14 @@ import ArrowDropDownCircleOutlinedIcon from '@mui/icons-material/ArrowDropDownCi
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import NearMeOutlinedIcon from '@mui/icons-material/NearMeOutlined';
 import FormatSizeIcon from '@mui/icons-material/FormatSize';
+import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
+import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
+import AlignHorizontalRightIcon from '@mui/icons-material/AlignHorizontalRight';
+import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
+import AlignVerticalCenterIcon from '@mui/icons-material/AlignVerticalCenter';
+import AlignVerticalBottomIcon from '@mui/icons-material/AlignVerticalBottom';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import { CellRegion, FormSchema, Question, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
@@ -511,8 +519,9 @@ export default function OverlayEditor({ form }: Props) {
   const pages = form.pages ?? [];
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
-  const { selectedIds, setFontSizeForSelected, addBlankPage } = useEditorStore();
+  const { selectedIds, setFontSizeForSelected, addBlankPage, alignSelected } = useEditorStore();
   const [placeType, setPlaceType] = useState<QuestionType | null>(null);
+  const multi = selectedIds.length >= 2;
 
   const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
   const sizes = new Set(selectedQuestions.map((q) => q.fontSize ?? 13));
@@ -569,10 +578,74 @@ export default function OverlayEditor({ form }: Props) {
             </Stack>
           </Tooltip>
         </Stack>
+        {/* 정렬/크기 맞추기 (2개 이상 선택 시) — 기준: 마지막 선택 */}
+        {multi && (
+          <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider' }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+              정렬 <b>(기준: 마지막 선택)</b>
+            </Typography>
+            <Tooltip title="왼쪽 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('left')}>
+                <AlignHorizontalLeftIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="가로 가운데 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('centerX')}>
+                <AlignHorizontalCenterIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="오른쪽 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('right')}>
+                <AlignHorizontalRightIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+            <Tooltip title="위쪽 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('top')}>
+                <AlignVerticalTopIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="세로 가운데 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('centerY')}>
+                <AlignVerticalCenterIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="아래쪽 맞춤">
+              <IconButton size="small" onClick={() => alignSelected('bottom')}>
+                <AlignVerticalBottomIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+            <Tooltip title="너비 맞춤">
+              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchW')}>
+                너비
+              </Button>
+            </Tooltip>
+            <Tooltip title="높이 맞춤">
+              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchH')}>
+                높이
+              </Button>
+            </Tooltip>
+            <Tooltip title="크기(너비+높이) 맞춤">
+              <Button size="small" variant="outlined" sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchSize')}>
+                크기
+              </Button>
+            </Tooltip>
+          </Stack>
+        )}
+
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b> 모드에서
           박스를 드래그해 이동, 모서리로 크기 조절, 빈 곳 드래그로 영역 선택, <b>Ctrl+클릭</b> 다중 선택,
-          <b>방향키</b> 이동, <b>Delete</b> 삭제, <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소.
+          여러 개 선택 시 <b>정렬·크기 맞춤</b>(기준=마지막 선택), <b>방향키</b> 이동, <b>Delete</b> 삭제,
+          <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소.
         </Typography>
       </Paper>
 

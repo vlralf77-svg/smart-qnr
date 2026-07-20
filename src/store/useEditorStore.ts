@@ -112,6 +112,13 @@ interface EditorState {
   setFontSizeForSelected: (fontSize: number) => void;
   /** 빈 캔버스 페이지 추가(여러 페이지 문진) */
   addBlankPage: () => void;
+  /**
+   * 다중 선택한 필드를 마지막 선택(기준)에 맞춰 정렬/크기 통일.
+   * left/right/top/bottom/centerX/centerY = 정렬, matchW/matchH/matchSize = 크기 맞춤
+   */
+  alignSelected: (
+    mode: 'left' | 'right' | 'top' | 'bottom' | 'centerX' | 'centerY' | 'matchW' | 'matchH' | 'matchSize',
+  ) => void;
 
   // 복사/붙여넣기
   _clipboard: Question[];
@@ -562,6 +569,67 @@ export const useEditorStore = create<EditorState>((set) => ({
             ...s,
             questions: s.questions.map((q) => (ids.has(q.id) ? { ...q, fontSize: clamped } : q)),
           })),
+        ),
+        dirty: true,
+      };
+    }),
+
+  alignSelected: (mode) =>
+    set((st) => {
+      if (!st.form || !st.selected || st.selectedIds.length < 2) return st;
+      const ids = new Set(st.selectedIds);
+      // 기준 = 마지막 선택(primary)
+      let ref: QuestionOverlay | undefined;
+      for (const s of st.form.sections)
+        for (const q of s.questions)
+          if (q.id === st.selected.questionId && q.overlay) ref = q.overlay;
+      if (!ref) return st;
+      const R = ref;
+
+      const transform = (q: Question): Question => {
+        if (!ids.has(q.id) || !q.overlay) return q;
+        let { xPct, yPct, wPct, hPct } = q.overlay;
+        switch (mode) {
+          case 'left':
+            xPct = R.xPct;
+            break;
+          case 'right':
+            xPct = R.xPct + R.wPct - wPct;
+            break;
+          case 'centerX':
+            xPct = R.xPct + R.wPct / 2 - wPct / 2;
+            break;
+          case 'top':
+            yPct = R.yPct;
+            break;
+          case 'bottom':
+            yPct = R.yPct + R.hPct - hPct;
+            break;
+          case 'centerY':
+            yPct = R.yPct + R.hPct / 2 - hPct / 2;
+            break;
+          case 'matchW':
+            wPct = R.wPct;
+            break;
+          case 'matchH':
+            hPct = R.hPct;
+            break;
+          case 'matchSize':
+            wPct = R.wPct;
+            hPct = R.hPct;
+            break;
+        }
+        // 경계 보정
+        wPct = Math.max(1, Math.min(100, wPct));
+        hPct = Math.max(1, Math.min(100, hPct));
+        xPct = Math.max(0, Math.min(100 - wPct, xPct));
+        yPct = Math.max(0, Math.min(100 - hPct, yPct));
+        return { ...q, overlay: { ...q.overlay, xPct, yPct, wPct, hPct } };
+      };
+
+      return {
+        form: mapSections(st.form, (secs) =>
+          secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
         ),
         dirty: true,
       };
