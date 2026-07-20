@@ -701,7 +701,7 @@ export default function OverlayEditor({ form }: Props) {
 
           <Box sx={{ flex: 1 }} />
 
-          <Tooltip title="선택한 텍스트 입력의 글자 크기를 일괄 변경">
+          <Tooltip title="선택한 텍스트 입력의 글자 크기를 일괄 변경" placement="top">
             <Stack direction="row" spacing={0.5} alignItems="center">
               <FormatSizeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Select
@@ -722,7 +722,7 @@ export default function OverlayEditor({ form }: Props) {
             </Stack>
           </Tooltip>
 
-          <Tooltip title="선택한 컴포넌트를 다른 페이지로 이동">
+          <Tooltip title="선택한 컴포넌트를 다른 페이지로 이동" placement="top">
             <Stack direction="row" spacing={0.5} alignItems="center">
               <LayersOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
               <Select
