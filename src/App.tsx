@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import PatientLogin from './pages/PatientLogin';
 import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
+import PatientView from './pages/PatientView';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
 
@@ -55,6 +56,14 @@ export default function App() {
             element={
               <RequirePatient>
                 <PatientRespond />
+              </RequirePatient>
+            }
+          />
+          <Route
+            path="/patient/view/:formId"
+            element={
+              <RequirePatient>
+                <PatientView />
               </RequirePatient>
             }
           />

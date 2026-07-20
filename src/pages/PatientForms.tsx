@@ -1,4 +1,4 @@
-// 환자용 문진 목록 — 테스트 대상(testFlag) 문진만 표시
+// 환자용 문진 목록 — 테스트 대상(testFlag) 문진만. 작성 완료 표시·일시 노출.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,33 +15,61 @@ import {
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import { FormSchema } from '@/types/schema';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { FormResponse, FormSchema } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
+
+function fmt(ts?: string): string {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleString('ko-KR');
+  } catch {
+    return ts;
+  }
+}
 
 export default function PatientForms() {
   const navigate = useNavigate();
   const { patientNo, logout } = usePatientStore();
   const localForms = useFormsStore((s) => s.forms);
+  const localResponses = useFormsStore((s) => s.responses);
   const [forms, setForms] = useState<FormSchema[]>([]);
+  // formId -> 가장 최근 응답
+  const [responses, setResponses] = useState<Record<string, FormResponse>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      let fList: FormSchema[] = [];
+      let rList: FormResponse[] = [];
       if (isBackendEnabled) {
         try {
-          const list = await api.publicListForms();
-          if (!cancelled) setForms(list);
+          fList = await api.publicListForms();
         } catch {
-          if (!cancelled) setForms([]);
+          fList = [];
+        }
+        try {
+          rList = patientNo ? await api.publicMyResponses(patientNo) : [];
+        } catch {
+          rList = [];
         }
       } else {
-        // 오프라인: 테스트 대상 문진만
-        setForms(localForms.filter((f) => f.testFlag));
+        fList = localForms.filter((f) => f.testFlag);
+        rList = localResponses.filter((r) => r.patientId === patientNo);
       }
-      if (!cancelled) setLoading(false);
+      if (cancelled) return;
+      // 최근 응답만 남김(formId 기준)
+      const map: Record<string, FormResponse> = {};
+      for (const r of rList) {
+        const cur = map[r.formId];
+        if (!cur || (r.submittedAt ?? '') > (cur.submittedAt ?? '')) map[r.formId] = r;
+      }
+      setForms(fList);
+      setResponses(map);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -76,7 +104,7 @@ export default function PatientForms() {
 
       <Container maxWidth="sm" sx={{ py: 3 }}>
         <Typography variant="body2" color="text.secondary" mb={2}>
-          아래 문진을 선택해 작성해 주세요.
+          아래 문진을 선택해 작성해 주세요. 작성한 문진은 눌러서 내용을 확인할 수 있습니다.
         </Typography>
 
         {loading ? (
@@ -87,29 +115,48 @@ export default function PatientForms() {
           </Card>
         ) : (
           <Stack spacing={1.5}>
-            {forms.map((f) => (
-              <Card key={f.id} variant="outlined">
-                <CardActionArea
-                  onClick={() => navigate(`/patient/respond/${f.id}`)}
-                  sx={{ p: 2 }}
-                >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <AssignmentIcon color="secondary" />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle1" fontWeight={700}>
-                        {f.title}
-                      </Typography>
-                      {f.description && (
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          {f.description}
-                        </Typography>
+            {forms.map((f) => {
+              const done = responses[f.id];
+              return (
+                <Card key={f.id} variant="outlined">
+                  <CardActionArea
+                    onClick={() =>
+                      navigate(done ? `/patient/view/${f.id}` : `/patient/respond/${f.id}`)
+                    }
+                    sx={{ p: 2 }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      {done ? (
+                        <CheckCircleIcon color="success" />
+                      ) : (
+                        <AssignmentIcon color="secondary" />
                       )}
-                    </Box>
-                    <Chip size="small" label="작성" color="secondary" variant="outlined" />
-                  </Stack>
-                </CardActionArea>
-              </Card>
-            ))}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle1" fontWeight={700} noWrap>
+                          {f.title}
+                        </Typography>
+                        {done ? (
+                          <Typography variant="caption" color="success.main">
+                            작성완료 · {fmt(done.submittedAt)}
+                          </Typography>
+                        ) : (
+                          f.description && (
+                            <Typography variant="body2" color="text.secondary" noWrap>
+                              {f.description}
+                            </Typography>
+                          )
+                        )}
+                      </Box>
+                      {done ? (
+                        <Chip size="small" label="작성완료" color="success" />
+                      ) : (
+                        <Chip size="small" label="작성" color="secondary" variant="outlined" />
+                      )}
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              );
+            })}
           </Stack>
         )}
       </Container>

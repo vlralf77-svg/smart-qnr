@@ -121,4 +121,9 @@ export const api = {
       body: JSON.stringify(response),
     });
   },
+  publicMyResponses(patientId: string): Promise<FormResponse[]> {
+    return request<FormResponse[]>(
+      `/api/public/responses?patientId=${encodeURIComponent(patientId)}`,
+    );
+  },
 };

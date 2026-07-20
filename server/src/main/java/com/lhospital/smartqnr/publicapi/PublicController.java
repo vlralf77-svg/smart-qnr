@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -75,6 +76,31 @@ public class PublicController {
     e.setAnswersJson(answers == null ? "{}" : answers.toString());
     e.setSubmittedAt(now);
     responseRepo.save(e);
+    return node;
+  }
+
+  /** 특정 환자가 제출한 응답 목록(작성 완료 표시·조회용) */
+  @GetMapping("/responses")
+  public List<JsonNode> myResponses(@RequestParam String patientId) {
+    return responseRepo.findByPatientIdOrderBySubmittedAtDesc(patientId).stream()
+        .map(this::responseToJson)
+        .toList();
+  }
+
+  private JsonNode responseToJson(FormResponseEntity e) {
+    ObjectNode node = mapper.createObjectNode();
+    node.put("responseId", e.getResponseId());
+    node.put("formId", e.getFormId());
+    node.put("formVersion", e.getFormVersion());
+    if (e.getPatientId() != null) {
+      node.put("patientId", e.getPatientId());
+    }
+    node.put("submittedAt", e.getSubmittedAt().toString());
+    try {
+      node.set("answers", mapper.readTree(e.getAnswersJson()));
+    } catch (Exception ex) {
+      node.putObject("answers");
+    }
     return node;
   }
 }
