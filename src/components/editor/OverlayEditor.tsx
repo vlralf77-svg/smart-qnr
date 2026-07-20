@@ -1,5 +1,7 @@
-// PDF 배경 위에 입력필드를 얹어 편집 — 드래그로 이동, 모서리로 크기 조절 (react-rnd)
-// + PDF 위를 클릭해 그 자리에 필드 배치(표 빈칸 등)
+// PDF 배경 위에서 파워포인트처럼 컴포넌트를 배치·편집.
+//  - 상단 팔레트에서 유형 선택 → 캔버스에 드래그로 그려 넣기(크기 지정) 또는 클릭 배치(표 셀 자동 스냅)
+//  - 각 필드는 실제 컨트롤 모양(WYSIWYG)으로 표시, 드래그 이동 + 모서리 크기 조절(react-rnd)
+//  - 커서(선택) 모드에서 빈 곳 드래그 = 영역 선택, Ctrl+클릭 = 다중 선택
 import { useRef, useState } from 'react';
 import { Rnd } from 'react-rnd';
 import {
@@ -18,14 +20,110 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
-import BlockIcon from '@mui/icons-material/Block';
+import NotesIcon from '@mui/icons-material/Notes';
+import NumbersIcon from '@mui/icons-material/Numbers';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ArrowDropDownCircleOutlinedIcon from '@mui/icons-material/ArrowDropDownCircleOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import NearMeOutlinedIcon from '@mui/icons-material/NearMeOutlined';
 import FormatSizeIcon from '@mui/icons-material/FormatSize';
-import { CellRegion, FormSchema, Question, QuestionType, QUESTION_TYPE_META } from '@/types/schema';
+import { CellRegion, FormSchema, Question, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
-import AddQuestionMenu from './AddQuestionMenu';
 
-type PlaceMode = 'off' | 'boolean' | 'text';
+// 팔레트: 배치 가능한 컴포넌트 유형
+const PALETTE: { type: QuestionType; label: string; icon: React.ReactNode }[] = [
+  { type: 'text', label: '단답', icon: <TextFieldsIcon sx={{ fontSize: 16 }} /> },
+  { type: 'textarea', label: '장문', icon: <NotesIcon sx={{ fontSize: 16 }} /> },
+  { type: 'number', label: '숫자', icon: <NumbersIcon sx={{ fontSize: 16 }} /> },
+  { type: 'date', label: '날짜', icon: <CalendarMonthIcon sx={{ fontSize: 16 }} /> },
+  { type: 'boolean', label: '체크박스', icon: <CheckBoxOutlinedIcon sx={{ fontSize: 16 }} /> },
+  { type: 'select', label: '드롭다운', icon: <ArrowDropDownCircleOutlinedIcon sx={{ fontSize: 16 }} /> },
+  { type: 'info', label: '안내문', icon: <InfoOutlinedIcon sx={{ fontSize: 16 }} /> },
+];
+
+const INPUT_BOX = {
+  width: '100%',
+  height: '100%',
+  boxSizing: 'border-box' as const,
+  border: '1px solid #90a4c4',
+  borderRadius: '3px',
+  bgcolor: 'rgba(255,255,255,0.92)',
+  display: 'flex',
+  alignItems: 'center',
+  px: 0.5,
+  overflow: 'hidden',
+  color: 'text.secondary',
+};
+
+/** 편집기에서 컴포넌트를 실제 모양(WYSIWYG)으로 표시. 이벤트는 통과(pointerEvents none). */
+function FieldPreview({ q }: { q: Question }) {
+  const fs = q.fontSize ?? 13;
+  const label = q.label || '입력';
+
+  let content: React.ReactNode;
+  if (q.type === 'boolean' || q.type === 'radio') {
+    content = (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            width: '70%',
+            height: '70%',
+            maxWidth: 22,
+            maxHeight: 22,
+            minWidth: 10,
+            minHeight: 10,
+            border: '1.5px solid #4a6fa5',
+            borderRadius: q.type === 'radio' ? '50%' : '2px',
+            bgcolor: 'rgba(255,255,255,0.92)',
+          }}
+        />
+      </Box>
+    );
+  } else if (q.type === 'select' || q.type === 'checkbox') {
+    content = (
+      <Box sx={{ ...INPUT_BOX, justifyContent: 'space-between', fontSize: fs }}>
+        <span style={{ opacity: 0.7 }}>{q.options?.[0]?.label ?? '선택'}</span>
+        <span style={{ opacity: 0.5 }}>▾</span>
+      </Box>
+    );
+  } else if (q.type === 'info') {
+    content = (
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+        <Typography sx={{ fontSize: fs, color: 'text.primary', lineHeight: 1.2 }} noWrap>
+          {label}
+        </Typography>
+      </Box>
+    );
+  } else {
+    // text / textarea / number / date
+    const ph =
+      q.type === 'date' ? 'YYYY-MM-DD' : q.type === 'number' ? '0' : q.placeholder || label;
+    content = (
+      <Box
+        sx={{
+          ...INPUT_BOX,
+          alignItems: q.type === 'textarea' ? 'flex-start' : 'center',
+          pt: q.type === 'textarea' ? 0.3 : 0,
+          fontSize: fs,
+        }}
+      >
+        <span style={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden' }}>{ph}</span>
+      </Box>
+    );
+  }
+  return (
+    <Box sx={{ width: '100%', height: '100%', pointerEvents: 'none' }}>{content}</Box>
+  );
+}
 
 interface PageProps {
   sectionId: string;
@@ -33,11 +131,12 @@ interface PageProps {
   image: string;
   cells?: CellRegion[];
   questions: Question[];
+  placeType: QuestionType | null;
+  onPlaced: () => void;
 }
 
 function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): CellRegion | undefined {
   if (!cells) return undefined;
-  // 클릭 지점을 포함하는 가장 작은 셀
   let best: CellRegion | undefined;
   for (const c of cells) {
     if (xPct >= c.xPct && xPct <= c.xPct + c.wPct && yPct >= c.yPct && yPct <= c.yPct + c.hPct) {
@@ -47,7 +146,15 @@ function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): 
   return best;
 }
 
-function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProps) {
+function PageOverlay({
+  sectionId,
+  pageIndex,
+  image,
+  cells,
+  questions,
+  placeType,
+  onPlaced,
+}: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
   const {
     selectedIds,
@@ -58,9 +165,8 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
     removeQuestion,
     addOverlayQuestion,
   } = useEditorStore();
-  const [placeMode, setPlaceMode] = useState<PlaceMode>('off');
   const imgRef = useRef<HTMLImageElement>(null);
-  // 드래그 영역 선택(rubber-band) 사각형(컨테이너 기준 px)
+  // 드래그 사각형(px, 컨테이너 기준) — 선택 또는 그리기 겸용
   const [band, setBand] = useState<{ left: number; top: number; w: number; h: number } | null>(
     null,
   );
@@ -69,75 +175,83 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
 
   const pctToPx = (pct: number, dim: number) => (pct / 100) * dim;
   const pxToPct = (px: number, dim: number) => (dim > 0 ? (px / dim) * 100 : 0);
-
-  // 화면 비율에 맞춰 정사각형(체크박스)에 가까운 hPct 계산
   const squareH = (wPct: number) => (size.height > 0 ? wPct * (size.width / size.height) : wPct);
 
-  const addAtCenter = (type: QuestionType) => {
-    addOverlayQuestion(sectionId, type, {
-      page: pageIndex,
-      xPct: 42,
-      yPct: 45,
-      wPct: type === 'boolean' || type === 'radio' ? 4 : 20,
-      hPct: type === 'boolean' || type === 'radio' ? squareH(4) : 4,
-    });
+  const defaultSize = (type: QuestionType): { w: number; h: number } => {
+    switch (type) {
+      case 'boolean':
+      case 'radio':
+        return { w: 4, h: squareH(4) };
+      case 'textarea':
+        return { w: 26, h: 10 };
+      case 'number':
+        return { w: 12, h: 4 };
+      case 'date':
+        return { w: 14, h: 4 };
+      case 'select':
+      case 'checkbox':
+        return { w: 16, h: 5 };
+      case 'info':
+        return { w: 30, h: 5 };
+      default:
+        return { w: 16, h: 4 };
+    }
   };
 
-  // PDF 배경 클릭 → 클릭 위치에 필드 배치 (표 셀 안이면 셀 크기에 자동 스냅)
-  const handleBackgroundClick = (e: React.MouseEvent) => {
-    // off 모드의 선택/해제는 mousedown~up(드래그 영역 선택)이 담당하므로 여기선 무시
-    if (placeMode === 'off' || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-
+  // 클릭 배치(드래그 거의 없음): 표 셀 자동 스냅 우선, 아니면 기본 크기
+  const placeAtPoint = (type: QuestionType, xPct: number, yPct: number) => {
     const cell = findCell(cells, xPct, yPct);
-    if (cell) {
+    if (cell && (type === 'text' || type === 'textarea' || type === 'number' || type === 'date')) {
       const padX = Math.min(0.6, cell.wPct * 0.06);
       const padY = Math.min(0.6, cell.hPct * 0.08);
-      if (placeMode === 'text') {
-        // 텍스트: 셀 전체를 채움
-        addOverlayQuestion(sectionId, 'text', {
-          page: pageIndex,
-          xPct: cell.xPct + padX,
-          yPct: cell.yPct + padY,
-          wPct: cell.wPct - padX * 2,
-          hPct: cell.hPct - padY * 2,
-        });
-      } else {
-        // 체크박스: 셀 중앙에 정사각형
-        const boxH = Math.min(cell.hPct - padY * 2, squareH(cell.wPct));
-        const boxW = size.height > 0 ? boxH * (size.height / size.width) : cell.wPct * 0.5;
-        addOverlayQuestion(sectionId, 'boolean', {
-          page: pageIndex,
-          xPct: cell.xPct + cell.wPct / 2 - boxW / 2,
-          yPct: cell.yPct + cell.hPct / 2 - boxH / 2,
-          wPct: boxW,
-          hPct: boxH,
-        });
-      }
+      addOverlayQuestion(sectionId, type, {
+        page: pageIndex,
+        xPct: cell.xPct + padX,
+        yPct: cell.yPct + padY,
+        wPct: cell.wPct - padX * 2,
+        hPct: cell.hPct - padY * 2,
+      });
       return;
     }
-
-    // 셀 밖: 고정 크기
-    const wPct = placeMode === 'boolean' ? 4 : 16;
-    const hPct = placeMode === 'boolean' ? squareH(4) : 4;
-    addOverlayQuestion(sectionId, placeMode, {
+    if (cell && (type === 'boolean' || type === 'radio')) {
+      const padY = Math.min(0.6, cell.hPct * 0.08);
+      const boxH = Math.min(cell.hPct - padY * 2, squareH(cell.wPct));
+      const boxW = size.height > 0 ? boxH * (size.height / size.width) : cell.wPct * 0.5;
+      addOverlayQuestion(sectionId, type, {
+        page: pageIndex,
+        xPct: cell.xPct + cell.wPct / 2 - boxW / 2,
+        yPct: cell.yPct + cell.hPct / 2 - boxH / 2,
+        wPct: boxW,
+        hPct: boxH,
+      });
+      return;
+    }
+    const d = defaultSize(type);
+    addOverlayQuestion(sectionId, type, {
       page: pageIndex,
-      xPct: Math.max(0, xPct - wPct / 2),
-      yPct: Math.max(0, yPct - hPct / 2),
-      wPct,
-      hPct,
+      xPct: Math.max(0, Math.min(100 - d.w, xPct - d.w / 2)),
+      yPct: Math.max(0, Math.min(100 - d.h, yPct - d.h / 2)),
+      wPct: d.w,
+      hPct: d.h,
     });
   };
 
-  // 배경(빈 곳)에서 마우스를 누르면 드래그 영역 선택 시작
+  // 드래그로 그려 넣기: 그린 사각형 크기로 배치
+  const placeAtRect = (type: QuestionType, bx: number, by: number, bw: number, bh: number) => {
+    const W = size.width || 1;
+    const H = size.height || 1;
+    addOverlayQuestion(sectionId, type, {
+      page: pageIndex,
+      xPct: pxToPct(bx, W),
+      yPct: pxToPct(by, H),
+      wPct: Math.max(2, pxToPct(bw, W)),
+      hPct: Math.max(2, pxToPct(bh, H)),
+    });
+  };
+
   const handleBackgroundMouseDown = (e: React.MouseEvent) => {
-    // 배치 모드에서는 클릭 배치가 우선, 배경(img)에서 시작할 때만 영역 선택
-    if (placeMode !== 'off' || e.target !== imgRef.current || !ref.current) return;
-    if (e.button !== 0) return;
-    const container = ref.current;
-    const rect = container.getBoundingClientRect();
+    if (e.button !== 0 || e.target !== imgRef.current || !ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
     const start = { x: e.clientX - rect.left, y: e.clientY - rect.top };
 
     const move = (ev: MouseEvent) => {
@@ -160,21 +274,30 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
       const by = Math.min(start.y, y);
       const bw = Math.abs(x - start.x);
       const bh = Math.abs(y - start.y);
-      // 거의 안 움직였으면 클릭으로 보고 선택 해제
-      if (bw < 4 && bh < 4) {
+      const isClick = bw < 5 && bh < 5;
+
+      if (placeType) {
+        if (isClick) {
+          placeAtPoint(placeType, pxToPct(start.x, rect.width), pxToPct(start.y, rect.height));
+        } else {
+          placeAtRect(placeType, bx, by, bw, bh);
+        }
+        onPlaced(); // 배치 후 커서(선택) 모드로 복귀
+        return;
+      }
+
+      // 커서 모드: 영역 선택
+      if (isClick) {
         select(null);
         return;
       }
-      const W = rect.width;
-      const H = rect.height;
       const hit: string[] = [];
       for (const q of fields) {
         const ov = q.overlay!;
-        const fx = (ov.xPct / 100) * W;
-        const fy = (ov.yPct / 100) * H;
-        const fw = (ov.wPct / 100) * W;
-        const fh = (ov.hPct / 100) * H;
-        // 영역과 겹치면 선택
+        const fx = (ov.xPct / 100) * rect.width;
+        const fy = (ov.yPct / 100) * rect.height;
+        const fw = (ov.wPct / 100) * rect.width;
+        const fh = (ov.hPct / 100) * rect.height;
         if (fx < bx + bw && fx + fw > bx && fy < by + bh && fy + fh > by) hit.push(q.id);
       }
       setSelection(sectionId, hit);
@@ -190,27 +313,14 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
           {pageIndex + 1} 페이지 · 필드 {fields.length}개
           {selectedIds.length > 1 ? ` · ${selectedIds.length}개 선택됨` : ''}
         </Typography>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title="클릭 배치: 켜면 PDF 위를 클릭한 자리에 필드가 생깁니다(표 빈칸 등)">
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={placeMode}
-              onChange={(_e, v) => setPlaceMode((v as PlaceMode) ?? 'off')}
-            >
-              <ToggleButton value="off" sx={{ px: 1 }}>
-                <BlockIcon sx={{ fontSize: 16, mr: 0.5 }} /> 끄기
-              </ToggleButton>
-              <ToggleButton value="boolean" sx={{ px: 1 }}>
-                <CheckBoxOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} /> 체크박스
-              </ToggleButton>
-              <ToggleButton value="text" sx={{ px: 1 }}>
-                <TextFieldsIcon sx={{ fontSize: 16, mr: 0.5 }} /> 텍스트
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Tooltip>
-          <AddQuestionMenu onAdd={addAtCenter} label="기타 유형 추가" />
-        </Stack>
+        {placeType && (
+          <Chip
+            size="small"
+            color="primary"
+            label={`배치 모드: ${PALETTE.find((p) => p.type === placeType)?.label ?? placeType} — 캔버스에 드래그하거나 클릭`}
+            onDelete={onPlaced}
+          />
+        )}
       </Stack>
 
       <Box
@@ -220,7 +330,7 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
           position: 'relative',
           width: '100%',
           userSelect: 'none',
-          cursor: placeMode === 'off' ? 'default' : 'crosshair',
+          cursor: placeType ? 'crosshair' : 'default',
         }}
       >
         <img
@@ -228,12 +338,11 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
           src={image}
           alt={`page-${pageIndex + 1}`}
           style={{ width: '100%', display: 'block' }}
-          onClick={handleBackgroundClick}
           draggable={false}
         />
 
-        {/* 클릭 배치 모드일 때 감지된 표 셀 힌트(클릭은 통과) */}
-        {placeMode !== 'off' &&
+        {/* 배치 모드에서 감지된 표 셀 힌트 */}
+        {placeType &&
           cells?.map((c, ci) => (
             <Box
               key={ci}
@@ -252,7 +361,7 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
             />
           ))}
 
-        {/* 드래그 영역 선택 사각형 */}
+        {/* 드래그 사각형(그리기=파랑, 선택=파랑 점선) */}
         {band && (
           <Box
             sx={{
@@ -261,7 +370,7 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
               top: band.top,
               width: band.w,
               height: band.h,
-              border: '1.5px dashed',
+              border: placeType ? '1.5px solid' : '1.5px dashed',
               borderColor: 'primary.main',
               bgcolor: 'rgba(30,58,95,0.10)',
               pointerEvents: 'none',
@@ -274,8 +383,6 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
           fields.map((q) => {
             const ov = q.overlay!;
             const isSel = selectedIds.includes(q.id);
-            const meta = QUESTION_TYPE_META[q.type];
-            // Ctrl(⌘)+클릭이면 선택 토글(기존 선택 유지), 아니면 단일 선택
             const pickField = (e: { ctrlKey?: boolean; metaKey?: boolean }) => {
               if (e.ctrlKey || e.metaKey) toggleSelect(sectionId, q.id);
               else if (!selectedIds.includes(q.id)) select({ sectionId, questionId: q.id });
@@ -284,6 +391,8 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
               <Rnd
                 key={q.id}
                 bounds="parent"
+                disableDragging={!!placeType}
+                enableResizing={!placeType}
                 size={{
                   width: pctToPx(ov.wPct, size.width),
                   height: pctToPx(ov.hPct, size.height),
@@ -317,23 +426,14 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
                     position: 'relative',
                     width: '100%',
                     height: '100%',
-                    border: '1.5px solid',
-                    borderColor: isSel ? 'primary.main' : 'secondary.main',
-                    bgcolor: isSel ? 'rgba(30,58,95,0.14)' : 'rgba(74,144,217,0.10)',
-                    borderRadius: 0.5,
                     boxSizing: 'border-box',
-                    cursor: 'move',
-                    display: 'flex',
-                    alignItems: 'center',
-                    overflow: 'hidden',
+                    outline: isSel ? '2px solid' : '1px dashed',
+                    outlineColor: isSel ? 'primary.main' : 'rgba(74,144,217,0.5)',
+                    cursor: placeType ? 'crosshair' : 'move',
                   }}
                 >
-                  <Chip
-                    label={meta.label}
-                    size="small"
-                    sx={{ height: 15, fontSize: 8, m: 0.2, bgcolor: 'rgba(255,255,255,0.85)' }}
-                  />
-                  {isSel && (
+                  <FieldPreview q={q} />
+                  {isSel && !placeType && (
                     <IconButton
                       size="small"
                       onClick={(e) => {
@@ -342,11 +442,12 @@ function PageOverlay({ sectionId, pageIndex, image, cells, questions }: PageProp
                       }}
                       sx={{
                         position: 'absolute',
-                        top: -10,
-                        right: -10,
+                        top: -12,
+                        right: -12,
                         bgcolor: 'error.main',
                         color: '#fff',
                         p: 0.25,
+                        zIndex: 25,
                         '&:hover': { bgcolor: 'error.dark' },
                       }}
                     >
@@ -371,8 +472,8 @@ export default function OverlayEditor({ form }: Props) {
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
   const { selectedIds, setFontSizeForSelected } = useEditorStore();
+  const [placeType, setPlaceType] = useState<QuestionType | null>(null);
 
-  // 선택된 문항들의 대표 글자 크기(모두 같으면 그 값, 아니면 빈값)
   const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
   const sizes = new Set(selectedQuestions.map((q) => q.fontSize ?? 13));
   const currentFont = sizes.size === 1 ? [...sizes][0] : '';
@@ -380,42 +481,58 @@ export default function OverlayEditor({ form }: Props) {
 
   return (
     <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-        파란 박스가 입력필드입니다. 박스를 드래그해 위치를, 모서리를 끌어 크기를 조정하고, 클릭하면
-        오른쪽에서 유형·라벨을 편집합니다. 빈 곳을 <b>드래그</b>하면 영역 안의 필드가 <b>일괄 선택</b>,
-        <b>Ctrl+클릭</b>으로 선택에 추가/제외됩니다. 선택 후 <b>방향키</b>=이동, <b>Ctrl+방향키</b>=미세
-        이동, <b>Shift+방향키</b>=크기 조절, <b>Ctrl+C/Ctrl+V</b>=복사·붙여넣기, <b>Delete</b>=삭제,
-        <b>Ctrl+Z</b>=실행 취소. <b>표 안의 빈칸</b>은 상단 <b>클릭 배치</b>를 켜고 원하는 자리를 클릭해
-        필드를 추가하세요.
-      </Typography>
-
+      {/* 상단 팔레트 (파워포인트식 삽입 도구) */}
       <Paper
         variant="outlined"
-        sx={{ p: 1, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
+        sx={{ p: 1, mb: 1.5, position: 'sticky', top: 0, zIndex: 40, bgcolor: 'background.paper' }}
       >
-        <FormatSizeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-        <Typography variant="body2" color="text.secondary">
-          글자 크기 일괄 적용
-        </Typography>
-        <Select
-          size="small"
-          displayEmpty
-          value={currentFont === '' ? '' : String(currentFont)}
-          disabled={selectedIds.length === 0}
-          onChange={(e) => setFontSizeForSelected(Number(e.target.value))}
-          sx={{ minWidth: 96 }}
-          renderValue={(v) => (v ? `${v}px` : '크기 선택')}
-        >
-          {FONT_OPTIONS.map((s) => (
-            <MenuItem key={s} value={String(s)}>
-              {s}px
-            </MenuItem>
-          ))}
-        </Select>
-        <Typography variant="caption" color="text.secondary">
-          {selectedIds.length > 0
-            ? `${selectedIds.length}개 선택됨 — 선택한 텍스트 입력에 적용`
-            : '먼저 필드를 선택하세요(드래그/클릭)'}
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={placeType ?? 'cursor'}
+            onChange={(_e, v) => setPlaceType(v === 'cursor' || v == null ? null : (v as QuestionType))}
+          >
+            <ToggleButton value="cursor" sx={{ px: 1 }}>
+              <NearMeOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} /> 선택
+            </ToggleButton>
+            {PALETTE.map((p) => (
+              <ToggleButton key={p.type} value={p.type} sx={{ px: 1 }}>
+                {p.icon}
+                <Box component="span" sx={{ ml: 0.5 }}>
+                  {p.label}
+                </Box>
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+
+          <Box sx={{ flex: 1 }} />
+
+          <Tooltip title="선택한 텍스트 입력의 글자 크기를 일괄 변경">
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <FormatSizeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+              <Select
+                size="small"
+                displayEmpty
+                value={currentFont === '' ? '' : String(currentFont)}
+                disabled={selectedIds.length === 0}
+                onChange={(e) => setFontSizeForSelected(Number(e.target.value))}
+                sx={{ minWidth: 92 }}
+                renderValue={(v) => (v ? `${v}px` : '글자 크기')}
+              >
+                {FONT_OPTIONS.map((s) => (
+                  <MenuItem key={s} value={String(s)}>
+                    {s}px
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
+          </Tooltip>
+        </Stack>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+          위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b> 모드에서
+          박스를 드래그해 이동, 모서리로 크기 조절, 빈 곳 드래그로 영역 선택, <b>Ctrl+클릭</b> 다중 선택,
+          <b>방향키</b> 이동, <b>Delete</b> 삭제, <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소.
         </Typography>
       </Paper>
 
@@ -427,6 +544,8 @@ export default function OverlayEditor({ form }: Props) {
           image={p.image}
           cells={p.cells}
           questions={questions}
+          placeType={placeType}
+          onPlaced={() => setPlaceType(null)}
         />
       ))}
     </Box>
