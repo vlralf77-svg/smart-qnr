@@ -97,8 +97,10 @@ export interface Question {
   layout?: QuestionLayout;
   /** PDF 배경 오버레이 모드에서의 위치(%). 폼에 pages 가 있을 때 사용 */
   overlay?: QuestionOverlay;
-  /** 입력 글자 크기(px). 텍스트 입력 계열에 적용. 미지정 시 기본값 */
+  /** 글자 크기(px). 질문 라벨·입력 텍스트에 적용. 미지정 시 기본값 */
   fontSize?: number;
+  /** 글자 색상(CSS color, 예: #d32f2f). 라벨·입력 텍스트에 적용 */
+  color?: string;
 }
 
 export interface Section {

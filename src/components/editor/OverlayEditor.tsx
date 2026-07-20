@@ -82,7 +82,8 @@ const INPUT_BOX = {
 function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
   const fs = q.fontSize ?? 13;
   const label = q.label || '입력';
-  const labelSize = Math.max(9, Math.min(fs, 13));
+  const labelSize = fs;
+  const labelColor = q.color ?? 'text.primary';
 
   // 예/아니오: [네모] 라벨 (단일 체크박스)
   if (q.type === 'boolean') {
@@ -109,7 +110,7 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
           }}
         />
         {showLabel && (
-          <Typography sx={{ fontSize: labelSize, color: 'text.primary', lineHeight: 1.1 }} noWrap>
+          <Typography sx={{ fontSize: labelSize, color: labelColor, lineHeight: 1.1 }} noWrap>
             {q.label || '선택'}
           </Typography>
         )}
@@ -128,7 +129,7 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
           alignItems: 'center',
         }}
       >
-        <Typography sx={{ fontSize: fs, color: 'text.primary', lineHeight: 1.2 }}>{label}</Typography>
+        <Typography sx={{ fontSize: fs, color: labelColor, lineHeight: 1.2 }}>{label}</Typography>
       </Box>
     );
   }
@@ -162,7 +163,7 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
                 bgcolor: 'rgba(255,255,255,0.92)',
               }}
             />
-            <Typography sx={{ fontSize: Math.min(fs, 13), color: 'text.primary', lineHeight: 1.1 }} noWrap>
+            <Typography sx={{ fontSize: Math.min(fs, 13), color: labelColor, lineHeight: 1.1 }} noWrap>
               {o.label}
             </Typography>
           </Box>
@@ -205,7 +206,7 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
     >
       {showLabel && (
         <Typography
-          sx={{ fontSize: labelSize, color: 'text.primary', fontWeight: 600, lineHeight: 1.1, mb: 0.2 }}
+          sx={{ fontSize: labelSize, color: labelColor, fontWeight: 600, lineHeight: 1.1, mb: 0.2 }}
           noWrap
         >
           {label}

@@ -29,7 +29,12 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
   };
 
   const fontSize = q.fontSize ?? 13;
-  const labelSx = { m: 0, mr: 1, '& .MuiFormControlLabel-label': { fontSize } };
+  const color = q.color;
+  const labelSx = {
+    m: 0,
+    mr: 1,
+    '& .MuiFormControlLabel-label': { fontSize, color: color ?? undefined },
+  };
 
   if (q.type === 'boolean') {
     // 예/아니오 단일 체크박스: 박스를 꽉 채우고 클릭 영역을 넓게
@@ -141,7 +146,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
             {...field}
             size="small"
             fullWidth
-            sx={{ height: '100%', fontSize, bgcolor: 'rgba(255,255,255,0.9)' }}
+            sx={{ height: '100%', fontSize, color: color ?? undefined, bgcolor: 'rgba(255,255,255,0.9)' }}
           >
             {options.map((o) => (
               <MenuItem key={o.id} value={o.value}>
@@ -178,6 +183,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
               height: '100%',
               bgcolor: 'rgba(255,255,255,0.92)',
               fontSize,
+              color: color ?? undefined,
             },
             '& .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
           }}
@@ -238,7 +244,7 @@ function PageRender({
                 sx={{
                   fontSize: labelSize,
                   fontWeight: isCheck ? 400 : 600,
-                  color: 'text.primary',
+                  color: q.color ?? 'text.primary',
                   lineHeight: 1.15,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
