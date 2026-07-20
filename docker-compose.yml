@@ -1,0 +1,63 @@
+# SmartQnR 서버 전체 스택 (DB + WAS + 웹서버)
+#   docker compose up -d --build
+#
+#   web(nginx)  :80  →  정적 프론트 + /api 프록시
+#   backend(WAS):8080 →  Spring Boot(내장 Tomcat) REST API
+#   db(postgres):5432 →  PostgreSQL
+#
+# 운영 값은 .env 로 덮어쓰세요(.env.example 참고).
+services:
+  db:
+    image: postgres:16
+    container_name: smartqnr-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-smartqnr}
+      POSTGRES_USER: ${DB_USER:-smartqnr}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-smartqnr}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-smartqnr} -d ${DB_NAME:-smartqnr}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # 필요 시에만 외부 노출(기본은 내부 네트워크만)
+    ports:
+      - "${DB_PORT:-5432}:5432"
+
+  backend:
+    build:
+      context: ./server
+    container_name: smartqnr-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-smartqnr}
+      DB_USER: ${DB_USER:-smartqnr}
+      DB_PASSWORD: ${DB_PASSWORD:-smartqnr}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-update}
+      AUTH_USER: ${AUTH_USER:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-lit123qwe!}
+      JWT_SECRET: ${JWT_SECRET:-change-this-smartqnr-secret}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-12}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: smartqnr-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-8081}:80"
+
+volumes:
+  pgdata:

@@ -1,0 +1,8 @@
+node_modules
+dist
+release
+server/target
+.git
+*.log
+**/.DS_Store
+electron
