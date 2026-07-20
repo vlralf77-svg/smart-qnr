@@ -1,8 +1,9 @@
 @echo off
-REM SmartQnR 로컬 스택 중지 (데이터 볼륨 pgdata 는 보존됩니다)
+chcp 65001 >nul
+REM Stop SmartQnR local stack (data volume pgdata is kept)
 setlocal
 cd /d "%~dp0"
-echo === SmartQnR 로컬 스택 중지 ===
+echo === Stopping SmartQnR local stack ===
 docker compose down
-echo 중지되었습니다. (데이터는 보존됨. 완전 삭제는: docker compose down -v)
+echo Stopped. (Data kept. To wipe data: docker compose down -v)
 pause
