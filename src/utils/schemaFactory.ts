@@ -42,6 +42,38 @@ export function createSection(title = '새 섹션'): Section {
   };
 }
 
+/** 빈 흰색 페이지 이미지(PNG data URL) 생성 — 캔버스 편집용 배경 */
+export function blankPageDataUrl(width = 800, height = 1131): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+  }
+  return canvas.toDataURL('image/png');
+}
+
+export const BLANK_PAGE_W = 800;
+export const BLANK_PAGE_H = 1131; // A4 세로 비율 근사
+
+/** 빈 캔버스(흰 페이지) 문진 — 파워포인트식 팔레트 편집기로 열린다(pages 보유). */
+export function createBlankCanvasForm(title = '제목 없는 문진'): FormSchema {
+  const now = new Date().toISOString();
+  return {
+    id: newFormId(),
+    title,
+    description: '',
+    version: 1,
+    status: 'draft',
+    sections: [{ id: uid('sec'), title: '섹션 1', questions: [] }],
+    pages: [{ image: blankPageDataUrl(BLANK_PAGE_W, BLANK_PAGE_H), width: BLANK_PAGE_W, height: BLANK_PAGE_H }],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function createEmptyForm(title = '제목 없는 문진'): FormSchema {
   return {
     id: newFormId(),

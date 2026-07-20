@@ -1,6 +1,7 @@
 // 문진 에디터 상태관리 (§4.3) — 편집 중인 스키마 + 편집 오퍼레이션
 import { create } from 'zustand';
 import {
+  FormPage,
   FormSchema,
   Question,
   QuestionLayout,
@@ -14,7 +15,10 @@ import {
   createOption,
   createQuestion,
   createSection,
-  createEmptyForm,
+  createBlankCanvasForm,
+  blankPageDataUrl,
+  BLANK_PAGE_W,
+  BLANK_PAGE_H,
 } from '@/utils/schemaFactory';
 import {
   createDefaultLayout,
@@ -106,6 +110,8 @@ interface EditorState {
   setSelection: (sectionId: string, questionIds: string[]) => void;
   /** 선택된 문항들에 글자 크기(px)를 일괄 적용 */
   setFontSizeForSelected: (fontSize: number) => void;
+  /** 빈 캔버스 페이지 추가(여러 페이지 문진) */
+  addBlankPage: () => void;
 
   // 복사/붙여넣기
   _clipboard: Question[];
@@ -253,7 +259,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({ form, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
   newForm: () =>
     set({
-      form: createEmptyForm(),
+      form: createBlankCanvasForm(),
       selected: null,
       selectedIds: [],
       dirty: false,
@@ -557,6 +563,20 @@ export const useEditorStore = create<EditorState>((set) => ({
             questions: s.questions.map((q) => (ids.has(q.id) ? { ...q, fontSize: clamped } : q)),
           })),
         ),
+        dirty: true,
+      };
+    }),
+
+  addBlankPage: () =>
+    set((st) => {
+      if (!st.form) return st;
+      const page: FormPage = {
+        image: blankPageDataUrl(BLANK_PAGE_W, BLANK_PAGE_H),
+        width: BLANK_PAGE_W,
+        height: BLANK_PAGE_H,
+      };
+      return {
+        form: { ...st.form, pages: [...(st.form.pages ?? []), page], updatedAt: new Date().toISOString() },
         dirty: true,
       };
     }),

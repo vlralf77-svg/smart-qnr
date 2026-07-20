@@ -471,7 +471,7 @@ export default function OverlayEditor({ form }: Props) {
   const pages = form.pages ?? [];
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
-  const { selectedIds, setFontSizeForSelected } = useEditorStore();
+  const { selectedIds, setFontSizeForSelected, addBlankPage } = useEditorStore();
   const [placeType, setPlaceType] = useState<QuestionType | null>(null);
 
   const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
@@ -548,6 +548,15 @@ export default function OverlayEditor({ form }: Props) {
           onPlaced={() => setPlaceType(null)}
         />
       ))}
+
+      <Box sx={{ textAlign: 'center', mt: 1, mb: 3 }}>
+        <Chip
+          label="+ 빈 페이지 추가"
+          variant="outlined"
+          onClick={addBlankPage}
+          sx={{ cursor: 'pointer' }}
+        />
+      </Box>
     </Box>
   );
 }
