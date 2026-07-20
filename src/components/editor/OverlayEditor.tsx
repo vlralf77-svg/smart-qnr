@@ -41,6 +41,16 @@ import { CellRegion, FormSchema, Question, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
 
+// 마지막 포인터 입력의 Ctrl/⌘ 눌림 상태를 캡처 단계에서 기록.
+// (react-rnd 의 onDragStart 이벤트에는 ctrlKey 가 신뢰성 있게 담기지 않으므로 직접 추적)
+let lastPointerCtrl = false;
+if (typeof window !== 'undefined') {
+  const track = (e: MouseEvent) => {
+    lastPointerCtrl = e.ctrlKey || e.metaKey;
+  };
+  window.addEventListener('mousedown', track, true);
+}
+
 // 팔레트: 배치 가능한 컴포넌트 유형
 const PALETTE: { type: QuestionType; label: string; icon: React.ReactNode }[] = [
   { type: 'text', label: '단답', icon: <TextFieldsIcon sx={{ fontSize: 16 }} /> },
@@ -372,8 +382,9 @@ function PageOverlay({
       }
 
       // 커서 모드: 영역 선택
+      const ctrl = lastPointerCtrl;
       if (isClick) {
-        select(null);
+        if (!ctrl) select(null); // Ctrl 없이 빈 곳 클릭 → 선택 해제
         return;
       }
       const hit: string[] = [];
@@ -385,7 +396,11 @@ function PageOverlay({
         const fh = (ov.hPct / 100) * rect.height;
         if (fx < bx + bw && fx + fw > bx && fy < by + bh && fy + fh > by) hit.push(q.id);
       }
-      setSelection(sectionId, hit);
+      // Ctrl+드래그면 기존 선택에 더함
+      const next = ctrl
+        ? Array.from(new Set([...useEditorStore.getState().selectedIds, ...hit]))
+        : hit;
+      setSelection(sectionId, next);
     };
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
@@ -468,8 +483,9 @@ function PageOverlay({
           fields.map((q) => {
             const ov = q.overlay!;
             const isSel = selectedIds.includes(q.id);
-            const pickField = (e: { ctrlKey?: boolean; metaKey?: boolean }) => {
-              if (e.ctrlKey || e.metaKey) toggleSelect(sectionId, q.id);
+            const pickField = (ctrl: boolean) => {
+              // Ctrl/⌘+클릭이면 선택 토글(하나씩 추가/제외), 아니면 단일 선택
+              if (ctrl) toggleSelect(sectionId, q.id);
               else if (!selectedIds.includes(q.id)) select({ sectionId, questionId: q.id });
             };
             return (
@@ -486,8 +502,8 @@ function PageOverlay({
                   x: pctToPx(ov.xPct, size.width),
                   y: pctToPx(ov.yPct, size.height),
                 }}
-                onDragStart={(e) => pickField(e as unknown as MouseEvent)}
-                onResizeStart={(e) => pickField(e as unknown as MouseEvent)}
+                onDragStart={() => pickField(false)}
+                onResizeStart={() => pickField(false)}
                 onDragStop={(_e, d) => {
                   updateQuestionOverlay(sectionId, q.id, {
                     ...ov,
@@ -507,6 +523,15 @@ function PageOverlay({
                 style={{ zIndex: isSel ? 20 : 10 }}
               >
                 <Box
+                  // 일반 선택/드래그는 react-rnd 의 onDragStart 가 담당.
+                  // Ctrl+클릭은 react-rnd 가 드래그로 보지 않아 onDragStart 가 안 뜨므로
+                  // click 단계에서 따로 토글 처리(하나씩 추가/제외).
+                  onClickCapture={(e) => {
+                    if (!placeType && (e.ctrlKey || e.metaKey)) {
+                      e.stopPropagation();
+                      toggleSelect(sectionId, q.id);
+                    }
+                  }}
                   sx={{
                     position: 'relative',
                     width: '100%',
