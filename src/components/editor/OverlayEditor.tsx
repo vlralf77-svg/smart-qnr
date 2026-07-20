@@ -40,6 +40,7 @@ import Divider from '@mui/material/Divider';
 import { CellRegion, FormSchema, Question, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useElementSize } from '@/hooks/useElementSize';
+import { readingOrder } from '@/utils/questionOrder';
 
 // 마지막 포인터 입력의 Ctrl/⌘ 눌림 상태를 캡처 단계에서 기록.
 // (react-rnd 의 onDragStart 이벤트에는 ctrlKey 가 신뢰성 있게 담기지 않으므로 직접 추적)
@@ -75,17 +76,6 @@ const SECTION_COLORS = [
   '#5d4037',
   '#455a64',
 ];
-
-/** 읽기순서(페이지 → 위→아래 → 좌→우) 정렬 — 답변(제시) 순서 계산용 */
-function readingOrder(a: Question, b: Question): number {
-  const pa = a.overlay?.page ?? 0;
-  const pb = b.overlay?.page ?? 0;
-  if (pa !== pb) return pa - pb;
-  const ya = a.overlay?.yPct ?? 0;
-  const yb = b.overlay?.yPct ?? 0;
-  if (Math.abs(ya - yb) > 3) return ya - yb;
-  return (a.overlay?.xPct ?? 0) - (b.overlay?.xPct ?? 0);
-}
 
 const INPUT_BOX = {
   width: '100%',

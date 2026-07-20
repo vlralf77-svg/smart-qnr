@@ -7,6 +7,7 @@ import { Box, Button, LinearProgress, Paper, Stack, Typography } from '@mui/mate
 import { Control, FieldErrors, UseFormTrigger, useWatch } from 'react-hook-form';
 import { AnswerValue, FormSchema, Question } from '@/types/schema';
 import { isQuestionVisible } from '@/utils/conditions';
+import { orderedQuestions } from '@/utils/questionOrder';
 import QuestionField from './QuestionField';
 
 interface Step {
@@ -16,25 +17,14 @@ interface Step {
 
 const CHUNK = 5;
 
-/** 읽기순서(페이지→위→아래→좌→우) 정렬 */
-function readingOrder(a: Question, b: Question): number {
-  const pa = a.overlay?.page ?? 0;
-  const pb = b.overlay?.page ?? 0;
-  if (pa !== pb) return pa - pb;
-  const ya = a.overlay?.yPct ?? 0;
-  const yb = b.overlay?.yPct ?? 0;
-  if (Math.abs(ya - yb) > 3) return ya - yb;
-  return (a.overlay?.xPct ?? 0) - (b.overlay?.xPct ?? 0);
-}
-
 function buildSteps(schema: FormSchema): Step[] {
   const withQ = schema.sections.filter((s) => s.questions.length > 0);
-  // 섹션이 여러 개면 그대로 단계로
+  // 섹션이 여러 개면 그대로 단계로(섹션 내부는 읽기순서로 정렬)
   if (withQ.length > 1) {
-    return withQ.map((s) => ({ title: s.title, questions: s.questions }));
+    return withQ.map((s) => ({ title: s.title, questions: orderedQuestions(s) }));
   }
   // 단일 섹션(캔버스/오버레이): 읽기순서로 정렬해 5개씩 묶음
-  const all = schema.sections.flatMap((s) => s.questions).slice().sort(readingOrder);
+  const all = schema.sections.flatMap((s) => orderedQuestions(s));
   const steps: Step[] = [];
   for (let i = 0; i < all.length; i += CHUNK) {
     steps.push({ title: `${Math.floor(i / CHUNK) + 1}단계`, questions: all.slice(i, i + CHUNK) });

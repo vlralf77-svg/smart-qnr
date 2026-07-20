@@ -16,6 +16,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
+import { orderedQuestions } from '@/utils/questionOrder';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
@@ -107,12 +108,12 @@ export default function PatientView() {
   }, [formId]);
 
   const answers = response?.answers ?? {};
-  // 섹션 순서대로 전체 질문 번호 매김(안내문 제외)
+  // 순서 = 섹션 순서 → 섹션 내 읽기순서. 그 순서대로 전체 질문 번호 매김(안내문 제외)
   const qNo: Record<string, number> = {};
   if (form) {
     let n = 0;
     form.sections.forEach((s) =>
-      s.questions.forEach((q) => {
+      orderedQuestions(s).forEach((q) => {
         if (q.type !== 'info') qNo[q.id] = ++n;
       }),
     );
@@ -162,7 +163,7 @@ export default function PatientView() {
             {/* PC 는 2단(masonry)으로 한번에 더 많이 보이게, 모바일은 1단 */}
             <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 2.5 }}>
               {form.sections.map((section, si) => {
-                const qs = section.questions.filter((q) => q.type !== 'info');
+                const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
                 if (qs.length === 0) return null;
                 const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
                 return (
