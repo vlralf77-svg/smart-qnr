@@ -1,10 +1,12 @@
-// 모바일/태블릿(<768px) 섹션 기반 위저드 렌더
+// 섹션 기반 위저드 렌더 (PC·모바일 공통)
 //  - 문항을 논리적 그룹(섹션이 여러 개면 섹션, 아니면 읽기순서로 5개씩)으로 나눔
 //  - 한 화면에 한 그룹, 진행표시(2/5) + 이전/다음/제출
+//  - 조건부 표시(condition)를 반영해 숨김 문항은 렌더·검증에서 제외
 import { useMemo, useState } from 'react';
 import { Box, Button, LinearProgress, Paper, Stack, Typography } from '@mui/material';
-import { Control, FieldErrors, UseFormTrigger } from 'react-hook-form';
-import { FormSchema, Question } from '@/types/schema';
+import { Control, FieldErrors, UseFormTrigger, useWatch } from 'react-hook-form';
+import { AnswerValue, FormSchema, Question } from '@/types/schema';
+import { isQuestionVisible } from '@/utils/conditions';
 import QuestionField from './QuestionField';
 
 interface Step {
@@ -66,10 +68,14 @@ export default function MobileWizard({
   const cur = steps[Math.min(step, total - 1)];
   const isLast = step >= total - 1;
 
+  // 조건부 표시 반영: 현재 답변에 따라 보이는 문항만 렌더·검증
+  const answers = (useWatch({ control }) ?? {}) as Record<string, AnswerValue>;
+  const visibleQuestions = cur.questions.filter((q) => isQuestionVisible(q, answers));
+
   const goNext = async () => {
-    // 현재 단계 필수 항목 검증 후 진행
-    const ids = cur.questions.map((q) => q.id);
-    const ok = await trigger(ids);
+    // 미리보기는 검증 없이 페이지 이동만. 실제 응답은 보이는 필수 항목을 검증 후 진행.
+    const ids = visibleQuestions.map((q) => q.id);
+    const ok = preview || ids.length === 0 ? true : await trigger(ids);
     if (ok) {
       setStep((s) => Math.min(s + 1, total - 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -81,7 +87,7 @@ export default function MobileWizard({
   };
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ width: '100%', maxWidth: 720, mx: 'auto' }}>
       <Box>
         <Typography variant="h6" fontWeight={700}>
           {schema.title || '문진'}
@@ -101,16 +107,25 @@ export default function MobileWizard({
         />
       </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 } }}>
         <Stack spacing={2.5}>
-          {cur.questions.map((q) => (
-            <QuestionField key={q.id} question={q} control={control} errors={errors} />
-          ))}
+          {visibleQuestions.length ? (
+            visibleQuestions.map((q) => (
+              <QuestionField key={q.id} question={q} control={control} errors={errors} />
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              이 단계에 표시할 항목이 없습니다. 다음으로 진행해 주세요.
+            </Typography>
+          )}
         </Stack>
       </Paper>
 
-      {!preview && (
-        <Stack direction="row" spacing={1}>
+      {/* 내비게이션: 미리보기에서도 단계 이동은 가능(제출만 숨김).
+          두 버튼에 서로 다른 key 를 주어 '다음'→'제출' 전환 시 DOM 노드 재사용으로
+          유령 submit 이 나는 것을 막고, 제출은 native submit 대신 onSubmit 을 직접 호출. */}
+      <Stack direction="row" spacing={1}>
+        {total > 1 && (
           <Button
             key="prev"
             type="button"
@@ -122,10 +137,20 @@ export default function MobileWizard({
           >
             이전
           </Button>
-          {/* 두 버튼에 서로 다른 key 를 주어 React 가 DOM 노드를 재사용하지 않도록 한다.
-              (재사용 시 '다음'→'제출' 전환 중 유령 submit 이 발생) 제출도 native submit
-              대신 onSubmit 을 명시적으로 호출한다. */}
-          {isLast ? (
+        )}
+        {!isLast ? (
+          <Button
+            key="next"
+            type="button"
+            variant="contained"
+            size="large"
+            fullWidth
+            onClick={goNext}
+          >
+            다음
+          </Button>
+        ) : (
+          !preview && (
             <Button
               key="submit"
               type="button"
@@ -136,20 +161,9 @@ export default function MobileWizard({
             >
               {submitLabel ?? '제출하기'}
             </Button>
-          ) : (
-            <Button
-              key="next"
-              type="button"
-              variant="contained"
-              size="large"
-              fullWidth
-              onClick={goNext}
-            >
-              다음
-            </Button>
-          )}
-        </Stack>
-      )}
+          )
+        )}
+      </Stack>
     </Stack>
   );
 }
