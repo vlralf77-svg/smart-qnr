@@ -64,6 +64,29 @@ const PALETTE: { type: QuestionType; label: string; icon: React.ReactNode }[] = 
   { type: 'info', label: '안내문', icon: <InfoOutlinedIcon sx={{ fontSize: 16 }} /> },
 ];
 
+// 섹션별 색상 — 순서 배지·필드 외곽선에 사용해 어느 섹션에 속하는지 시각화
+const SECTION_COLORS = [
+  '#1976d2',
+  '#2e7d32',
+  '#ed6c02',
+  '#7b1fa2',
+  '#0288d1',
+  '#c2185b',
+  '#5d4037',
+  '#455a64',
+];
+
+/** 읽기순서(페이지 → 위→아래 → 좌→우) 정렬 — 답변(제시) 순서 계산용 */
+function readingOrder(a: Question, b: Question): number {
+  const pa = a.overlay?.page ?? 0;
+  const pb = b.overlay?.page ?? 0;
+  if (pa !== pb) return pa - pb;
+  const ya = a.overlay?.yPct ?? 0;
+  const yb = b.overlay?.yPct ?? 0;
+  if (Math.abs(ya - yb) > 3) return ya - yb;
+  return (a.overlay?.xPct ?? 0) - (b.overlay?.xPct ?? 0);
+}
+
 const INPUT_BOX = {
   width: '100%',
   height: '100%',
@@ -226,6 +249,10 @@ interface PageProps {
   placeType: QuestionType | null;
   onPlaced: () => void;
   showLabel?: boolean;
+  /** 문항 id → 답변 순서번호 */
+  orderMap: Record<string, number>;
+  /** 문항 id → 소속 섹션 색상 */
+  colorMap: Record<string, string>;
 }
 
 function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): CellRegion | undefined {
@@ -248,6 +275,8 @@ function PageOverlay({
   placeType,
   onPlaced,
   showLabel,
+  orderMap,
+  colorMap,
 }: PageProps) {
   const { ref, size } = useElementSize<HTMLDivElement>();
   const {
@@ -537,11 +566,36 @@ function PageOverlay({
                     width: '100%',
                     height: '100%',
                     boxSizing: 'border-box',
-                    outline: isSel ? '2px solid' : '1px dashed',
-                    outlineColor: isSel ? 'primary.main' : 'rgba(74,144,217,0.5)',
+                    outline: isSel ? '2px solid' : '1.5px solid',
+                    outlineColor: isSel ? 'primary.main' : colorMap[q.id] ?? 'rgba(74,144,217,0.5)',
                     cursor: placeType ? 'crosshair' : 'move',
                   }}
                 >
+                  {/* 답변 순서번호 배지(섹션 색) — 위치 조정 시 순서를 바로 확인 */}
+                  {!placeType && orderMap[q.id] != null && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -9,
+                        left: -9,
+                        minWidth: 18,
+                        height: 18,
+                        px: 0.4,
+                        borderRadius: '9px',
+                        bgcolor: colorMap[q.id] ?? 'primary.main',
+                        color: '#fff',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        lineHeight: '18px',
+                        textAlign: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+                        pointerEvents: 'none',
+                        zIndex: 24,
+                      }}
+                    >
+                      {orderMap[q.id]}
+                    </Box>
+                  )}
                   <FieldPreview q={q} showLabel={showLabel} />
                   {isSel && !placeType && (
                     <IconButton
@@ -581,14 +635,46 @@ export default function OverlayEditor({ form }: Props) {
   const pages = form.pages ?? [];
   const sectionId = form.sections[0]?.id ?? '';
   const questions = form.sections.flatMap((s) => s.questions);
-  const { selectedIds, setFontSizeForSelected, addBlankPage, alignSelected } = useEditorStore();
+  const {
+    selectedIds,
+    setFontSizeForSelected,
+    addBlankPage,
+    alignSelected,
+    groupSelectedIntoSection,
+    assignSelectedToSection,
+    ungroupSection,
+    updateSection,
+  } = useEditorStore();
   const [placeType, setPlaceType] = useState<QuestionType | null>(null);
   const multi = selectedIds.length >= 2;
+  const hasSelection = selectedIds.length >= 1;
 
   const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
   const sizes = new Set(selectedQuestions.map((q) => q.fontSize ?? 13));
   const currentFont = sizes.size === 1 ? [...sizes][0] : '';
   const FONT_OPTIONS = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
+
+  // 답변(제시) 순서번호 + 섹션 색상 계산: 섹션 순서 → 섹션 내 읽기순서
+  const orderMap: Record<string, number> = {};
+  const colorMap: Record<string, string> = {};
+  let running = 0;
+  form.sections.forEach((s, si) => {
+    const color = SECTION_COLORS[si % SECTION_COLORS.length];
+    s.questions
+      .filter((q) => q.overlay)
+      .slice()
+      .sort(readingOrder)
+      .forEach((q) => {
+        orderMap[q.id] = ++running;
+        colorMap[q.id] = color;
+      });
+  });
+  const multiSection = form.sections.length > 1;
+
+  const renameSection = (id: string, current: string) => {
+    const name = window.prompt('섹션 이름', current);
+    if (name && name.trim()) updateSection(id, { title: name.trim() });
+  };
 
   return (
     <Box>
@@ -719,11 +805,75 @@ export default function OverlayEditor({ form }: Props) {
           </Tooltip>
         </Stack>
 
+        {/* 섹션 그룹 — 선택 항목을 섹션으로 묶고, 섹션별 색/순서 확인 */}
+        <Stack
+          direction="row"
+          spacing={0.75}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider' }}
+        >
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+            섹션 <b>({form.sections.length})</b>
+          </Typography>
+          {form.sections.map((s, si) => {
+            const count = s.questions.filter((q) => q.overlay).length;
+            const color = SECTION_COLORS[si % SECTION_COLORS.length];
+            return (
+              <Chip
+                key={s.id}
+                size="small"
+                variant="outlined"
+                onClick={() => renameSection(s.id, s.title)}
+                onDelete={multiSection ? () => ungroupSection(s.id) : undefined}
+                label={
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color }} />
+                    {s.title} · {count}
+                  </Box>
+                }
+                sx={{ borderColor: color }}
+              />
+            );
+          })}
+          <Box sx={{ flex: 1 }} />
+          <Tooltip title="선택한 컴포넌트를 새 섹션으로 묶기">
+            <span>
+              <Button
+                size="small"
+                variant="contained"
+                disabled={!hasSelection}
+                sx={{ minWidth: 0, px: 1 }}
+                onClick={() => groupSelectedIntoSection()}
+              >
+                + 새 섹션으로 묶기
+              </Button>
+            </span>
+          </Tooltip>
+          <Select
+            size="small"
+            displayEmpty
+            value=""
+            disabled={!hasSelection || form.sections.length < 1}
+            onChange={(e) => e.target.value && assignSelectedToSection(String(e.target.value))}
+            sx={{ minWidth: 128 }}
+            renderValue={() => '섹션으로 이동…'}
+          >
+            {form.sections.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.title}
+              </MenuItem>
+            ))}
+          </Select>
+        </Stack>
+
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b> 모드에서
           박스를 드래그해 이동, 모서리로 크기 조절, 빈 곳 드래그로 영역 선택, <b>Ctrl+클릭</b> 다중 선택,
           여러 개 선택 시 <b>정렬·크기 맞춤</b>(기준=마지막 선택), <b>방향키</b> 이동, <b>Delete</b> 삭제,
-          <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소.
+          <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소. 각 필드의 <b>번호=답변 순서</b>이며,
+          여러 개를 선택해 <b>새 섹션으로 묶으면</b> 모바일에서 섹션(단계)별로 나뉘어 표시됩니다.
         </Typography>
       </Paper>
 
@@ -738,6 +888,8 @@ export default function OverlayEditor({ form }: Props) {
           placeType={placeType}
           onPlaced={() => setPlaceType(null)}
           showLabel={!!form.canvas}
+          orderMap={orderMap}
+          colorMap={colorMap}
         />
       ))}
 

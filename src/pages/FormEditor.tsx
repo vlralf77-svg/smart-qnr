@@ -137,11 +137,14 @@ export default function FormEditor() {
 
   if (!form) return null;
 
-  const selectedQuestion = selected
+  // 문항은 섹션 그룹핑으로 다른 섹션에 있을 수 있으므로 전체에서 찾는다.
+  const selectedEntry = selected
     ? form.sections
-        .find((s) => s.id === selected.sectionId)
-        ?.questions.find((q) => q.id === selected.questionId)
+        .flatMap((s) => s.questions.map((q) => ({ sectionId: s.id, question: q })))
+        .find((e) => e.question.id === selected.questionId)
     : undefined;
+  const selectedQuestion = selectedEntry?.question;
+  const selectedSectionId = selectedEntry?.sectionId ?? selected?.sectionId ?? '';
 
   const handleSave = async () => {
     try {
@@ -262,7 +265,7 @@ export default function FormEditor() {
         <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
           {selectedQuestion && selected ? (
             <Paper variant="outlined" sx={{ p: 2.5 }}>
-              <QuestionEditPanel sectionId={selected.sectionId} question={selectedQuestion} />
+              <QuestionEditPanel sectionId={selectedSectionId} question={selectedQuestion} />
             </Paper>
           ) : (
             <Box

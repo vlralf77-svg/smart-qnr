@@ -72,6 +72,12 @@ interface EditorState {
   updateSection: (sectionId: string, patch: Partial<Pick<Section, 'title'>>) => void;
   removeSection: (sectionId: string) => void;
   reorderSections: (fromIndex: number, toIndex: number) => void;
+  /** 선택된 문항들을 새 섹션으로 묶는다(섹션 그룹 지정). 선택 상태는 유지 */
+  groupSelectedIntoSection: (title?: string) => void;
+  /** 선택된 문항들을 기존 섹션으로 이동 */
+  assignSelectedToSection: (sectionId: string) => void;
+  /** 섹션 해제 — 해당 섹션의 문항을 첫 섹션으로 합치고 그 섹션을 제거 */
+  ungroupSection: (sectionId: string) => void;
 
   // 문항
   addQuestion: (sectionId: string, type?: QuestionType) => void;
@@ -157,6 +163,25 @@ function mapQuestion(
   fn: (q: Question) => Question,
 ): Question[] {
   return questions.map((q) => (q.id === questionId ? fn(q) : q));
+}
+
+/**
+ * 모든 섹션을 통틀어 특정 문항을 찾아 변환한다.
+ * 문항 id 는 폼 전체에서 유일하므로, 섹션을 이동한 뒤에도(섹션 id 무관) 안전하게 동작.
+ */
+function mapQuestionEverywhere(
+  form: FormSchema,
+  questionId: string,
+  fn: (q: Question) => Question,
+): FormSchema {
+  return {
+    ...form,
+    sections: form.sections.map((s) => ({
+      ...s,
+      questions: mapQuestion(s.questions, questionId, fn),
+    })),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -320,6 +345,73 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
+  groupSelectedIntoSection: (title) =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      const ids = new Set(st.selectedIds);
+      // 선택 문항을 원래 순서(섹션 → 배열 순서)대로 모아 새 섹션에 넣는다.
+      const moved: Question[] = [];
+      const remaining = st.form.sections.map((s) => {
+        const keep: Question[] = [];
+        for (const q of s.questions) (ids.has(q.id) ? moved : keep).push(q);
+        return { ...s, questions: keep };
+      });
+      if (moved.length === 0) return st;
+      const section = createSection(title || `섹션 ${st.form.sections.length + 1}`);
+      section.questions = moved;
+      // 빈 섹션은 정리하되 최소 한 개는 남긴다.
+      const cleaned = remaining.filter((s) => s.questions.length > 0);
+      const nextSections = [...(cleaned.length ? cleaned : [remaining[0]]), section];
+      return {
+        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+        selected: { sectionId: section.id, questionId: st.selectedIds[st.selectedIds.length - 1] },
+        dirty: true,
+      };
+    }),
+
+  assignSelectedToSection: (sectionId) =>
+    set((st) => {
+      if (!st.form || st.selectedIds.length === 0) return st;
+      if (!st.form.sections.some((s) => s.id === sectionId)) return st;
+      const ids = new Set(st.selectedIds);
+      const moved: Question[] = [];
+      const stripped = st.form.sections.map((s) => {
+        const keep: Question[] = [];
+        for (const q of s.questions) {
+          if (ids.has(q.id) && s.id !== sectionId) moved.push(q);
+          else keep.push(q);
+        }
+        return { ...s, questions: keep };
+      });
+      const nextSections = stripped
+        .map((s) => (s.id === sectionId ? { ...s, questions: [...s.questions, ...moved] } : s))
+        .filter((s, i) => s.questions.length > 0 || i === 0);
+      return {
+        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+        selected: { sectionId, questionId: st.selectedIds[st.selectedIds.length - 1] },
+        dirty: true,
+      };
+    }),
+
+  ungroupSection: (sectionId) =>
+    set((st) => {
+      if (!st.form || st.form.sections.length <= 1) return st;
+      const idx = st.form.sections.findIndex((s) => s.id === sectionId);
+      if (idx < 0) return st;
+      const target = st.form.sections[idx];
+      // 첫 섹션(제거 대상이면 두 번째)으로 합친다.
+      const mergeInto = idx === 0 ? st.form.sections[1] : st.form.sections[0];
+      const nextSections = st.form.sections
+        .filter((s) => s.id !== sectionId)
+        .map((s) =>
+          s.id === mergeInto.id ? { ...s, questions: [...s.questions, ...target.questions] } : s,
+        );
+      return {
+        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+        dirty: true,
+      };
+    }),
+
   addQuestion: (sectionId, type = 'text') =>
     set((st) => {
       if (!st.form) return st;
@@ -340,45 +432,33 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
-  updateQuestion: (sectionId, questionId, patch) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({ ...q, ...patch })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+  // 섹션 이동을 지원하므로 문항 조작은 섹션 id 에 의존하지 않고 폼 전체에서 찾는다.
+  updateQuestion: (_sectionId, questionId, patch) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, ...patch })),
+            dirty: true,
+          }
+        : st,
+    ),
 
-  changeQuestionType: (sectionId, questionId, type) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) =>
-              coerceQuestionForType(q, type),
-            ),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+  changeQuestionType: (_sectionId, questionId, type) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => coerceQuestionForType(q, type)),
+            dirty: true,
+          }
+        : st,
+    ),
 
-  removeQuestion: (sectionId, questionId) =>
+  removeQuestion: (_sectionId, questionId) =>
     set((st) => {
       if (!st.form) return st;
       return {
         form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: s.questions.filter((q) => q.id !== questionId),
-          })),
+          secs.map((s) => ({ ...s, questions: s.questions.filter((q) => q.id !== questionId) })),
         ),
         selected: st.selected?.questionId === questionId ? null : st.selected,
         selectedIds: st.selectedIds.filter((id) => id !== questionId),
@@ -386,14 +466,16 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
-  duplicateQuestion: (sectionId, questionId) =>
+  duplicateQuestion: (_sectionId, questionId) =>
     set((st) => {
       if (!st.form) return st;
       let newId = '';
+      let ownerSectionId = '';
       const form = mapSections(st.form, (secs) =>
-        mapSection(secs, sectionId, (s) => {
+        secs.map((s) => {
           const idx = s.questions.findIndex((q) => q.id === questionId);
           if (idx < 0) return s;
+          ownerSectionId = s.id;
           const src = s.questions[idx];
           const copy = createQuestion(src.type);
           const cloned: Question = {
@@ -411,39 +493,25 @@ export const useEditorStore = create<EditorState>((set) => ({
       );
       return {
         form,
-        selected: newId ? { sectionId, questionId: newId } : st.selected,
+        selected: newId ? { sectionId: ownerSectionId, questionId: newId } : st.selected,
         selectedIds: newId ? [newId] : st.selectedIds,
         dirty: true,
       };
     }),
 
-  updateQuestionLayout: (sectionId, questionId, layout) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({ ...q, layout })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+  updateQuestionLayout: (_sectionId, questionId, layout) =>
+    set((st) =>
+      st.form
+        ? { form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, layout })), dirty: true }
+        : st,
+    ),
 
-  updateQuestionOverlay: (sectionId, questionId, overlay) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({ ...q, overlay })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+  updateQuestionOverlay: (_sectionId, questionId, overlay) =>
+    set((st) =>
+      st.form
+        ? { form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, overlay })), dirty: true }
+        : st,
+    ),
 
   addOverlayQuestion: (sectionId, type, overlay) =>
     set((st) => {
@@ -466,73 +534,57 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
-  addOption: (sectionId, questionId) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({
+  addOption: (_sectionId, questionId) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
               ...q,
               options: [...(q.options ?? []), createOption(`선택지 ${(q.options?.length ?? 0) + 1}`)],
             })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+            dirty: true,
+          }
+        : st,
+    ),
 
-  updateOption: (sectionId, questionId, optionId, patch) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({
+  updateOption: (_sectionId, questionId, optionId, patch) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
               ...q,
               options: q.options?.map((o) => (o.id === optionId ? { ...o, ...patch } : o)),
             })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+            dirty: true,
+          }
+        : st,
+    ),
 
-  removeOption: (sectionId, questionId, optionId) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({
+  removeOption: (_sectionId, questionId, optionId) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
               ...q,
               options: q.options?.filter((o) => o.id !== optionId),
             })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+            dirty: true,
+          }
+        : st,
+    ),
 
-  reorderOptions: (sectionId, questionId, fromIndex, toIndex) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: mapQuestion(s.questions, questionId, (q) => ({
+  reorderOptions: (_sectionId, questionId, fromIndex, toIndex) =>
+    set((st) =>
+      st.form
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
               ...q,
               options: q.options ? moveItem(q.options, fromIndex, toIndex) : q.options,
             })),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
+            dirty: true,
+          }
+        : st,
+    ),
 
   select: (sel) => set({ selected: sel, selectedIds: sel ? [sel.questionId] : [] }),
 
