@@ -13,7 +13,8 @@ import {
   TextField,
 } from '@mui/material';
 import { Control, Controller, FieldErrors } from 'react-hook-form';
-import { FormSchema, Question } from '@/types/schema';
+import { FormPage, FormSchema, Question } from '@/types/schema';
+import { useElementSize } from '@/hooks/useElementSize';
 
 interface Props {
   schema: FormSchema;
@@ -186,6 +187,107 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
   );
 }
 
+/**
+ * 한 페이지를 "디자인 크기(page.width×page.height) 그대로" 그린 뒤,
+ * 컨테이너 폭에 맞춰 통째로 transform:scale — 위치·글자·컨트롤이 같은 비율로
+ * 축소되어 어떤 화면 폭에서도 편집기와 동일하게 보인다(모바일 겹침 방지).
+ */
+function PageRender({
+  page,
+  pageIndex,
+  fields,
+  control,
+  showLabel,
+}: {
+  page: FormPage;
+  pageIndex: number;
+  fields: Question[];
+  control: Control<Record<string, unknown>>;
+  showLabel: boolean;
+}) {
+  const { ref, size } = useElementSize<HTMLDivElement>();
+  const scale = size.width > 0 ? size.width / page.width : 1;
+
+  return (
+    <Paper variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
+      <Box ref={ref} sx={{ position: 'relative', width: '100%', height: page.height * scale }}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: page.width,
+            height: page.height,
+            transformOrigin: 'top left',
+            transform: `scale(${scale})`,
+          }}
+        >
+          <img
+            src={page.image}
+            alt={`page-${pageIndex + 1}`}
+            style={{ width: page.width, height: page.height, display: 'block' }}
+          />
+          {fields.map((q) => {
+            const ov = q.overlay!;
+            const isCheck = q.type === 'boolean';
+            const withLabel = showLabel && q.type !== 'info';
+            const labelSize = q.fontSize ?? 13;
+            const labelEl = withLabel ? (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: labelSize,
+                  fontWeight: isCheck ? 400 : 600,
+                  color: 'text.primary',
+                  lineHeight: 1.15,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                }}
+              >
+                {q.label}
+              </Box>
+            ) : null;
+            return (
+              <Box
+                key={q.id}
+                sx={{
+                  position: 'absolute',
+                  left: `${ov.xPct}%`,
+                  top: `${ov.yPct}%`,
+                  width: `${ov.wPct}%`,
+                  height: `${ov.hPct}%`,
+                  display: 'flex',
+                  flexDirection: isCheck ? 'row' : 'column',
+                  alignItems: isCheck ? 'center' : 'stretch',
+                  gap: withLabel ? 0.5 : 0,
+                }}
+              >
+                {isCheck ? (
+                  <>
+                    <Box sx={{ width: 22, height: '100%', maxHeight: 26, flexShrink: 0 }}>
+                      <FieldControl q={q} control={control} />
+                    </Box>
+                    {labelEl}
+                  </>
+                ) : (
+                  <>
+                    {labelEl}
+                    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center' }}>
+                      <FieldControl q={q} control={control} />
+                    </Box>
+                  </>
+                )}
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+    </Paper>
+  );
+}
+
 export default function OverlayRenderer({ schema, control }: Props) {
   const pages = schema.pages ?? [];
   const questions = schema.sections.flatMap((s) => s.questions);
@@ -193,76 +295,16 @@ export default function OverlayRenderer({ schema, control }: Props) {
 
   return (
     <Box>
-      {pages.map((page, pageIndex) => {
-        const fields = questions.filter((q) => q.overlay && q.overlay.page === pageIndex);
-        return (
-          <Paper key={pageIndex} variant="outlined" sx={{ mb: 2, overflow: 'hidden' }}>
-            <Box sx={{ position: 'relative', width: '100%' }}>
-              <img
-                src={page.image}
-                alt={`page-${pageIndex + 1}`}
-                style={{ width: '100%', display: 'block' }}
-              />
-              {fields.map((q) => {
-                const ov = q.overlay!;
-                const isCheck = q.type === 'boolean';
-                const withLabel = showLabel && q.type !== 'info';
-                const labelSize = Math.max(9, Math.min(q.fontSize ?? 13, 13));
-                const labelEl = withLabel ? (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontSize: labelSize,
-                      fontWeight: isCheck ? 400 : 600,
-                      color: 'text.primary',
-                      lineHeight: 1.15,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {q.label}
-                  </Box>
-                ) : null;
-                return (
-                  <Box
-                    key={q.id}
-                    sx={{
-                      position: 'absolute',
-                      left: `${ov.xPct}%`,
-                      top: `${ov.yPct}%`,
-                      width: `${ov.wPct}%`,
-                      height: `${ov.hPct}%`,
-                      display: 'flex',
-                      flexDirection: isCheck ? 'row' : 'column',
-                      alignItems: isCheck ? 'center' : 'stretch',
-                      gap: withLabel ? 0.5 : 0,
-                    }}
-                  >
-                    {/* 체크박스: [네모] 라벨(우) / 입력: 라벨(상) + 컨트롤 */}
-                    {isCheck ? (
-                      <>
-                        <Box sx={{ width: 22, height: '100%', maxHeight: 26, flexShrink: 0 }}>
-                          <FieldControl q={q} control={control} />
-                        </Box>
-                        {labelEl}
-                      </>
-                    ) : (
-                      <>
-                        {labelEl}
-                        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center' }}>
-                          <FieldControl q={q} control={control} />
-                        </Box>
-                      </>
-                    )}
-                  </Box>
-                );
-              })}
-            </Box>
-          </Paper>
-        );
-      })}
+      {pages.map((page, pageIndex) => (
+        <PageRender
+          key={pageIndex}
+          page={page}
+          pageIndex={pageIndex}
+          fields={questions.filter((q) => q.overlay && q.overlay.page === pageIndex)}
+          control={control}
+          showLabel={showLabel}
+        />
+      ))}
     </Box>
   );
 }
