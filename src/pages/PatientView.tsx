@@ -20,6 +20,19 @@ import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
 
+// 섹션별 파스텔 색상(편집기 섹션 색상 순서와 동일한 색조: 파랑→초록→주황…)
+//  header=연한 배경, text=진한 같은 계열 글자, accent=중간 톤(번호 배지·답변 강조바)
+const SECTION_PALETTE = [
+  { header: '#e3f2fd', text: '#1565c0', accent: '#64b5f6' }, // 파랑
+  { header: '#e8f5e9', text: '#2e7d32', accent: '#81c784' }, // 초록
+  { header: '#fff3e0', text: '#e65100', accent: '#ffb74d' }, // 주황
+  { header: '#f3e5f5', text: '#6a1b9a', accent: '#ba68c8' }, // 보라
+  { header: '#e0f7fa', text: '#00838f', accent: '#4dd0e1' }, // 청록
+  { header: '#fce4ec', text: '#ad1457', accent: '#f06292' }, // 분홍
+  { header: '#efebe9', text: '#4e342e', accent: '#a1887f' }, // 갈색
+  { header: '#eceff1', text: '#37474f', accent: '#90a4ae' }, // 청회색
+];
+
 function fmtDate(ts?: string): string {
   if (!ts) return '';
   try {
@@ -147,21 +160,31 @@ export default function PatientView() {
             <Divider sx={{ my: 2 }} />
 
             <Stack spacing={2.5}>
-              {form.sections.map((section) => {
+              {form.sections.map((section, si) => {
                 const qs = section.questions.filter((q) => q.type !== 'info');
                 if (qs.length === 0) return null;
+                const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
                 return (
                   <Box
                     key={section.id}
                     sx={{
                       border: '1px solid',
-                      borderColor: 'divider',
+                      borderColor: pal.accent,
                       borderRadius: 2,
                       overflow: 'hidden',
                     }}
                   >
-                    {/* 섹션명 헤더 */}
-                    <Box sx={{ px: 2, py: 1.2, bgcolor: 'secondary.main', color: '#fff' }}>
+                    {/* 섹션명 헤더(섹션별 파스텔 배경) */}
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1.2,
+                        bgcolor: pal.header,
+                        color: pal.text,
+                        borderBottom: '1px solid',
+                        borderColor: pal.accent,
+                      }}
+                    >
                       <Typography variant="subtitle2" fontWeight={700}>
                         {section.title}
                       </Typography>
@@ -182,7 +205,7 @@ export default function PatientView() {
                                   height: 22,
                                   px: 0.5,
                                   borderRadius: '11px',
-                                  bgcolor: 'secondary.main',
+                                  bgcolor: pal.text,
                                   color: '#fff',
                                   fontSize: 12,
                                   fontWeight: 700,
@@ -209,9 +232,9 @@ export default function PatientView() {
                                 ml: '30px',
                                 px: 1.5,
                                 py: 1,
-                                bgcolor: 'action.hover',
+                                bgcolor: unanswered ? 'action.hover' : pal.header,
                                 borderLeft: '3px solid',
-                                borderColor: unanswered ? 'divider' : 'primary.main',
+                                borderColor: unanswered ? 'divider' : pal.accent,
                                 borderRadius: 1,
                               }}
                             >
