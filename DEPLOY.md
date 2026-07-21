@@ -1,5 +1,21 @@
 # SmartQnR 서버 실행 (Docker) — 내 PC 로컬 & 서버 공통
 
+> ## ⚡ 화면 수정하며 개발할 때 (권장)
+> 도커 웹 이미지는 빌드 결과물을 구워 넣어서, 소스를 바꾸면 `docker compose up -d --build web`
+> 로 매번 재빌드해야 반영됩니다. **라벨 등 화면을 빠르게 고칠 땐** 개발 서버(HMR)를 쓰세요.
+>
+> - **화면만**: `npm run dev` → http://localhost:5173 (저장 즉시 반영, 오프라인 모드)
+> - **실제 DB까지 연동해서**: DB·백엔드만 도커로 띄우고 프론트는 개발 서버로 붙임
+>   ```bash
+>   docker compose up -d db backend     # DB + WAS 만 컨테이너
+>   npm run dev:api                     # 프론트는 HMR + /api 프록시(→ localhost:8080)
+>   ```
+>   → http://localhost:5173 접속. 화면 수정은 즉시 반영되고, 저장/조회는 실제 도커 DB로 갑니다.
+>   백엔드 주소가 다르면 `VITE_DEV_API_TARGET=http://호스트:포트 npm run dev:api`.
+>
+> 데스크톱(Electron) 창으로 개발: `npm run electron:dev`.
+
+
 DB(PostgreSQL) + WAS(Spring Boot·내장 Tomcat) + 웹서버(nginx) 3계층을
 Docker Compose 로 한 번에 띄웁니다. **서버가 아니라 내 PC(Windows/Mac)에서도
 Docker Desktop 만 있으면 그대로 로컬 실행됩니다.**

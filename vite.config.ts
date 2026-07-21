@@ -21,5 +21,15 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // 개발서버(HMR)에서 백엔드(도커/로컬 8080)로 /api 프록시.
+    //  `docker compose up -d db backend` + `npm run dev:api` 조합으로,
+    //  실제 DB에 저장하면서도 화면 수정은 즉시 반영된다.
+    //  대상 주소는 VITE_DEV_API_TARGET 로 바꿀 수 있음(기본 localhost:8080).
+    proxy: {
+      '/api': {
+        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
   },
 });
