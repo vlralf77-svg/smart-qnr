@@ -18,10 +18,20 @@ spring:
         format_sql: false
     open-in-view: false
 
-# 로그인/토큰 설정 — 운영에서는 반드시 환경변수로 덮어쓸 것
+# 로그인/토큰/보안 설정 — 운영에서는 반드시 환경변수로 덮어쓸 것
 app:
   auth:
     username: ${AUTH_USER:admin}
+    # 개발용 평문(폴백). 운영에서는 password-hash 를 쓰고 이 값은 비워 둘 것.
     password: ${AUTH_PASSWORD:lit123qwe!}
+    # 관리자 비밀번호 BCrypt 해시(운영 권장). 설정 시 password 무시.
+    password-hash: ${AUTH_PASSWORD_HASH:}
     jwt-secret: ${JWT_SECRET:change-this-smartqnr-dev-secret}
     expiry-hours: ${JWT_EXPIRY_HOURS:12}
+    # 로그인 무차별 대입 방지
+    login-max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    login-lock-minutes: ${LOGIN_LOCK_MINUTES:10}
+  security:
+    # CORS 허용 출처(콤마 구분). 운영에서는 실제 도메인으로 제한. 예: https://qnr.hospital.co.kr
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+    # 응답 데이터 암호화 키(Base64 32바이트)는 코드가 아닌 환경변수 DATA_ENCRYPTION_KEY 로만 주입.

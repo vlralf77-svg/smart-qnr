@@ -1,0 +1,38 @@
+# SmartQnR 운영용 오버레이 — 기본 compose 와 함께 사용:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+#  변경점(운영 보안):
+#   - db / backend 포트를 호스트로 노출하지 않음(내부 네트워크만)
+#   - 필수 시크릿 미설정 시 기동 실패( ${VAR:?...} )
+#   - 응답 암호화 키/비밀번호 해시/CORS 등 보안 환경변수 주입
+#   - web 은 HTTPS(443) — 인증서 마운트 + nginx.https.conf 사용
+services:
+  db:
+    ports: [] # 외부 노출 차단(내부 네트워크에서만 접근)
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 설정하세요}
+
+  backend:
+    ports: [] # 외부 노출 차단(web 프록시 통해서만 접근)
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 설정하세요}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET(랜덤 32B+) 를 설정하세요}
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+      # 관리자 비밀번호는 해시로(평문 미사용)
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?AUTH_PASSWORD_HASH(BCrypt) 를 설정하세요}
+      AUTH_PASSWORD: "" # 평문 폴백 비활성화
+      # 응답 데이터 암호화 키(Base64 32바이트)
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?DATA_ENCRYPTION_KEY(Base64 32B) 를 설정하세요}
+      # CORS 허용 도메인
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS 를 설정하세요}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
+      LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-10}
+
+  web:
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      # HTTPS 설정과 인증서 마운트(호스트의 ./certs 에 fullchain.pem/privkey.pem 배치)
+      - ./web/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro

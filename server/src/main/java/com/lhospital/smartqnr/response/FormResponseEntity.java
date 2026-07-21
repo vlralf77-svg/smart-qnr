@@ -1,14 +1,17 @@
 package com.lhospital.smartqnr.response;
 
+import com.lhospital.smartqnr.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-/** 환자가 제출한 문진 응답 1건. answers(문항 id→값)는 jsonb 로 저장. */
+/**
+ * 환자가 제출한 문진 응답 1건. answers(문항 id→값)는 환자 의료정보이므로
+ * AES-256-GCM 으로 암호화해 text 컬럼에 저장(EncryptedStringConverter).
+ */
 @Entity
 @Table(name = "form_responses")
 public class FormResponseEntity {
@@ -26,8 +29,9 @@ public class FormResponseEntity {
   @Column(name = "patient_id")
   private String patientId;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "answers_json", nullable = false, columnDefinition = "jsonb")
+  // 암호화 저장(민감 의료정보). 엔티티에는 평문 JSON, DB 에는 암호문 text.
+  @Convert(converter = EncryptedStringConverter.class)
+  @Column(name = "answers_json", nullable = false, columnDefinition = "text")
   private String answersJson;
 
   @Column(name = "submitted_at", nullable = false)
