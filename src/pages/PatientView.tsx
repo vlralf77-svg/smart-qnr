@@ -21,22 +21,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
+import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
-
-// 섹션별 색상 — 채도를 낮춘 고급스러운 톤(편집기 섹션 색상 순서와 동일 색조)
-//  tint=아주 옅은 배경, bar=중간 톤 강조, text=읽기 좋은 진한 같은 계열
-const SECTION_PALETTE = [
-  { tint: '#f3f6ff', bar: '#5b7cfa', text: '#3a4db3' }, // 블루
-  { tint: '#f0faf5', bar: '#3f9d7c', text: '#2f7a5f' }, // 그린
-  { tint: '#fdf6ec', bar: '#d59a4e', text: '#9c6a1c' }, // 앰버
-  { tint: '#f7f4ff', bar: '#8b6fd0', text: '#6a4fb0' }, // 바이올렛
-  { tint: '#edf9fa', bar: '#3fa3ad', text: '#2b7d86' }, // 틸
-  { tint: '#fdf2f6', bar: '#d6738f', text: '#ad546e' }, // 로즈
-  { tint: '#f3f5f8', bar: '#6b7a90', text: '#48546a' }, // 슬레이트
-  { tint: '#f8f4f1', bar: '#a17c68', text: '#7a5a48' }, // 브라운
-];
 
 function fmtDate(ts?: string): string {
   if (!ts) return '';
