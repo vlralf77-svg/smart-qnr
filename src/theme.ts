@@ -23,12 +23,19 @@ export const theme = createTheme(
       borderRadius: 10,
     },
     typography: {
+      // 웹에서 일반적으로 쓰이는 시스템 폰트 스택
+      //  (Windows: Latin=Segoe UI, 한글=맑은 고딕 / macOS: SF·Apple SD Gothic Neo)
       fontFamily: [
-        'Pretendard',
         '-apple-system',
         'BlinkMacSystemFont',
-        'Malgun Gothic',
-        '맑은 고딕',
+        '"Segoe UI"',
+        'Roboto',
+        '"Helvetica Neue"',
+        'Arial',
+        '"Apple SD Gothic Neo"',
+        '"Noto Sans KR"',
+        '"Malgun Gothic"',
+        '"맑은 고딕"',
         'sans-serif',
       ].join(','),
       h6: { fontWeight: 700 },
