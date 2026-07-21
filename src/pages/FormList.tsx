@@ -9,6 +9,7 @@ import {
   Container,
   IconButton,
   InputAdornment,
+  MenuItem,
   Paper,
   Stack,
   Table,
@@ -30,10 +31,16 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCategoriesStore } from '@/store/useCategoriesStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
+import CategoryManager from '@/components/editor/CategoryManager';
+
+const ALL = '__all__';
+const NONE = '__none__';
 
 const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success' | 'warning' }> = {
   draft: { label: '초안', color: 'default' },
@@ -45,7 +52,10 @@ export default function FormList() {
   const navigate = useNavigate();
   const { forms, saveForm, deleteForm, refreshForms } = useFormsStore();
   const logout = useAuthStore((s) => s.logout);
+  const managedCategories = useCategoriesStore((s) => s.categories);
   const [query, setQuery] = useState('');
+  const [catFilter, setCatFilter] = useState<string>(ALL);
+  const [manageOpen, setManageOpen] = useState(false);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
   useEffect(() => {
@@ -53,14 +63,26 @@ export default function FormList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 필터에 노출할 분류: 관리 목록 + 실제 문진에 쓰인 값(합집합)
+  const filterCategories = useMemo(() => {
+    const set = new Set<string>(managedCategories);
+    forms.forEach((f) => f.category && set.add(f.category));
+    return Array.from(set);
+  }, [managedCategories, forms]);
+
+  const hasUncategorized = useMemo(() => forms.some((f) => !f.category), [forms]);
+
   const filtered = useMemo(
     () =>
-      forms.filter(
-        (f) =>
-          f.title.toLowerCase().includes(query.toLowerCase()) ||
-          f.id.toLowerCase().includes(query.toLowerCase()),
-      ),
-    [forms, query],
+      forms.filter((f) => {
+        const q = query.toLowerCase();
+        const matchQ = f.title.toLowerCase().includes(q) || f.id.toLowerCase().includes(q);
+        const matchCat =
+          catFilter === ALL ||
+          (catFilter === NONE ? !f.category : f.category === catFilter);
+        return matchQ && matchCat;
+      }),
+    [forms, query, catFilter],
   );
 
   const seedSample = () => {
@@ -132,20 +154,45 @@ export default function FormList() {
           </Stack>
         </Stack>
 
-        <TextField
-          size="small"
-          placeholder="제목 또는 ID 검색"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          sx={{ mb: 2, width: 320 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+          <TextField
+            size="small"
+            placeholder="제목 또는 ID 검색"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{ width: 300 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            select
+            size="small"
+            label="분류"
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            sx={{ width: 180 }}
+          >
+            <MenuItem value={ALL}>전체 분류</MenuItem>
+            {filterCategories.map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+            {hasUncategorized && <MenuItem value={NONE}>분류 없음</MenuItem>}
+          </TextField>
+          <Button
+            variant="outlined"
+            startIcon={<LabelOutlinedIcon />}
+            onClick={() => setManageOpen(true)}
+          >
+            분류 관리
+          </Button>
+        </Stack>
 
         {forms.length === 0 ? (
           <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
@@ -167,6 +214,7 @@ export default function FormList() {
               <TableHead>
                 <TableRow>
                   <TableCell>제목</TableCell>
+                  <TableCell width={130}>분류</TableCell>
                   <TableCell width={100}>상태</TableCell>
                   <TableCell width={80}>버전</TableCell>
                   <TableCell width={110}>문항 수</TableCell>
@@ -189,6 +237,21 @@ export default function FormList() {
                         <Typography variant="caption" color="text.secondary">
                           {f.id}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {f.category ? (
+                          <Chip
+                            label={f.category}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setCatFilter(f.category as string)}
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        ) : (
+                          <Typography variant="caption" color="text.disabled">
+                            —
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Chip label={st.label} color={st.color} size="small" />
@@ -234,6 +297,8 @@ export default function FormList() {
           </TableContainer>
         )}
       </Container>
+
+      <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
     </Box>
   );
 }

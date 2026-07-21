@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AppBar,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -27,6 +28,7 @@ import IconButton from '@mui/material/IconButton';
 import { isOverlayForm } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { useFormsStore } from '@/store/useFormsStore';
+import { useCategoriesStore } from '@/store/useCategoriesStore';
 import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
@@ -51,6 +53,8 @@ export default function FormEditor() {
   } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
+  const categories = useCategoriesStore((s) => s.categories);
+  const addCategory = useCategoriesStore((s) => s.addCategory);
   const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
   const [toast, setToast] = useState('');
@@ -148,6 +152,7 @@ export default function FormEditor() {
 
   const handleSave = async () => {
     try {
+      if (form.category) addCategory(form.category); // 사용한 분류를 관리 목록에 등록
       await saveForm(form);
       setToast('저장되었습니다');
     } catch (e) {
@@ -157,6 +162,7 @@ export default function FormEditor() {
 
   const handlePublish = async () => {
     try {
+      if (form.category) addCategory(form.category);
       await saveForm(form);
       await publishForm(form.id);
       setToast('발행되었습니다 (응답 화면에서 확인 가능)');
@@ -245,7 +251,29 @@ export default function FormEditor() {
               minRows={2}
               value={form.description ?? ''}
               onChange={(e) => updateMeta({ description: e.target.value })}
-              sx={{ mb: 1 }}
+              sx={{ mb: 1.5 }}
+            />
+            <Autocomplete
+              freeSolo
+              options={categories}
+              value={form.category ?? ''}
+              onInputChange={(_e, v, reason) => {
+                if (reason === 'input') updateMeta({ category: v.trim() || undefined });
+              }}
+              onChange={(_e, v) => {
+                const val = (typeof v === 'string' ? v : v ?? '').trim();
+                updateMeta({ category: val || undefined });
+                if (val) addCategory(val); // 새 분류면 목록에 등록
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="분류 (선택)"
+                  size="small"
+                  placeholder="예: 건강검진"
+                />
+              )}
+              sx={{ mb: 1.5 }}
             />
             <FormControlLabel
               control={

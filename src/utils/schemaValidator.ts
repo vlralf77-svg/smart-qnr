@@ -161,6 +161,7 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
 
   if (obj.canvas === true) schema.canvas = true;
   if (obj.testFlag === true) schema.testFlag = true;
+  if (typeof obj.category === 'string' && obj.category.trim()) schema.category = obj.category.trim();
 
   // PDF 배경 페이지 보존
   if (Array.isArray(obj.pages)) {

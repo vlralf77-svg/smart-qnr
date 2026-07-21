@@ -124,6 +124,8 @@ export interface FormSchema {
   canvas?: boolean;
   /** 테스트 대상 문진 여부. 환자(실사용자) 화면에서 이 값이 true 인 문진만 조회된다. */
   testFlag?: boolean;
+  /** 문진 분류(카테고리) — 목록에서 필터링/정리에 사용 */
+  category?: string;
   createdAt?: string;
   updatedAt?: string;
 }
