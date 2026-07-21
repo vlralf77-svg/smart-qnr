@@ -9,8 +9,13 @@ import {
   Container,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
   Toolbar,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -107,6 +112,8 @@ export default function PatientView() {
   }, [formId]);
 
   const answers = response?.answers ?? {};
+  // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리
+  const isMobile = useMediaQuery('(max-width:899px)');
   // 순서 = 섹션 순서 → 섹션 내 읽기순서. 그 순서대로 전체 질문 번호 매김(안내문 제외)
   const qNo: Record<string, number> = {};
   if (form) {
@@ -117,6 +124,37 @@ export default function PatientView() {
       }),
     );
   }
+  const pad2 = (n: number) => (n < 10 ? `0${n}` : String(n));
+  type Pal = (typeof SECTION_PALETTE)[number];
+  const sectionHeader = (title: string, pal: Pal, count: number) => (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.25,
+        px: 2.75,
+        py: 1.9,
+        bgcolor: pal.tint,
+        borderBottom: '1px solid rgba(15,23,42,0.05)',
+      }}
+    >
+      <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: pal.bar, flexShrink: 0 }} />
+      <Typography sx={{ fontSize: 14, fontWeight: 800, letterSpacing: 0.2, color: pal.text }}>
+        {title}
+      </Typography>
+      <Box sx={{ flex: 1 }} />
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: pal.text, opacity: 0.55 }}>
+        {count}문항
+      </Typography>
+    </Box>
+  );
+  const cardSx = {
+    borderRadius: 4,
+    overflow: 'hidden',
+    border: '1px solid rgba(15,23,42,0.06)',
+    bgcolor: '#fff',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 16px 32px -18px rgba(15,23,42,0.16)',
+  } as const;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
@@ -211,124 +249,167 @@ export default function PatientView() {
               </Stack>
             </Box>
 
-            {/* 섹션 카드 — PC 2단(masonry), 모바일 1단 */}
-            <Box sx={{ columnCount: { xs: 1, md: 2 }, columnGap: 3 }}>
-              {form.sections.map((section, si) => {
-                const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
-                if (qs.length === 0) return null;
-                const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
-                return (
-                  <Paper
-                    key={section.id}
-                    elevation={0}
-                    sx={{
-                      borderRadius: 4,
-                      overflow: 'hidden',
-                      border: '1px solid rgba(15,23,42,0.06)',
-                      breakInside: 'avoid',
-                      mb: 3,
-                      bgcolor: '#fff',
-                      boxShadow:
-                        '0 1px 2px rgba(15,23,42,0.04), 0 16px 32px -18px rgba(15,23,42,0.16)',
-                    }}
-                  >
-                    {/* 섹션 헤더 */}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.25,
-                        px: 2.75,
-                        py: 1.9,
-                        bgcolor: pal.tint,
-                        borderBottom: '1px solid rgba(15,23,42,0.05)',
-                      }}
-                    >
-                      <Box
-                        sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: pal.bar, flexShrink: 0 }}
-                      />
-                      <Typography
-                        sx={{ fontSize: 14, fontWeight: 800, letterSpacing: 0.2, color: pal.text }}
-                      >
-                        {section.title}
-                      </Typography>
-                      <Box sx={{ flex: 1 }} />
-                      <Typography
-                        sx={{ fontSize: 11, fontWeight: 700, color: pal.text, opacity: 0.55 }}
-                      >
-                        {qs.length}문항
-                      </Typography>
-                    </Box>
-
-                    {/* 질문·답변 목록 */}
-                    <Box>
-                      {qs.map((q, idx) => {
-                        const ans = formatAnswer(q, answers[q.id] ?? null);
-                        const unanswered = ans === '(미응답)';
-                        const n = qNo[q.id];
-                        return (
-                          <Box
-                            key={q.id}
-                            sx={{
-                              display: 'flex',
-                              gap: 1.75,
-                              px: 2.75,
-                              py: 1.9,
-                              borderTop: idx === 0 ? 'none' : '1px solid rgba(15,23,42,0.05)',
-                            }}
-                          >
-                            {/* 번호(2자리 제로패딩) */}
-                            <Typography
-                              component="span"
+            {isMobile ? (
+              /* ───────── 모바일: 카드 리스트(라벨 위 / 값 아래) ───────── */
+              <Stack spacing={2.5}>
+                {form.sections.map((section, si) => {
+                  const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
+                  if (qs.length === 0) return null;
+                  const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
+                  return (
+                    <Paper key={section.id} elevation={0} sx={cardSx}>
+                      {sectionHeader(section.title, pal, qs.length)}
+                      <Box>
+                        {qs.map((q, idx) => {
+                          const ans = formatAnswer(q, answers[q.id] ?? null);
+                          const unanswered = ans === '(미응답)';
+                          return (
+                            <Box
+                              key={q.id}
                               sx={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: pal.bar,
-                                mt: '3px',
-                                minWidth: 16,
-                                flexShrink: 0,
-                                letterSpacing: 0.5,
-                                fontVariantNumeric: 'tabular-nums',
+                                display: 'flex',
+                                gap: 1.75,
+                                px: 2.5,
+                                py: 1.9,
+                                borderTop: idx === 0 ? 'none' : '1px solid rgba(15,23,42,0.05)',
                               }}
                             >
-                              {n < 10 ? `0${n}` : n}
-                            </Typography>
-                            {/* 라벨(질문) + 값(답변) */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Typography
+                                component="span"
                                 sx={{
-                                  display: 'block',
-                                  fontSize: 11.5,
+                                  fontSize: 11,
                                   fontWeight: 700,
-                                  letterSpacing: 0.4,
-                                  color: 'text.secondary',
+                                  color: pal.bar,
+                                  mt: '3px',
+                                  minWidth: 16,
+                                  flexShrink: 0,
+                                  letterSpacing: 0.5,
+                                  fontVariantNumeric: 'tabular-nums',
                                 }}
                               >
-                                {q.label}
+                                {pad2(qNo[q.id])}
                               </Typography>
-                              <Typography
-                                sx={{
-                                  mt: 0.6,
-                                  fontSize: 16,
-                                  lineHeight: 1.45,
-                                  fontWeight: unanswered ? 400 : 600,
-                                  color: unanswered ? 'text.disabled' : '#1a2438',
-                                  fontStyle: unanswered ? 'italic' : 'normal',
-                                  whiteSpace: 'pre-wrap',
-                                  wordBreak: 'break-word',
-                                }}
-                              >
-                                {ans}
-                              </Typography>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  sx={{
+                                    fontSize: 11.5,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.4,
+                                    color: 'text.secondary',
+                                  }}
+                                >
+                                  {q.label}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    mt: 0.6,
+                                    fontSize: 16,
+                                    lineHeight: 1.45,
+                                    fontWeight: unanswered ? 400 : 600,
+                                    color: unanswered ? 'text.disabled' : '#1a2438',
+                                    fontStyle: unanswered ? 'italic' : 'normal',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  {ans}
+                                </Typography>
+                              </Box>
                             </Box>
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  </Paper>
-                );
-              })}
-            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Paper>
+                  );
+                })}
+              </Stack>
+            ) : (
+              /* ───────── PC: 리포트 테이블(항목 | 응답), 2단 배치 ───────── */
+              <Box sx={{ columnCount: 2, columnGap: 3 }}>
+                {form.sections.map((section, si) => {
+                  const qs = orderedQuestions(section).filter((q) => q.type !== 'info');
+                  if (qs.length === 0) return null;
+                  const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
+                  return (
+                    <Paper
+                      key={section.id}
+                      elevation={0}
+                      sx={{ ...cardSx, breakInside: 'avoid', mb: 3 }}
+                    >
+                      {sectionHeader(section.title, pal, qs.length)}
+                      <Table size="small">
+                        <TableBody>
+                          {qs.map((q) => {
+                            const ans = formatAnswer(q, answers[q.id] ?? null);
+                            const unanswered = ans === '(미응답)';
+                            return (
+                              <TableRow
+                                key={q.id}
+                                sx={{ '&:last-child td': { borderBottom: 'none' } }}
+                              >
+                                {/* 항목(질문) */}
+                                <TableCell
+                                  sx={{
+                                    width: '44%',
+                                    verticalAlign: 'top',
+                                    bgcolor: pal.tint,
+                                    borderRight: '1px solid rgba(15,23,42,0.05)',
+                                    borderBottom: '1px solid rgba(15,23,42,0.05)',
+                                    py: 1.5,
+                                  }}
+                                >
+                                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                                    <Typography
+                                      component="span"
+                                      sx={{
+                                        fontSize: 10.5,
+                                        fontWeight: 700,
+                                        color: pal.bar,
+                                        mt: '2px',
+                                        fontVariantNumeric: 'tabular-nums',
+                                      }}
+                                    >
+                                      {pad2(qNo[q.id])}
+                                    </Typography>
+                                    <Typography
+                                      sx={{ fontSize: 13, fontWeight: 700, color: pal.text, lineHeight: 1.4 }}
+                                    >
+                                      {q.label}
+                                    </Typography>
+                                  </Stack>
+                                </TableCell>
+                                {/* 응답(답변) */}
+                                <TableCell
+                                  sx={{
+                                    verticalAlign: 'top',
+                                    borderBottom: '1px solid rgba(15,23,42,0.05)',
+                                    py: 1.5,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontSize: 15,
+                                      lineHeight: 1.45,
+                                      fontWeight: unanswered ? 400 : 600,
+                                      color: unanswered ? 'text.disabled' : '#1a2438',
+                                      fontStyle: unanswered ? 'italic' : 'normal',
+                                      whiteSpace: 'pre-wrap',
+                                      wordBreak: 'break-word',
+                                    }}
+                                  >
+                                    {ans}
+                                  </Typography>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </Paper>
+                  );
+                })}
+              </Box>
+            )}
           </>
         )}
       </Container>
