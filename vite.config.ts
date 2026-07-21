@@ -11,6 +11,15 @@ export default defineConfig({
   base: './',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // react-rnd(내부 react-draggable)가 브라우저에 없는 process.env.DRAGGABLE_DEBUG 를
+    // 참조해 dev 에서 "process is not defined" 오류가 남 → false 로 치환.
+    'process.env.DRAGGABLE_DEBUG': 'false',
+  },
+  // dev 사전번들(esbuild)에도 동일 치환 적용
+  optimizeDeps: {
+    esbuildOptions: {
+      define: { 'process.env.DRAGGABLE_DEBUG': 'false' },
+    },
   },
   plugins: [react()],
   resolve: {
