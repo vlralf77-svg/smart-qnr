@@ -1,0 +1,17 @@
+# SVN 버전관리에서 제외할 항목(빌드 산출물/의존성/로컬 설정).
+#  이 파일 자체는 참고용 목록입니다. 실제 적용은 svn:ignore 속성으로 지정합니다.
+#  적용:  svn propset svn:ignore -F .svnignore .   (docs/SVN-SETUP.md 참고)
+node_modules
+dist
+release
+target
+server/target
+*.local
+.env
+.env.local
+.DS_Store
+npm-debug.log*
+yarn-error.log*
+*.log
+.idea
+.vscode
