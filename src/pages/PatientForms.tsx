@@ -11,8 +11,15 @@ import {
   Container,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Toolbar,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -79,6 +86,10 @@ export default function PatientForms() {
   }, []);
 
   const doneCount = forms.filter((f) => responses[f.id]).length;
+  // 모바일과 PC 는 완전히 다른 레이아웃(모바일=카드 리스트, PC=테이블)
+  const isMobile = useMediaQuery('(max-width:899px)');
+  const goto = (f: FormSchema) =>
+    navigate(responses[f.id] ? `/patient/view/${f.id}` : `/patient/respond/${f.id}`);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
@@ -135,19 +146,9 @@ export default function PatientForms() {
             <AssignmentIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
             <Typography color="text.secondary">작성할 문진이 없습니다.</Typography>
           </Paper>
-        ) : (
-          // PC 는 타일 그리드(2~3단), 모바일은 1단
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(3, 1fr)',
-              },
-              gap: 2.5,
-            }}
-          >
+        ) : isMobile ? (
+          /* ───────── 모바일: 카드 리스트(터치 친화) ───────── */
+          <Stack spacing={1.75}>
             {forms.map((f) => {
               const done = responses[f.id];
               return (
@@ -157,33 +158,15 @@ export default function PatientForms() {
                   sx={{
                     borderRadius: 3.5,
                     border: '1px solid rgba(15,23,42,0.06)',
-                    boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 14px 28px -18px rgba(15,23,42,0.16)',
-                    height: '100%',
-                    transition: 'transform .16s ease, box-shadow .16s ease',
-                    '&:hover': {
-                      transform: 'translateY(-3px)',
-                      boxShadow:
-                        '0 4px 8px rgba(15,23,42,0.06), 0 22px 36px -18px rgba(15,23,42,0.24)',
-                    },
+                    boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.16)',
                   }}
                 >
-                  <CardActionArea
-                    onClick={() =>
-                      navigate(done ? `/patient/view/${f.id}` : `/patient/respond/${f.id}`)
-                    }
-                    sx={{
-                      p: 2.5,
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'stretch',
-                    }}
-                  >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.75}>
+                  <CardActionArea onClick={() => goto(f)} sx={{ p: 2.25 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
                       <Box
                         sx={{
-                          width: 42,
-                          height: 42,
+                          width: 40,
+                          height: 40,
                           borderRadius: 2.5,
                           display: 'flex',
                           alignItems: 'center',
@@ -206,43 +189,19 @@ export default function PatientForms() {
                       )}
                     </Stack>
 
-                    <Typography
-                      sx={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: '#12213a',
-                        lineHeight: 1.35,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#12213a', lineHeight: 1.35 }}>
                       {f.title}
                     </Typography>
-
                     {!done && f.description && (
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mt: 0.5,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         {f.description}
                       </Typography>
                     )}
 
-                    <Box sx={{ flex: 1 }} />
-
                     <Box
                       sx={{
-                        mt: 2,
-                        pt: 1.5,
+                        mt: 1.75,
+                        pt: 1.25,
                         borderTop: '1px solid rgba(15,23,42,0.05)',
                         display: 'flex',
                         alignItems: 'center',
@@ -263,7 +222,125 @@ export default function PatientForms() {
                 </Card>
               );
             })}
-          </Box>
+          </Stack>
+        ) : (
+          /* ───────── PC: 테이블(대시보드형) ───────── */
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              borderRadius: 3,
+              border: '1px solid rgba(15,23,42,0.06)',
+              boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 14px 28px -18px rgba(15,23,42,0.14)',
+              overflow: 'hidden',
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    '& th': {
+                      bgcolor: '#f7f8fa',
+                      fontWeight: 700,
+                      fontSize: 12.5,
+                      color: 'text.secondary',
+                      letterSpacing: 0.3,
+                      borderBottom: '1px solid rgba(15,23,42,0.08)',
+                    },
+                  }}
+                >
+                  <TableCell>문진명</TableCell>
+                  <TableCell align="center" width={120}>
+                    상태
+                  </TableCell>
+                  <TableCell width={190}>제출일시</TableCell>
+                  <TableCell align="right" width={140} />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {forms.map((f) => {
+                  const done = responses[f.id];
+                  return (
+                    <TableRow
+                      key={f.id}
+                      hover
+                      onClick={() => goto(f)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:last-child td': { borderBottom: 'none' },
+                        '& td': { borderBottom: '1px solid rgba(15,23,42,0.05)', py: 1.5 },
+                      }}
+                    >
+                      <TableCell>
+                        <Stack direction="row" spacing={1.5} alignItems="center">
+                          <Box
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 2,
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              bgcolor: done ? '#eaf7f0' : '#eef2ff',
+                              color: done ? '#2e9d6e' : '#5b7cfa',
+                            }}
+                          >
+                            {done ? (
+                              <CheckCircleIcon fontSize="small" />
+                            ) : (
+                              <AssignmentIcon fontSize="small" />
+                            )}
+                          </Box>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontWeight: 700, color: '#12213a' }} noWrap>
+                              {f.title}
+                            </Typography>
+                            {f.description && (
+                              <Typography variant="caption" color="text.secondary" noWrap>
+                                {f.description}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="center">
+                        {done ? (
+                          <Chip size="small" label="작성완료" color="success" sx={{ fontWeight: 700 }} />
+                        ) : (
+                          <Chip
+                            size="small"
+                            label="작성 전"
+                            variant="outlined"
+                            sx={{ fontWeight: 700, color: '#5b7cfa', borderColor: '#c7d2fe' }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color={done ? 'text.primary' : 'text.disabled'}>
+                          {done ? fmt(done.submittedAt) : '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          variant={done ? 'outlined' : 'contained'}
+                          color={done ? 'success' : 'secondary'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goto(f);
+                          }}
+                          sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                        >
+                          {done ? '내용 보기' : '작성하기'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </Container>
     </Box>
