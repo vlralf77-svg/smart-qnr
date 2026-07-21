@@ -9,6 +9,7 @@ import {
   CardActionArea,
   Chip,
   Container,
+  Paper,
   Stack,
   Toolbar,
   Typography,
@@ -77,8 +78,10 @@ export default function PatientForms() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const doneCount = forms.filter((f) => responses[f.id]).length;
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
       <AppBar position="static" color="secondary" elevation={0}>
         <Toolbar>
           <AssignmentIcon sx={{ mr: 1 }} />
@@ -102,62 +105,165 @@ export default function PatientForms() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ py: 3 }}>
-        <Typography variant="body2" color="text.secondary" mb={2}>
-          아래 문진을 선택해 작성해 주세요. 작성한 문진은 눌러서 내용을 확인할 수 있습니다.
-        </Typography>
+      <Container maxWidth="md" sx={{ py: { xs: 3, sm: 4 } }}>
+        {/* 헤더 */}
+        <Box sx={{ mb: { xs: 2.5, sm: 3.5 } }}>
+          <Typography
+            sx={{ fontSize: { xs: 22, sm: 27 }, fontWeight: 800, letterSpacing: -0.4, color: '#12213a' }}
+          >
+            문진 목록
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+            작성할 문진을 선택하세요. 완료한 문진은 눌러서 내용을 확인할 수 있습니다.
+            {forms.length > 0 && ` · 전체 ${forms.length}개 중 ${doneCount}개 완료`}
+          </Typography>
+        </Box>
 
         {loading ? (
           <Typography color="text.secondary">불러오는 중…</Typography>
         ) : forms.length === 0 ? (
-          <Card variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 6,
+              textAlign: 'center',
+              borderRadius: 3,
+              border: '1px dashed rgba(15,23,42,0.15)',
+              bgcolor: '#fff',
+            }}
+          >
+            <AssignmentIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
             <Typography color="text.secondary">작성할 문진이 없습니다.</Typography>
-          </Card>
+          </Paper>
         ) : (
-          <Stack spacing={1.5}>
+          // PC 는 타일 그리드(2~3단), 모바일은 1단
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: 2.5,
+            }}
+          >
             {forms.map((f) => {
               const done = responses[f.id];
               return (
-                <Card key={f.id} variant="outlined">
+                <Card
+                  key={f.id}
+                  elevation={0}
+                  sx={{
+                    borderRadius: 3.5,
+                    border: '1px solid rgba(15,23,42,0.06)',
+                    boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 14px 28px -18px rgba(15,23,42,0.16)',
+                    height: '100%',
+                    transition: 'transform .16s ease, box-shadow .16s ease',
+                    '&:hover': {
+                      transform: 'translateY(-3px)',
+                      boxShadow:
+                        '0 4px 8px rgba(15,23,42,0.06), 0 22px 36px -18px rgba(15,23,42,0.24)',
+                    },
+                  }}
+                >
                   <CardActionArea
                     onClick={() =>
                       navigate(done ? `/patient/view/${f.id}` : `/patient/respond/${f.id}`)
                     }
-                    sx={{ p: 2 }}
+                    sx={{
+                      p: 2.5,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                    }}
                   >
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      {done ? (
-                        <CheckCircleIcon color="success" />
-                      ) : (
-                        <AssignmentIcon color="secondary" />
-                      )}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="subtitle1" fontWeight={700} noWrap>
-                          {f.title}
-                        </Typography>
-                        {done ? (
-                          <Typography variant="caption" color="success.main">
-                            작성완료 · {fmt(done.submittedAt)}
-                          </Typography>
-                        ) : (
-                          f.description && (
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {f.description}
-                            </Typography>
-                          )
-                        )}
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.75}>
+                      <Box
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 2.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: done ? '#eaf7f0' : '#eef2ff',
+                          color: done ? '#2e9d6e' : '#5b7cfa',
+                        }}
+                      >
+                        {done ? <CheckCircleIcon /> : <AssignmentIcon />}
                       </Box>
                       {done ? (
-                        <Chip size="small" label="작성완료" color="success" />
+                        <Chip size="small" label="작성완료" color="success" sx={{ fontWeight: 700 }} />
                       ) : (
-                        <Chip size="small" label="작성" color="secondary" variant="outlined" />
+                        <Chip
+                          size="small"
+                          label="작성 전"
+                          variant="outlined"
+                          sx={{ fontWeight: 700, color: '#5b7cfa', borderColor: '#c7d2fe' }}
+                        />
                       )}
                     </Stack>
+
+                    <Typography
+                      sx={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#12213a',
+                        lineHeight: 1.35,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {f.title}
+                    </Typography>
+
+                    {!done && f.description && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mt: 0.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {f.description}
+                      </Typography>
+                    )}
+
+                    <Box sx={{ flex: 1 }} />
+
+                    <Box
+                      sx={{
+                        mt: 2,
+                        pt: 1.5,
+                        borderTop: '1px solid rgba(15,23,42,0.05)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {done ? `완료 · ${fmt(done.submittedAt)}` : '아직 작성 전'}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 700, color: done ? '#2e9d6e' : '#5b7cfa' }}
+                      >
+                        {done ? '내용 보기 →' : '작성하기 →'}
+                      </Typography>
+                    </Box>
                   </CardActionArea>
                 </Card>
               );
             })}
-          </Stack>
+          </Box>
         )}
       </Container>
     </Box>
