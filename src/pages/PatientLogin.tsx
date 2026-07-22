@@ -1,6 +1,7 @@
 // 환자 로그인 — 환자번호만 입력
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+//  링크로 환자번호를 미리 전달하면(?no=환자번호) 자동 로그인 후 문진 목록으로 바로 이동.
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -18,12 +19,24 @@ import { APP_VERSION } from '@/version';
 export default function PatientLogin() {
   const navigate = useNavigate();
   const { login, error } = usePatientStore();
-  const [no, setNo] = useState('');
+  const [params] = useSearchParams();
+  // 링크에 담긴 환자번호(?no=... / ?patientNo=...)로 자동 채움
+  const linkedNo = params.get('no') ?? params.get('patientNo') ?? '';
+  const [no, setNo] = useState(linkedNo);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (login(no)) navigate('/patient/forms', { replace: true });
   };
+
+  // 링크로 환자번호가 전달되면 자동 로그인 → 문진 목록으로 바로 이동
+  useEffect(() => {
+    if (linkedNo && login(linkedNo)) {
+      navigate('/patient/forms', { replace: true });
+    }
+    // 최초 1회만 시도(입력값 변경 시 재시도 안 함)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Box
