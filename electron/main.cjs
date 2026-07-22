@@ -5,6 +5,9 @@ const { extractText, convertToSchema } = require('./convert.cjs');
 
 const isDev = !!process.env.ELECTRON_START_URL;
 
+// 업데이트 설치 등 "확인 없이 바로 종료"해야 하는 경우 true 로 설정한다.
+let forceQuit = false;
+
 // 자동 업데이트: 설치본은 GitHub Releases 에서 새 버전을 스스로 확인·다운로드한다.
 // (dev 실행에서는 동작하지 않음)
 function setupAutoUpdate() {
@@ -67,7 +70,10 @@ function setupAutoUpdate() {
     });
     // isSilent=true → 설치 마법사(다음·설치 버튼) 없이 무인 설치,
     // isForceRunAfter=true → 설치 완료 후 앱 자동 재실행
-    if (res.response === 0) autoUpdater.quitAndInstall(true, true);
+    if (res.response === 0) {
+      forceQuit = true; // 종료 확인 창 없이 바로 설치·재시작
+      autoUpdater.quitAndInstall(true, true);
+    }
   });
   autoUpdater.on('error', (err) => {
     sendStatus({ state: 'error' });
@@ -101,6 +107,25 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  // 창을 닫을 때(X 버튼·Alt+F4 등) "종료하시겠습니까?" 확인
+  win.on('close', (e) => {
+    if (forceQuit) return; // 업데이트 설치 등은 확인 없이 진행
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'question',
+      buttons: ['종료', '취소'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+      title: '종료 확인',
+      message: '프로그램을 종료하시겠습니까?',
+    });
+    if (choice !== 0) {
+      e.preventDefault(); // '취소' → 종료 취소
+    } else {
+      forceQuit = true; // 확인됨 → 이후 종료 절차는 다시 묻지 않음
+    }
   });
 
   if (isDev) {
