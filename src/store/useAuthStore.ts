@@ -1,63 +1,94 @@
-// 관리 프로그램 로그인 게이트
-// - 백엔드 연동 시: 서버 /api/auth/login 으로 인증(JWT 발급).
-// - 오프라인(데스크톱): 고정 자격증명으로 간단 잠금.
+// 관리 프로그램 로그인 게이트 + 계정 권한
+// - 백엔드 연동 시: 서버 /api/auth/login 으로 인증(JWT 발급) — 전체 권한(admin).
+// - 오프라인(데스크톱): 내장 admin(고정) 또는 하위 계정(권한별) 인증.
 import { create } from 'zustand';
 import { api, isBackendEnabled } from '@/api/client';
+import { useAccountsStore, Permissions, ALL_PERMISSIONS } from '@/store/useAccountsStore';
+import { hashPassword } from '@/utils/hash';
 
-// 오프라인 모드용 고정 자격증명 (요청 사양)
+// 내장 관리자 고정 자격증명
 const FIXED_ID = 'admin';
 const FIXED_PW = 'lit123qwe!';
 
-// 세션 저장소 사용 → 프로그램(세션) 재시작 시 다시 로그인 필요
-const SESSION_KEY = 'smartqnr.authed';
+const SESSION_KEY = 'smartqnr.session';
 
-function readAuthed(): boolean {
+interface Session {
+  user: string;
+  permissions: Permissions;
+}
+
+function readSession(): Session | null {
   try {
-    return sessionStorage.getItem(SESSION_KEY) === '1';
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as Session) : null;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+function writeSession(s: Session) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+  } catch {
+    /* 무시 */
   }
 }
 
 interface AuthState {
   authed: boolean;
+  currentUser: string | null;
+  permissions: Permissions | null;
   error: string;
   busy: boolean;
   login: (id: string, pw: string) => Promise<boolean>;
   logout: () => void;
 }
 
-function markAuthed() {
-  try {
-    sessionStorage.setItem(SESSION_KEY, '1');
-  } catch {
-    /* 무시 */
-  }
-}
+const initial = readSession();
 
 export const useAuthStore = create<AuthState>((set) => ({
-  authed: readAuthed(),
+  authed: !!initial,
+  currentUser: initial?.user ?? null,
+  permissions: initial?.permissions ?? null,
   error: '',
   busy: false,
   login: async (id, pw) => {
     set({ busy: true, error: '' });
+
+    // 백엔드 모드: 서버 인증(현재 서버는 admin 단일) → 전체 권한
     if (isBackendEnabled) {
       try {
-        await api.login(id, pw); // 성공 시 토큰 저장
-        markAuthed();
-        set({ authed: true, error: '', busy: false });
+        await api.login(id, pw);
+        const s = { user: id, permissions: ALL_PERMISSIONS };
+        writeSession(s);
+        set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
         return true;
       } catch (e) {
         set({ error: (e as Error).message || '로그인에 실패했습니다.', busy: false });
         return false;
       }
     }
-    // 오프라인 모드: 고정 자격증명
-    if (id === FIXED_ID && pw === FIXED_PW) {
-      markAuthed();
-      set({ authed: true, error: '', busy: false });
+
+    // 오프라인: 내장 admin
+    if (id.trim().toLowerCase() === FIXED_ID && pw === FIXED_PW) {
+      const s = { user: FIXED_ID, permissions: ALL_PERMISSIONS };
+      writeSession(s);
+      set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
       return true;
     }
+
+    // 오프라인: 하위 계정
+    const acc = useAccountsStore.getState().findByUsername(id);
+    if (acc) {
+      const hash = await hashPassword(pw);
+      if (hash === acc.passwordHash) {
+        const s = { user: acc.username, permissions: acc.permissions };
+        writeSession(s);
+        set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
+        return true;
+      }
+    }
+
     set({ error: '아이디 또는 비밀번호가 올바르지 않습니다.', busy: false });
     return false;
   },
@@ -68,6 +99,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       /* 무시 */
     }
     if (isBackendEnabled) api.logout();
-    set({ authed: false, error: '' });
+    set({ authed: false, currentUser: null, permissions: null, error: '' });
   },
 }));

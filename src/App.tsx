@@ -6,12 +6,14 @@ import FormEditor from './pages/FormEditor';
 import ResponseForm from './pages/ResponseForm';
 import UploadConvert from './pages/UploadConvert';
 import Login from './pages/Login';
+import Accounts from './pages/Accounts';
 import PatientLogin from './pages/PatientLogin';
 import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
 import PatientView from './pages/PatientView';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
+import { Permissions } from './store/useAccountsStore';
 import UpdateStatus from './components/UpdateStatus';
 
 // 관리자 로그인 안 된 상태면 로그인 화면으로 보냄
@@ -21,6 +23,13 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   if (!authed) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
+  return children;
+}
+
+// 특정 권한이 없으면 목록으로 돌려보냄(로그인은 되어 있다고 가정)
+function RequirePermission({ perm, children }: { perm: keyof Permissions; children: JSX.Element }) {
+  const permissions = useAuthStore((s) => s.permissions);
+  if (!permissions?.[perm]) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -78,10 +87,22 @@ export default function App() {
             }
           />
           <Route
+            path="/accounts"
+            element={
+              <RequireAuth>
+                <RequirePermission perm="manageAccounts">
+                  <Accounts />
+                </RequirePermission>
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/upload"
             element={
               <RequireAuth>
-                <UploadConvert />
+                <RequirePermission perm="edit">
+                  <UploadConvert />
+                </RequirePermission>
               </RequireAuth>
             }
           />
@@ -89,7 +110,9 @@ export default function App() {
             path="/editor/:formId"
             element={
               <RequireAuth>
-                <FormEditor />
+                <RequirePermission perm="edit">
+                  <FormEditor />
+                </RequirePermission>
               </RequireAuth>
             }
           />

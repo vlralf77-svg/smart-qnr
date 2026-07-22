@@ -32,6 +32,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
@@ -52,6 +53,11 @@ export default function FormList() {
   const navigate = useNavigate();
   const { forms, saveForm, deleteForm, refreshForms } = useFormsStore();
   const logout = useAuthStore((s) => s.logout);
+  const permissions = useAuthStore((s) => s.permissions);
+  const currentUser = useAuthStore((s) => s.currentUser);
+  const canEdit = !!permissions?.edit;
+  const canDelete = !!permissions?.delete;
+  const canManage = !!permissions?.manageAccounts;
   const managedCategories = useCategoriesStore((s) => s.categories);
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>(ALL);
@@ -105,7 +111,7 @@ export default function FormList() {
             sx={{ mr: 1.5, color: 'inherit', borderColor: 'rgba(255,255,255,0.5)' }}
           />
           <Typography variant="caption" sx={{ opacity: 0.8, mr: 1 }}>
-            admin
+            {currentUser ?? 'admin'}
           </Typography>
           <Tooltip title="로그아웃">
             <IconButton
@@ -133,6 +139,15 @@ export default function FormList() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
+            {canManage && (
+              <Button
+                variant="outlined"
+                startIcon={<ManageAccountsIcon />}
+                onClick={() => navigate('/accounts')}
+              >
+                계정 관리
+              </Button>
+            )}
             <Button
               variant="outlined"
               color="secondary"
@@ -141,16 +156,24 @@ export default function FormList() {
             >
               환자 화면
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UploadFileIcon />}
-              onClick={() => navigate('/upload')}
-            >
-              문서로 변환
-            </Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/editor/new')}>
-              새 문진
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => navigate('/upload')}
+              >
+                문서로 변환
+              </Button>
+            )}
+            {canEdit && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/editor/new')}
+              >
+                새 문진
+              </Button>
+            )}
           </Stack>
         </Stack>
 
@@ -199,14 +222,20 @@ export default function FormList() {
             <Typography color="text.secondary" mb={2}>
               등록된 문진이 없습니다.
             </Typography>
-            <Stack direction="row" spacing={1} justifyContent="center">
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/editor/new')}>
-                새 문진 만들기
-              </Button>
-              <Button variant="text" onClick={seedSample}>
-                샘플(마취 문진표) 불러오기
-              </Button>
-            </Stack>
+            {canEdit ? (
+              <Stack direction="row" spacing={1} justifyContent="center">
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/editor/new')}>
+                  새 문진 만들기
+                </Button>
+                <Button variant="text" onClick={seedSample}>
+                  샘플(마취 문진표) 불러오기
+                </Button>
+              </Stack>
+            ) : (
+              <Typography variant="caption" color="text.disabled">
+                문진 생성 권한이 없습니다.
+              </Typography>
+            )}
           </Paper>
         ) : (
           <TableContainer component={Paper} variant="outlined">
@@ -264,11 +293,13 @@ export default function FormList() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="편집">
-                          <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {canEdit && (
+                          <Tooltip title="편집">
+                            <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <Tooltip title={f.status === 'published' ? '응답 화면 열기' : '발행 후 응답 가능'}>
                           <span>
                             <IconButton
@@ -280,14 +311,16 @@ export default function FormList() {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        <Tooltip title="삭제">
-                          <IconButton
-                            size="small"
-                            onClick={() => void deleteForm(f.id).catch(() => {})}
-                          >
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {canDelete && (
+                          <Tooltip title="삭제">
+                            <IconButton
+                              size="small"
+                              onClick={() => void deleteForm(f.id).catch(() => {})}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
