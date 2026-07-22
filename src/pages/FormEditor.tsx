@@ -165,9 +165,9 @@ export default function FormEditor() {
       if (form.category) addCategory(form.category);
       await saveForm(form);
       await publishForm(form.id);
-      setToast('발행되었습니다 (응답 화면에서 확인 가능)');
+      setToast('인증저장되었습니다 (응답 화면에서 확인 가능)');
     } catch (e) {
-      setToast('발행 실패: ' + (e as Error).message);
+      setToast('인증저장 실패: ' + (e as Error).message);
     }
   };
 
@@ -212,7 +212,7 @@ export default function FormEditor() {
               startIcon={<PublishIcon />}
               onClick={handlePublish}
             >
-              발행
+              인증저장
             </Button>
           </Stack>
         </Toolbar>
@@ -225,7 +225,7 @@ export default function FormEditor() {
             <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
               <Chip
                 label={
-                  form.status === 'published' ? '발행됨' : form.status === 'archived' ? '보관됨' : '초안'
+                  form.status === 'published' ? '인증저장' : form.status === 'archived' ? '보관됨' : '임시저장'
                 }
                 color={form.status === 'published' ? 'success' : 'default'}
                 size="small"

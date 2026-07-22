@@ -140,7 +140,7 @@ export default function UploadConvert() {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          자동 변환 결과는 항상 <b>초안</b>입니다. 반드시 에디터에서 검수·수정하세요. 모든 변환은{' '}
+          자동 변환 결과는 항상 <b>임시저장</b> 상태입니다. 반드시 에디터에서 검수·수정하세요. 모든 변환은{' '}
           <b>로컬(오픈소스)</b>에서 처리되며 외부 API를 호출하지 않습니다. <b>HWP/HWPX</b>는 후속
           단계에서 추가됩니다.
         </Alert>

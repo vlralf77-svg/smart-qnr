@@ -49,8 +49,8 @@ const ALL = '__all__';
 const NONE = '__none__';
 
 const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success' | 'warning' }> = {
-  draft: { label: '초안', color: 'default' },
-  published: { label: '발행됨', color: 'success' },
+  draft: { label: '임시저장', color: 'default' },
+  published: { label: '인증저장', color: 'success' },
   archived: { label: '보관됨', color: 'warning' },
 };
 
@@ -322,7 +322,7 @@ export default function FormList() {
                             </IconButton>
                           </Tooltip>
                         )}
-                        <Tooltip title={f.status === 'published' ? '응답 화면 열기' : '발행 후 응답 가능'}>
+                        <Tooltip title={f.status === 'published' ? '응답 화면 열기' : '인증저장 후 응답 가능'}>
                           <span>
                             <IconButton
                               size="small"
