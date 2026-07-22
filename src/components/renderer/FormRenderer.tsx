@@ -22,6 +22,8 @@ interface Props {
   submitLabel?: string;
   /** true면 마지막 단계까지 안 가도 어느 단계에서나 완료(제출) 가능 — 수정모드용(모바일 위저드) */
   allowSubmitAnywhere?: boolean;
+  /** PDF 오버레이 문진을 전체화면 미리보기로(여러 페이지 나란히 + Ctrl+휠 확대/축소) */
+  overlayFit?: boolean;
 }
 
 export default function FormRenderer({
@@ -31,6 +33,7 @@ export default function FormRenderer({
   defaultValues,
   submitLabel,
   allowSubmitAnywhere,
+  overlayFit,
 }: Props) {
   const {
     control,
@@ -58,7 +61,12 @@ export default function FormRenderer({
                 {schema.title}
               </Typography>
             )}
-            <OverlayRenderer schema={schema} control={control} errors={errors} />
+            <OverlayRenderer
+              schema={schema}
+              control={control}
+              errors={errors}
+              fitPreview={overlayFit}
+            />
             {!preview && (
               <Button type="button" variant="contained" size="large" fullWidth onClick={submit}>
                 {submitLabel ?? '제출하기'}

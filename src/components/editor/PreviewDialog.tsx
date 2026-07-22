@@ -12,7 +12,7 @@ import {
 import { TransitionProps } from '@mui/material/transitions';
 import CloseIcon from '@mui/icons-material/Close';
 import { forwardRef, ReactElement, Ref } from 'react';
-import { FormSchema } from '@/types/schema';
+import { FormSchema, isOverlayForm } from '@/types/schema';
 import FormRenderer from '@/components/renderer/FormRenderer';
 
 const Transition = forwardRef(function Transition(
@@ -29,6 +29,8 @@ interface Props {
 }
 
 export default function PreviewDialog({ open, schema, onClose }: Props) {
+  // PDF 오버레이 문진은 원본 그대로 여러 페이지를 넓게 — 전체 폭 + 여러 페이지 동시 보기
+  const wide = isOverlayForm(schema) && !schema.canvas;
   return (
     <Dialog fullScreen open={open} onClose={onClose} TransitionComponent={Transition}>
       <AppBar sx={{ position: 'relative' }} color="primary">
@@ -41,9 +43,9 @@ export default function PreviewDialog({ open, schema, onClose }: Props) {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100%', py: 4 }}>
-        <Container maxWidth="sm">
-          <FormRenderer schema={schema} preview />
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100%', py: wide ? 2 : 4 }}>
+        <Container maxWidth={wide ? false : 'sm'} sx={{ px: wide ? { xs: 1.5, sm: 3 } : undefined }}>
+          <FormRenderer schema={schema} preview overlayFit={wide} />
         </Container>
       </Box>
     </Dialog>
