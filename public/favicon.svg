@@ -9,10 +9,10 @@
       <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
-  <rect width="512" height="512" rx="115" fill="url(#sheen)"/>
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="256" fill="url(#sheen)"/>
   <!-- 흰 바탕에서도 가장자리가 보이도록 아주 옅은 테두리 -->
-  <rect x="1.5" y="1.5" width="509" height="509" rx="114" fill="none" stroke="#24456d" stroke-opacity="0.12" stroke-width="3"/>
+  <circle cx="256" cy="256" r="254.5" fill="none" stroke="#24456d" stroke-opacity="0.12" stroke-width="3"/>
   <!-- 폰(네이비) -->
   <rect x="168" y="92" width="176" height="328" rx="36" fill="#24456d"/>
   <rect x="188" y="126" width="136" height="234" rx="15" fill="#f2f7fd"/>
