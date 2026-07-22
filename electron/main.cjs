@@ -136,16 +136,32 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  // 기본 메뉴 최소화(관리 프로그램용)
-  Menu.setApplicationMenu(null);
-  createWindow();
-  setupAutoUpdate();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+// 중복 실행 방지 — 이미 실행 중이면 두 번째 인스턴스는 즉시 종료하고,
+//  대신 기존 창을 앞으로 가져와 활성화한다(한 개만 켜져 있게).
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
   });
-});
+
+  app.whenReady().then(() => {
+    // 기본 메뉴 최소화(관리 프로그램용)
+    Menu.setApplicationMenu(null);
+    createWindow();
+    setupAutoUpdate();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
