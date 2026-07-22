@@ -1,13 +1,15 @@
 // 발행 스키마를 응답 화면으로 렌더 (§4.4 QNR004) — 에디터 미리보기에도 재사용
-// 모바일=단계별 위저드 / PC=전체 표시 폼 으로 레이아웃을 분리한다.
+//  - PDF 오버레이 문진: 원본 PDF 위에 입력창을 얹은 그대로 표시(모바일/PC 공통, 위저드 아님)
+//  - 그 외(캔버스/일반): 모바일=단계 위저드 / PC=전체 폼
 import { useForm } from 'react-hook-form';
-import { Box, useMediaQuery } from '@mui/material';
+import { Box, Button, Stack, Typography, useMediaQuery } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/ko';
-import { AnswerValue, FormSchema } from '@/types/schema';
+import { AnswerValue, FormSchema, isOverlayForm } from '@/types/schema';
 import MobileWizard from './MobileWizard';
 import DesktopForm from './DesktopForm';
+import OverlayRenderer from './OverlayRenderer';
 
 interface Props {
   schema: FormSchema;
@@ -41,13 +43,29 @@ export default function FormRenderer({
     onSubmit?.(data as Record<string, AnswerValue>);
   });
 
-  // 모바일=단계별 위저드 / PC=전체 폼
+  // PDF 오버레이 문진(원본 PDF 배경)은 그대로 얹어 표시. 캔버스는 제외(위저드로).
+  const isPdfOverlay = isOverlayForm(schema) && !schema.canvas;
+  // 그 외: 모바일=단계 위저드 / PC=전체 폼
   const isMobile = useMediaQuery('(max-width:899px)');
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
       <Box component="form" onSubmit={submit} noValidate>
-        {isMobile ? (
+        {isPdfOverlay ? (
+          <Stack spacing={2}>
+            {schema.title && (
+              <Typography variant="h6" fontWeight={700}>
+                {schema.title}
+              </Typography>
+            )}
+            <OverlayRenderer schema={schema} control={control} errors={errors} />
+            {!preview && (
+              <Button type="button" variant="contained" size="large" fullWidth onClick={submit}>
+                {submitLabel ?? '제출하기'}
+              </Button>
+            )}
+          </Stack>
+        ) : isMobile ? (
           <MobileWizard
             schema={schema}
             control={control}
