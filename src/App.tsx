@@ -12,6 +12,7 @@ import PatientRespond from './pages/PatientRespond';
 import PatientView from './pages/PatientView';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
+import UpdateStatus from './components/UpdateStatus';
 
 // 관리자 로그인 안 된 상태면 로그인 화면으로 보냄
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -103,6 +104,8 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
+      {/* 자동 업데이트 진행 표시(Electron 전용) */}
+      <UpdateStatus />
     </ThemeProvider>
   );
 }

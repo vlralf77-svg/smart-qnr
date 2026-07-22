@@ -37,7 +37,22 @@ function setupAutoUpdate() {
   // '나중에'를 눌러도 앱을 종료할 때 조용히 설치된다(다음 실행부터 최신).
   autoUpdater.autoInstallOnAppQuit = true;
 
+  // 렌더러(화면)로 업데이트 진행 상태 전송 → "버전 확인 중…" 등 진행 표시
+  const sendStatus = (payload) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win && !win.isDestroyed()) win.webContents.send('update:status', payload);
+  };
+  autoUpdater.on('checking-for-update', () => sendStatus({ state: 'checking' }));
+  autoUpdater.on('update-available', (info) =>
+    sendStatus({ state: 'available', version: info && info.version }),
+  );
+  autoUpdater.on('update-not-available', () => sendStatus({ state: 'up-to-date' }));
+  autoUpdater.on('download-progress', (p) =>
+    sendStatus({ state: 'downloading', percent: p ? Math.round(p.percent) : 0 }),
+  );
+
   autoUpdater.on('update-downloaded', async (info) => {
+    sendStatus({ state: 'downloaded', version: info && info.version });
     // 같은 버전은 한 번만 안내(반복 팝업 제거). 안내를 건너뛰어도 종료 시 자동 설치됨.
     if (readNotified() === info.version) return;
     writeNotified(info.version);
@@ -55,6 +70,7 @@ function setupAutoUpdate() {
     if (res.response === 0) autoUpdater.quitAndInstall(true, true);
   });
   autoUpdater.on('error', (err) => {
+    sendStatus({ state: 'error' });
     console.error('[auto-update] ', err == null ? 'unknown' : (err.stack || err).toString());
   });
   // 실행 직후 + 이후 6시간마다 확인
