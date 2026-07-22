@@ -15,4 +15,12 @@ contextBridge.exposeInMainWorld('smartqnr', {
     ipcRenderer.on('update:status', listener);
     return () => ipcRenderer.removeListener('update:status', listener);
   },
+  // 종료 확인: 창을 닫으려 하면 main 이 알려온다(커스텀 모달 표시용). 해제 함수 반환.
+  onQuitRequest: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('app:quit-request', listener);
+    return () => ipcRenderer.removeListener('app:quit-request', listener);
+  },
+  // 모달에서 '종료'를 누르면 호출 → 실제 종료 진행
+  confirmQuit: () => ipcRenderer.send('app:quit-confirmed'),
 });

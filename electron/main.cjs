@@ -84,6 +84,14 @@ function setupAutoUpdate() {
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 6 * 60 * 60 * 1000);
 }
 
+// 종료 확인 모달에서 '종료'를 누르면 렌더러가 알려온다 → 실제 종료 진행
+ipcMain.on('app:quit-confirmed', () => {
+  forceQuit = true;
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win && !win.isDestroyed()) win.close();
+  else app.quit();
+});
+
 // 문서 → 문진 변환 IPC (§6): 파일 바이트 → 스키마 JSON 문자열
 // 로컬 규칙 기반 변환(오픈소스) — 외부 API 호출 없음, 완전 오프라인 동작.
 ipcMain.handle('convert:document', async (_event, payload) => {
@@ -110,21 +118,18 @@ function createWindow() {
   });
 
   // 창을 닫을 때(X 버튼·Alt+F4 등) "종료하시겠습니까?" 확인
+  //  네이티브 창 대신 렌더러(앱 내부)의 예쁜 커스텀 모달로 확인받는다.
   win.on('close', (e) => {
-    if (forceQuit) return; // 업데이트 설치 등은 확인 없이 진행
-    const choice = dialog.showMessageBoxSync(win, {
-      type: 'question',
-      buttons: ['종료', '취소'],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true,
-      title: '종료 확인',
-      message: '프로그램을 종료하시겠습니까?',
-    });
-    if (choice !== 0) {
-      e.preventDefault(); // '취소' → 종료 취소
+    if (forceQuit) return; // 업데이트 설치·확인 완료 등은 그대로 종료
+    e.preventDefault();
+    if (win.webContents && !win.webContents.isDestroyed()) {
+      win.webContents.send('app:quit-request'); // 렌더러가 커스텀 모달 표시
+      if (win.isMinimized()) win.restore();
+      win.focus();
     } else {
-      forceQuit = true; // 확인됨 → 이후 종료 절차는 다시 묻지 않음
+      // 렌더러가 없으면(예외) 바로 종료
+      forceQuit = true;
+      win.close();
     }
   });
 

@@ -18,6 +18,10 @@ interface SmartQnrBridge {
   }) => Promise<{ schemaText: string; rawText: string }>;
   /** 자동 업데이트 진행 상태 구독. 구독 해제 함수를 반환. */
   onUpdateStatus?: (cb: (payload: UpdateStatusPayload) => void) => () => void;
+  /** 창 닫기 시도 시 종료 확인 모달을 띄우도록 알림 받기. 구독 해제 함수를 반환. */
+  onQuitRequest?: (cb: () => void) => () => void;
+  /** 종료 확인 모달에서 '종료' 선택 시 실제 종료 진행. */
+  confirmQuit?: () => void;
 }
 
 interface Window {
