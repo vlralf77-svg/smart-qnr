@@ -16,6 +16,7 @@ import { usePatientStore } from './store/usePatientStore';
 import { Permissions } from './store/useAccountsStore';
 import UpdateStatus from './components/UpdateStatus';
 import QuitConfirm from './components/QuitConfirm';
+import UpdateReady from './components/UpdateReady';
 
 // 관리자 로그인 안 된 상태면 로그인 화면으로 보냄
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -132,6 +133,8 @@ export default function App() {
       <UpdateStatus />
       {/* 종료 확인 모달(Electron 전용) */}
       <QuitConfirm />
+      {/* 업데이트 준비 완료 모달(Electron 전용) */}
+      <UpdateReady />
     </ThemeProvider>
   );
 }

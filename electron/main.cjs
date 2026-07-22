@@ -54,26 +54,20 @@ function setupAutoUpdate() {
     sendStatus({ state: 'downloading', percent: p ? Math.round(p.percent) : 0 }),
   );
 
-  autoUpdater.on('update-downloaded', async (info) => {
+  autoUpdater.on('update-downloaded', (info) => {
     sendStatus({ state: 'downloaded', version: info && info.version });
     // 같은 버전은 한 번만 안내(반복 팝업 제거). 안내를 건너뛰어도 종료 시 자동 설치됨.
-    if (readNotified() === info.version) return;
-    writeNotified(info.version);
-    const res = await dialog.showMessageBox({
-      type: 'info',
-      buttons: ['지금 재시작', '나중에'],
-      defaultId: 0,
-      title: '업데이트 준비 완료',
-      message: `새 버전(${info.version})이 준비되었습니다.`,
-      detail:
-        "지금 재시작하면 바로 적용됩니다. '나중에'를 선택하면 다음에 앱을 종료할 때 자동으로 설치되며, 이 안내는 다시 표시되지 않습니다.",
-    });
-    // isSilent=true → 설치 마법사(다음·설치 버튼) 없이 무인 설치,
-    // isForceRunAfter=true → 설치 완료 후 앱 자동 재실행
-    if (res.response === 0) {
-      forceQuit = true; // 종료 확인 창 없이 바로 설치·재시작
-      autoUpdater.quitAndInstall(true, true);
-    }
+    if (readNotified() === (info && info.version)) return;
+    writeNotified(info && info.version);
+    // 네이티브 창 대신 렌더러(앱 내부)의 커스텀 모달로 안내 → '지금 재시작' 선택 시 설치
+    sendStatus({ state: 'ready', version: info && info.version });
+  });
+
+  // 업데이트 준비 모달에서 '지금 재시작'을 누르면 렌더러가 알려온다 → 설치·재시작
+  //  isSilent=true(무인 설치), isForceRunAfter=true(설치 후 자동 재실행)
+  ipcMain.on('update:restart-now', () => {
+    forceQuit = true; // 종료 확인 창 없이 바로 설치·재시작
+    autoUpdater.quitAndInstall(true, true);
   });
   autoUpdater.on('error', (err) => {
     sendStatus({ state: 'error' });

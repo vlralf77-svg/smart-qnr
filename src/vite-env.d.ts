@@ -4,7 +4,7 @@
 declare const __APP_VERSION__: string;
 
 interface UpdateStatusPayload {
-  state: 'checking' | 'available' | 'downloading' | 'downloaded' | 'up-to-date' | 'error';
+  state: 'checking' | 'available' | 'downloading' | 'downloaded' | 'ready' | 'up-to-date' | 'error';
   version?: string;
   percent?: number;
 }
@@ -22,6 +22,8 @@ interface SmartQnrBridge {
   onQuitRequest?: (cb: () => void) => () => void;
   /** 종료 확인 모달에서 '종료' 선택 시 실제 종료 진행. */
   confirmQuit?: () => void;
+  /** 업데이트 준비 모달에서 '지금 재시작' 선택 시 설치·재시작. */
+  restartForUpdate?: () => void;
 }
 
 interface Window {

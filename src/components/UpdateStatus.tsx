@@ -7,7 +7,7 @@ import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 
 interface Status {
-  state: 'checking' | 'available' | 'downloading' | 'downloaded' | 'up-to-date' | 'error';
+  state: 'checking' | 'available' | 'downloading' | 'downloaded' | 'ready' | 'up-to-date' | 'error';
   version?: string;
   percent?: number;
 }
@@ -32,7 +32,8 @@ export default function UpdateStatus() {
     return;
   }, [status]);
 
-  if (!status) return null;
+  // 'ready'(업데이트 준비 완료)는 별도 모달(UpdateReady)이 처리 → 토스트는 표시 안 함
+  if (!status || status.state === 'ready') return null;
 
   const view = (() => {
     switch (status.state) {
