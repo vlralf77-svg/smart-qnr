@@ -13,9 +13,9 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import AppIcon from '@/components/AppIcon';
 import { useAuthStore } from '@/store/useAuthStore';
 import { APP_VERSION } from '@/version';
 
@@ -51,20 +51,7 @@ export default function Login() {
       <Container maxWidth="xs">
         <Paper variant="outlined" sx={{ p: 4 }}>
           <Stack alignItems="center" spacing={1} mb={3}>
-            <Box
-              sx={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                bgcolor: 'primary.main',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <LockOutlinedIcon />
-            </Box>
+            <AppIcon size={64} />
             <Typography variant="h6" fontWeight={700}>
               SmartQnR 문진관리
             </Typography>
