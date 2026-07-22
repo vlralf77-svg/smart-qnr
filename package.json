@@ -1,6 +1,6 @@
 {
   "name": "smart-qnr",
-  "version": "0.1.74",
+  "version": "0.1.75",
   "private": true,
   "description": "SmartQnR — 병원 문진(問診) 디지털 솔루션 (관리 프로그램: Windows exe)",
   "author": "vlralf77-svg",
@@ -82,7 +82,7 @@
       ]
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": "always",
@@ -90,7 +90,11 @@
       "runAfterFinish": true,
       "shortcutName": "SmartQnR 문진관리",
       "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp"
     }
   }
 }
