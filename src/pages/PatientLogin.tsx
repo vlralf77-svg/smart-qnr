@@ -1,7 +1,8 @@
 // 환자 로그인 — 환자번호만 입력
-//  링크로 환자번호를 미리 전달하면(?no=환자번호) 자동 로그인 후 문진 목록으로 바로 이동.
+//  링크로 토큰(?t=...)을 전달하면 환자번호를 노출하지 않고 자동 로그인 후 목록으로 이동.
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { decodePatientToken } from '@/utils/patientToken';
 import {
   Alert,
   Box,
@@ -20,16 +21,17 @@ export default function PatientLogin() {
   const navigate = useNavigate();
   const { login, error } = usePatientStore();
   const [params] = useSearchParams();
-  // 링크에 담긴 환자번호(?no=... / ?patientNo=...)로 자동 채움
-  const linkedNo = params.get('no') ?? params.get('patientNo') ?? '';
-  const [no, setNo] = useState(linkedNo);
+  // 링크에 담긴 토큰(?t=... / ?token=...)을 환자번호로 복원(번호는 URL에 노출 안 됨)
+  const token = params.get('t') ?? params.get('token') ?? '';
+  const linkedNo = token ? decodePatientToken(token) : null;
+  const [no, setNo] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (login(no)) navigate('/patient/forms', { replace: true });
   };
 
-  // 링크로 환자번호가 전달되면 자동 로그인 → 문진 목록으로 바로 이동
+  // 링크로 토큰이 전달되면 자동 로그인 → 문진 목록으로 바로 이동
   useEffect(() => {
     if (linkedNo && login(linkedNo)) {
       navigate('/patient/forms', { replace: true });

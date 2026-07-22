@@ -34,6 +34,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import LinkIcon from '@mui/icons-material/Link';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
@@ -42,6 +43,7 @@ import { APP_VERSION } from '@/version';
 import { FormSchema } from '@/types/schema';
 import CategoryManager from '@/components/editor/CategoryManager';
 import PreviewDialog from '@/components/editor/PreviewDialog';
+import PatientLinkDialog from '@/components/PatientLinkDialog';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -67,6 +69,7 @@ export default function FormList() {
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>(ALL);
   const [manageOpen, setManageOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
   useEffect(() => {
@@ -153,6 +156,13 @@ export default function FormList() {
                 계정 관리
               </Button>
             )}
+            <Button
+              variant="outlined"
+              startIcon={<LinkIcon />}
+              onClick={() => setLinkOpen(true)}
+            >
+              환자 링크
+            </Button>
             <Button
               variant="outlined"
               color="secondary"
@@ -344,6 +354,7 @@ export default function FormList() {
       </Container>
 
       <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
+      <PatientLinkDialog open={linkOpen} onClose={() => setLinkOpen(false)} />
       {previewForm && (
         <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
       )}
