@@ -28,6 +28,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
@@ -38,7 +39,9 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
+import { FormSchema } from '@/types/schema';
 import CategoryManager from '@/components/editor/CategoryManager';
+import PreviewDialog from '@/components/editor/PreviewDialog';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -58,6 +61,8 @@ export default function FormList() {
   const canEdit = !!permissions?.edit;
   const canDelete = !!permissions?.delete;
   const canManage = !!permissions?.manageAccounts;
+  const canView = permissions?.view !== false; // 조회 권한(기본 허용)
+  const [previewForm, setPreviewForm] = useState<FormSchema | null>(null);
   const managedCategories = useCategoriesStore((s) => s.categories);
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>(ALL);
@@ -293,6 +298,13 @@ export default function FormList() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
+                        {canView && (
+                          <Tooltip title="내용 보기">
+                            <IconButton size="small" onClick={() => setPreviewForm(f)}>
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         {canEdit && (
                           <Tooltip title="편집">
                             <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
@@ -332,6 +344,9 @@ export default function FormList() {
       </Container>
 
       <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
+      {previewForm && (
+        <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
+      )}
     </Box>
   );
 }
