@@ -423,7 +423,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       const form = mapSections(st.form, (secs) =>
         mapSection(secs, sectionId, (s) => {
           const question = createQuestion(type);
-          question.layout = createDefaultLayout(s.questions);
+          question.layout = createDefaultLayout(s.questions, type, question.options?.length ?? 0);
           newQuestionId = question.id;
           return { ...s, questions: [...s.questions, question] };
         }),
