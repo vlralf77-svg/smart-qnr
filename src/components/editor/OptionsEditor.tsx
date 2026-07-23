@@ -26,6 +26,8 @@ import {
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
 import Tooltip from '@mui/material/Tooltip';
 import { Question } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
@@ -96,30 +98,44 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                       }
                       sx={{ width: 110 }}
                     />
-                    {/* 선택 시 강조 색 */}
-                    <Tooltip title={o.color ? '선택 시 강조 색 (클릭해 변경)' : '선택 시 강조 색 지정'}>
-                      <Box
-                        component="input"
-                        type="color"
-                        value={o.color ?? '#d32f2f'}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          updateOption(sectionId, question.id, o.id, { color: e.target.value })
-                        }
-                        sx={{
-                          width: 32,
-                          height: 34,
-                          p: 0,
-                          flexShrink: 0,
-                          border: '1px solid',
-                          borderColor: o.color ? 'transparent' : 'divider',
-                          outline: o.color ? `2px solid ${o.color}` : 'none',
-                          outlineOffset: '-2px',
-                          borderRadius: 1,
-                          bgcolor: 'transparent',
-                          cursor: 'pointer',
-                          opacity: o.color ? 1 : 0.5,
-                        }}
-                      />
+                    {/* 선택 시 강조 색 — 색을 지정하면 스와치, 없으면 색칠 아이콘 */}
+                    <Tooltip title={o.color ? `강조 색 ${o.color} (클릭해 변경)` : '선택 시 강조 색 지정'}>
+                      <Box sx={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
+                        <Box
+                          component="input"
+                          type="color"
+                          value={o.color ?? '#d32f2f'}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            updateOption(sectionId, question.id, o.id, { color: e.target.value })
+                          }
+                          sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            pointerEvents: 'none',
+                            width: 34,
+                            height: 34,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: o.color ? o.color : 'divider',
+                            bgcolor: o.color ?? 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {!o.color && (
+                            <FormatColorFillIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                          )}
+                        </Box>
+                      </Box>
                     </Tooltip>
                     {o.color && (
                       <Tooltip title="강조 색 지우기">
@@ -129,9 +145,7 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                             updateOption(sectionId, question.id, o.id, { color: undefined })
                           }
                         >
-                          <Typography variant="caption" sx={{ fontSize: 11 }}>
-                            지움
-                          </Typography>
+                          <FormatColorResetIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     )}
