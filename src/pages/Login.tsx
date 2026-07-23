@@ -18,6 +18,7 @@ import {
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import AppIcon from '@/components/AppIcon';
+import { IS_DEMO } from '@/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { APP_VERSION } from '@/version';
 
@@ -57,8 +58,9 @@ export default function Login() {
     if (await login(id.trim(), pw)) navigate(from, { replace: true });
   };
 
-  // Ctrl+Q: 아이디만 맞으면 비밀번호 없이 로그인(오프라인 전용 단축)
+  // Ctrl+Q: 아이디만 맞으면 비밀번호 없이 로그인 — 데모(시연) 모드에서만 활성.
   useEffect(() => {
+    if (!IS_DEMO) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'q' || e.key === 'Q')) {
         e.preventDefault();
@@ -149,9 +151,11 @@ export default function Login() {
               <Button type="submit" variant="contained" size="large" fullWidth>
                 로그인
               </Button>
-              <Typography variant="caption" color="text.disabled" textAlign="center">
-                단축키: 아이디 입력 후 Ctrl+Q
-              </Typography>
+              {IS_DEMO && (
+                <Typography variant="caption" color="text.disabled" textAlign="center">
+                  단축키: 아이디 입력 후 Ctrl+Q
+                </Typography>
+              )}
             </Stack>
           </form>
         </Paper>

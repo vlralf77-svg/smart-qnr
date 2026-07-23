@@ -1,6 +1,6 @@
 {
   "name": "smart-qnr",
-  "version": "0.1.92",
+  "version": "0.1.93",
   "private": true,
   "description": "SmartQnR",
   "author": "vlralf77-svg",
@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "cross-env VITE_USE_BACKEND=1 vite",
+    "dev:demo": "cross-env VITE_DEMO=1 vite",
     "build": "tsc --noEmit && vite build",
+    "build:demo": "cross-env VITE_DEMO=1 npm run build",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_START_URL=http://localhost:5173 electron .\"",
     "electron:build": "npm run build && electron-builder --win nsis",

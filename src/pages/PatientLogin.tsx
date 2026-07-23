@@ -18,6 +18,7 @@ import {
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { usePatientStore, TEST_PATIENT_NO } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
+import { IS_DEMO } from '@/config';
 import { TOGGLE_SX } from './Login';
 
 export default function PatientLogin() {
@@ -106,15 +107,17 @@ export default function PatientLogin() {
                 fullWidth
                 autoFocus
                 inputMode="numeric"
-                placeholder={TEST_PATIENT_NO}
+                placeholder={IS_DEMO ? TEST_PATIENT_NO : undefined}
               />
               {error && <Alert severity="error">{error}</Alert>}
               <Button type="submit" variant="contained" size="large" fullWidth>
                 시작하기
               </Button>
-              <Typography variant="caption" color="text.secondary" textAlign="center">
-                테스트 환자번호: {TEST_PATIENT_NO}
-              </Typography>
+              {IS_DEMO && (
+                <Typography variant="caption" color="text.secondary" textAlign="center">
+                  테스트 환자번호: {TEST_PATIENT_NO}
+                </Typography>
+              )}
             </Stack>
           </form>
         </Paper>
