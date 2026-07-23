@@ -26,6 +26,7 @@ import {
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
+import Tooltip from '@mui/material/Tooltip';
 import { Question } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import SortableRow from './SortableRow';
@@ -54,8 +55,11 @@ export default function OptionsEditor({ sectionId, question }: Props) {
 
   return (
     <Box>
-      <Typography variant="subtitle2" fontWeight={700} mb={1}>
+      <Typography variant="subtitle2" fontWeight={700} mb={0.25}>
         선택지
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+        색 버튼으로 강조 색을 지정하면, 그 답이 선택될 때 입력·조회 화면에서 그 색으로 표시됩니다.
       </Typography>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={options.map((o) => o.id)} strategy={verticalListSortingStrategy}>
@@ -90,8 +94,47 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                       onChange={(e) =>
                         updateOption(sectionId, question.id, o.id, { value: e.target.value })
                       }
-                      sx={{ width: 130 }}
+                      sx={{ width: 110 }}
                     />
+                    {/* 선택 시 강조 색 */}
+                    <Tooltip title={o.color ? '선택 시 강조 색 (클릭해 변경)' : '선택 시 강조 색 지정'}>
+                      <Box
+                        component="input"
+                        type="color"
+                        value={o.color ?? '#d32f2f'}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateOption(sectionId, question.id, o.id, { color: e.target.value })
+                        }
+                        sx={{
+                          width: 32,
+                          height: 34,
+                          p: 0,
+                          flexShrink: 0,
+                          border: '1px solid',
+                          borderColor: o.color ? 'transparent' : 'divider',
+                          outline: o.color ? `2px solid ${o.color}` : 'none',
+                          outlineOffset: '-2px',
+                          borderRadius: 1,
+                          bgcolor: 'transparent',
+                          cursor: 'pointer',
+                          opacity: o.color ? 1 : 0.5,
+                        }}
+                      />
+                    </Tooltip>
+                    {o.color && (
+                      <Tooltip title="강조 색 지우기">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            updateOption(sectionId, question.id, o.id, { color: undefined })
+                          }
+                        >
+                          <Typography variant="caption" sx={{ fontSize: 11 }}>
+                            지움
+                          </Typography>
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <IconButton
                       size="small"
                       onClick={() => removeOption(sectionId, question.id, o.id)}

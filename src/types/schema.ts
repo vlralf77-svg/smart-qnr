@@ -41,6 +41,8 @@ export interface QuestionOption {
   id: string;
   label: string;
   value: string;
+  /** 이 선택지가 선택되면 강조 표시할 색(CSS color). 지정 시 입력·조회에서 하이라이트 */
+  color?: string;
 }
 
 /** 에디터 캔버스 상의 위치·크기 (12열 그리드 단위). 없으면 문항 순서대로 자동 배치. */

@@ -17,6 +17,7 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { AnswerValue, FormSchema, FormResponse, Question } from '@/types/schema';
@@ -50,6 +51,22 @@ function formatAnswer(q: Question, v: AnswerValue): string {
       .join(', ');
   }
   return String(v);
+}
+
+/** 선택된 답에 강조 색이 지정돼 있으면 그 색을 반환(라디오/드롭다운/체크박스). */
+function answerColor(q: Question, v: AnswerValue): string | undefined {
+  if (v === null || v === undefined || v === '') return undefined;
+  if (q.type === 'radio' || q.type === 'select') {
+    return q.options?.find((o) => o.value === v)?.color;
+  }
+  if (q.type === 'checkbox') {
+    const arr = Array.isArray(v) ? v : [v];
+    for (const x of arr) {
+      const c = q.options?.find((o) => o.value === x)?.color;
+      if (c) return c;
+    }
+  }
+  return undefined;
 }
 
 export default function PatientView() {
@@ -251,6 +268,7 @@ export default function PatientView() {
                         {qs.map((q, idx) => {
                           const ans = formatAnswer(q, answers[q.id] ?? null);
                           const unanswered = ans === '(미응답)';
+                          const hi = answerColor(q, answers[q.id] ?? null);
                           return (
                             <Box
                               key={q.id}
@@ -289,15 +307,24 @@ export default function PatientView() {
                                   {q.label}
                                 </Typography>
                                 <Typography
+                                  component="span"
                                   sx={{
                                     mt: 0.6,
                                     fontSize: 16,
                                     lineHeight: 1.45,
-                                    fontWeight: unanswered ? 400 : 600,
-                                    color: unanswered ? 'text.disabled' : '#1a2438',
+                                    fontWeight: unanswered ? 400 : hi ? 800 : 600,
+                                    color: unanswered ? 'text.disabled' : hi ? hi : '#1a2438',
                                     fontStyle: unanswered ? 'italic' : 'normal',
                                     whiteSpace: 'pre-wrap',
                                     wordBreak: 'break-word',
+                                    ...(hi && {
+                                      display: 'inline-block',
+                                      px: 1,
+                                      py: 0.3,
+                                      borderRadius: 1.5,
+                                      bgcolor: alpha(hi, 0.12),
+                                      border: `1px solid ${alpha(hi, 0.35)}`,
+                                    }),
                                   }}
                                 >
                                   {ans}
@@ -330,6 +357,7 @@ export default function PatientView() {
                           {qs.map((q) => {
                             const ans = formatAnswer(q, answers[q.id] ?? null);
                             const unanswered = ans === '(미응답)';
+                            const hi = answerColor(q, answers[q.id] ?? null);
                             return (
                               <TableRow
                                 key={q.id}
@@ -375,14 +403,23 @@ export default function PatientView() {
                                   }}
                                 >
                                   <Typography
+                                    component="span"
                                     sx={{
                                       fontSize: 15,
                                       lineHeight: 1.45,
-                                      fontWeight: unanswered ? 400 : 600,
-                                      color: unanswered ? 'text.disabled' : '#1a2438',
+                                      fontWeight: unanswered ? 400 : hi ? 800 : 600,
+                                      color: unanswered ? 'text.disabled' : hi ? hi : '#1a2438',
                                       fontStyle: unanswered ? 'italic' : 'normal',
                                       whiteSpace: 'pre-wrap',
                                       wordBreak: 'break-word',
+                                      ...(hi && {
+                                        display: 'inline-block',
+                                        px: 1,
+                                        py: 0.3,
+                                        borderRadius: 1.5,
+                                        bgcolor: alpha(hi, 0.12),
+                                        border: `1px solid ${alpha(hi, 0.35)}`,
+                                      }),
                                     }}
                                   >
                                     {ans}
