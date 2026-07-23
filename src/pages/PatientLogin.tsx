@@ -11,6 +11,8 @@ import {
   Paper,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
@@ -53,6 +55,21 @@ export default function PatientLogin() {
     >
       <Container maxWidth="xs">
         <Paper variant="outlined" sx={{ p: 4 }}>
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            size="small"
+            color="primary"
+            value="patient"
+            onChange={(_e, v) => {
+              if (v === 'admin') navigate('/login');
+            }}
+            sx={{ mb: 3 }}
+          >
+            <ToggleButton value="admin">문진관리</ToggleButton>
+            <ToggleButton value="patient">문진입력</ToggleButton>
+          </ToggleButtonGroup>
+
           <Stack alignItems="center" spacing={1} mb={3}>
             <Box
               sx={{

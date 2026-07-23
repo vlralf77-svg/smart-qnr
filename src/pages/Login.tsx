@@ -12,6 +12,8 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -64,6 +66,21 @@ export default function Login() {
     >
       <Container maxWidth="xs">
         <Paper variant="outlined" sx={{ p: 4 }}>
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            size="small"
+            color="primary"
+            value="admin"
+            onChange={(_e, v) => {
+              if (v === 'patient') navigate('/patient/login');
+            }}
+            sx={{ mb: 3 }}
+          >
+            <ToggleButton value="admin">문진관리</ToggleButton>
+            <ToggleButton value="patient">문진입력</ToggleButton>
+          </ToggleButtonGroup>
+
           <Stack alignItems="center" spacing={1} mb={3}>
             <AppIcon size={64} />
             <Typography variant="h6" fontWeight={700}>
