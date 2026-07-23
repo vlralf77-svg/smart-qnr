@@ -30,6 +30,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
@@ -44,6 +45,7 @@ import { FormSchema } from '@/types/schema';
 import CategoryManager from '@/components/editor/CategoryManager';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import PatientLinkDialog from '@/components/PatientLinkDialog';
+import ExcelImportDialog from '@/components/ExcelImportDialog';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -70,6 +72,7 @@ export default function FormList() {
   const [catFilter, setCatFilter] = useState<string>(ALL);
   const [manageOpen, setManageOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [excelOpen, setExcelOpen] = useState(false);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
   useEffect(() => {
@@ -178,6 +181,15 @@ export default function FormList() {
                 onClick={() => navigate('/upload')}
               >
                 문서로 변환
+              </Button>
+            )}
+            {canEdit && (
+              <Button
+                variant="outlined"
+                startIcon={<TableChartOutlinedIcon />}
+                onClick={() => setExcelOpen(true)}
+              >
+                엑셀로 만들기
               </Button>
             )}
             {canEdit && (
@@ -355,6 +367,15 @@ export default function FormList() {
 
       <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
       <PatientLinkDialog open={linkOpen} onClose={() => setLinkOpen(false)} />
+      <ExcelImportDialog
+        open={excelOpen}
+        onClose={() => setExcelOpen(false)}
+        onImport={(schema) => {
+          void saveForm(schema).catch(() => {});
+          setExcelOpen(false);
+          navigate(`/editor/${schema.id}`);
+        }}
+      />
       {previewForm && (
         <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
       )}
