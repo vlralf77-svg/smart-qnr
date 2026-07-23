@@ -61,7 +61,8 @@ export default function OptionsEditor({ sectionId, question }: Props) {
         선택지
       </Typography>
       <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-        색 버튼으로 강조 색을 지정하면, 그 답이 선택될 때 입력·조회 화면에서 그 색으로 표시됩니다.
+        색 버튼으로 강조 색을 지정하면, 작성한 내용을 <b>조회</b>할 때 그 답이 색으로 강조됩니다.
+        (작성/입력 화면에는 표시되지 않음 — 꼭 확인해야 하는 답변 강조용)
       </Typography>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={options.map((o) => o.id)} strategy={verticalListSortingStrategy}>

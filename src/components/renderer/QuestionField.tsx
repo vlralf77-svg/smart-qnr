@@ -15,23 +15,11 @@ import {
   Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { alpha } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { Controller, Control, FieldErrors } from 'react-hook-form';
 import { Question, QuestionOption } from '@/types/schema';
 
 const ETC_VALUE = '__etc__';
-
-/** 선택지에 강조 색이 지정되고 그 항목이 선택되면 배경/글자를 강조 */
-function optionHighlightSx(color: string | undefined, selected: boolean) {
-  if (!color || !selected) return undefined;
-  return {
-    bgcolor: alpha(color, 0.12),
-    borderRadius: 1,
-    px: 0.75,
-    '& .MuiFormControlLabel-label': { color, fontWeight: 700 },
-  };
-}
 
 function withEtc(options: QuestionOption[], allowEtc?: boolean): QuestionOption[] {
   if (!allowEtc) return options;
@@ -95,13 +83,7 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             render={({ field }) => (
               <RadioGroup {...field}>
                 {options.map((o) => (
-                  <FormControlLabel
-                    key={o.id}
-                    value={o.value}
-                    control={<Radio />}
-                    label={o.label}
-                    sx={optionHighlightSx(o.color, field.value === o.value)}
-                  />
+                  <FormControlLabel key={o.id} value={o.value} control={<Radio />} label={o.label} />
                 ))}
               </RadioGroup>
             )}
@@ -142,7 +124,6 @@ export default function QuestionField({ question: q, control, errors }: Props) {
                         />
                       }
                       label={o.label}
-                      sx={optionHighlightSx(o.color, value.includes(o.value))}
                     />
                   ))}
                 </FormGroup>
@@ -165,33 +146,15 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             control={control}
             rules={rules}
             defaultValue=""
-            render={({ field }) => {
-              const selColor = options.find((o) => o.value === field.value)?.color;
-              return (
-                <TextField
-                  {...field}
-                  select
-                  size="small"
-                  error={!!err}
-                  helperText={errText}
-                  sx={
-                    selColor
-                      ? { '& .MuiSelect-select': { color: selColor, fontWeight: 700 } }
-                      : undefined
-                  }
-                >
-                  {options.map((o) => (
-                    <MenuItem
-                      key={o.id}
-                      value={o.value}
-                      sx={o.color ? { color: o.color, fontWeight: 600 } : undefined}
-                    >
-                      {o.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              );
-            }}
+            render={({ field }) => (
+              <TextField {...field} select size="small" error={!!err} helperText={errText}>
+                {options.map((o) => (
+                  <MenuItem key={o.id} value={o.value}>
+                    {o.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           />
         </FormControl>
       );
