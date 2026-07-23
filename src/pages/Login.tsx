@@ -1,5 +1,5 @@
 // 로그인 화면 — 프로그램 실행 시 최초 진입
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -26,7 +26,7 @@ interface LocationState {
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, error } = useAuthStore();
+  const { login, loginByIdOnly, error } = useAuthStore();
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -37,6 +37,20 @@ export default function Login() {
     e.preventDefault();
     if (await login(id.trim(), pw)) navigate(from, { replace: true });
   };
+
+  // Ctrl+Q: 아이디만 맞으면 비밀번호 없이 로그인(오프라인 전용 단축)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'q' || e.key === 'Q')) {
+        e.preventDefault();
+        void loginByIdOnly(id).then((ok) => {
+          if (ok) navigate(from, { replace: true });
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [id, from, loginByIdOnly, navigate]);
 
   return (
     <Box
@@ -101,6 +115,9 @@ export default function Login() {
               <Button type="submit" variant="contained" size="large" fullWidth>
                 로그인
               </Button>
+              <Typography variant="caption" color="text.disabled" textAlign="center">
+                단축키: 아이디 입력 후 Ctrl+Q
+              </Typography>
             </Stack>
           </form>
         </Paper>

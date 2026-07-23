@@ -41,6 +41,8 @@ interface AuthState {
   error: string;
   busy: boolean;
   login: (id: string, pw: string) => Promise<boolean>;
+  /** 아이디만으로 로그인(Ctrl+Q 단축키용, 오프라인 전용). 비밀번호 생략. */
+  loginByIdOnly: (id: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -90,6 +92,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     set({ error: '아이디 또는 비밀번호가 올바르지 않습니다.', busy: false });
+    return false;
+  },
+  loginByIdOnly: async (id) => {
+    const name = id.trim();
+    if (!name) {
+      set({ error: '아이디를 입력하세요.' });
+      return false;
+    }
+    // 백엔드 모드는 서버가 비밀번호를 요구하므로 아이디만으로는 불가
+    if (isBackendEnabled) {
+      set({ error: '백엔드 모드에서는 아이디만으로 로그인할 수 없습니다.' });
+      return false;
+    }
+    // 내장 admin
+    if (name.toLowerCase() === FIXED_ID) {
+      const s = { user: FIXED_ID, permissions: ALL_PERMISSIONS };
+      writeSession(s);
+      set({ authed: true, currentUser: s.user, permissions: s.permissions, error: '' });
+      return true;
+    }
+    // 하위 계정(아이디 일치 시 권한대로)
+    const acc = useAccountsStore.getState().findByUsername(name);
+    if (acc) {
+      const s = { user: acc.username, permissions: acc.permissions };
+      writeSession(s);
+      set({ authed: true, currentUser: s.user, permissions: s.permissions, error: '' });
+      return true;
+    }
+    set({ error: '등록되지 않은 아이디입니다.' });
     return false;
   },
   logout: () => {
