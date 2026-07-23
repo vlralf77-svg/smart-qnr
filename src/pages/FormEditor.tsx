@@ -1,5 +1,5 @@
 // QNR003 문진 에디터 페이지
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   AppBar,
@@ -58,6 +58,48 @@ export default function FormEditor() {
   const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
   const [toast, setToast] = useState('');
+
+  // 좌(컴포넌트 세팅) ↔ 우(옵션 편집) 너비를 드래그로 조절 — 값은 브라우저에 기억
+  const LS_KEY = 'smartqnr.editorLeftPct';
+  const [leftPct, setLeftPct] = useState<number>(() => {
+    const v = Number(localStorage.getItem(LS_KEY));
+    return v >= 25 && v <= 80 ? v : 55;
+  });
+  const splitRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+  const leftPctRef = useRef(leftPct);
+  leftPctRef.current = leftPct;
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const el = splitRef.current;
+      if (!draggingRef.current || !el) return;
+      const rect = el.getBoundingClientRect();
+      let pct = ((e.clientX - rect.left) / rect.width) * 100;
+      pct = Math.min(80, Math.max(25, pct));
+      setLeftPct(pct);
+    };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem(LS_KEY, String(Math.round(leftPctRef.current)));
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   // 진입 시 폼 로드 (백엔드 모드면 캐시에 없을 때 서버에서 단건 조회)
   useEffect(() => {
@@ -218,9 +260,12 @@ export default function FormEditor() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}>
-        {/* 좌: 폼 메타 + 아웃라인 */}
-        <Box sx={{ width: '55%', overflowY: 'auto', p: 2.5, borderRight: '1px solid', borderColor: 'divider' }}>
+      <Box
+        ref={splitRef}
+        sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}
+      >
+        {/* 좌: 폼 메타 + 아웃라인 (너비 조절 가능) */}
+        <Box sx={{ width: `${leftPct}%`, flexShrink: 0, overflowY: 'auto', p: 2.5 }}>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
               <Chip
@@ -289,8 +334,49 @@ export default function FormEditor() {
           {isOverlayForm(form) ? <OverlayEditor form={form} /> : <EditorOutline form={form} />}
         </Box>
 
+        {/* 좌우 너비 조절 구분선(드래그) */}
+        <Tooltip title="드래그하여 너비 조절 · 더블클릭 시 기본값" placement="left">
+          <Box
+            onMouseDown={startDrag}
+            onDoubleClick={() => {
+              setLeftPct(55);
+              localStorage.setItem(LS_KEY, '55');
+            }}
+            sx={{
+              flexShrink: 0,
+              width: '8px',
+              cursor: 'col-resize',
+              position: 'relative',
+              bgcolor: 'divider',
+              transition: 'background-color .15s',
+              '&:hover': { bgcolor: 'primary.main' },
+              '&:hover .grip': { bgcolor: 'primary.contrastText' },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                inset: '0 -4px', // 클릭 영역을 좌우로 넓게
+              },
+            }}
+          >
+            {/* 가운데 손잡이 표시 */}
+            <Box
+              className="grip"
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '2px',
+                height: 34,
+                borderRadius: 1,
+                bgcolor: 'text.disabled',
+              }}
+            />
+          </Box>
+        </Tooltip>
+
         {/* 우: 선택 문항 편집 */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 2.5 }}>
           {selectedQuestion && selected ? (
             <Paper variant="outlined" sx={{ p: 2.5 }}>
               <QuestionEditPanel sectionId={selectedSectionId} question={selectedQuestion} />
