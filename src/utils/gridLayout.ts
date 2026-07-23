@@ -2,7 +2,7 @@
 import { Question, QuestionType, QuestionLayout } from '@/types/schema';
 
 export const GRID_COLS = 12;
-export const GRID_ROW_HEIGHT = 56;
+export const GRID_ROW_HEIGHT = 68; // 1행 카드가 라벨을 스크롤 없이 담도록(기존 56 → +20%)
 export const GRID_MARGIN: [number, number] = [12, 12];
 export const DEFAULT_QUESTION_W = 12; // 기본은 전체 너비(세로 스택과 동일하게 시작)
 export const DEFAULT_QUESTION_H = 1; // 기본 높이(작게 시작 — 필요 시 드래그로 키움)
