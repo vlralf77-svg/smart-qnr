@@ -35,7 +35,7 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
     w: q.layout.w,
     h: q.layout.h,
     minW: 2,
-    minH: 2,
+    minH: 1,
   }));
 
   const handleDragStop = (_l: Layout[], oldItem: Layout, newItem: Layout) => {

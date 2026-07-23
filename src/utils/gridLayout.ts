@@ -5,21 +5,20 @@ export const GRID_COLS = 12;
 export const GRID_ROW_HEIGHT = 56;
 export const GRID_MARGIN: [number, number] = [12, 12];
 export const DEFAULT_QUESTION_W = 12; // 기본은 전체 너비(세로 스택과 동일하게 시작)
-export const DEFAULT_QUESTION_H = 2; // 기본 높이(작게 시작 — 필요 시 드래그로 키움)
+export const DEFAULT_QUESTION_H = 1; // 기본 높이(작게 시작 — 필요 시 드래그로 키움)
 
-/** 문항 유형에 맞춘 기본 높이(행 수). 단순 입력은 작게, 선택지/장문은 조금 크게. */
-export function defaultHeightForType(type: QuestionType, optionCount = 0): number {
+/**
+ * 문항 유형에 맞춘 기본 높이(행 수).
+ * 에디터 캔버스 카드는 라벨만 보여주고 실제 응답 화면은 세로로 쌓여 렌더되므로,
+ * 이 높이는 편집 화면 카드 크기에만 영향을 준다 → 기본은 작게(1행).
+ */
+export function defaultHeightForType(type: QuestionType, _optionCount = 0): number {
   switch (type) {
     case 'textarea':
     case 'signature':
-      return 3;
-    case 'radio':
-    case 'checkbox':
-      // 라벨 1행 + 선택지(2개당 1행 근사), 최소 2행
-      return Math.max(2, 1 + Math.ceil((optionCount || 2) / 2));
-    default:
-      // text, number, date, boolean, select, scale, info 등
       return 2;
+    default:
+      return 1;
   }
 }
 
