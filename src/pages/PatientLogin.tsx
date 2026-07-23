@@ -18,6 +18,7 @@ import {
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { usePatientStore, TEST_PATIENT_NO } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
+import { TOGGLE_SX } from './Login';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export default function PatientLogin() {
             onChange={(_e, v) => {
               if (v === 'admin') navigate('/login');
             }}
-            sx={{ mb: 3 }}
+            sx={TOGGLE_SX}
           >
             <ToggleButton value="admin">문진관리</ToggleButton>
             <ToggleButton value="patient">문진입력</ToggleButton>

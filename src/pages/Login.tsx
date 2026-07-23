@@ -25,6 +25,23 @@ interface LocationState {
   from?: string;
 }
 
+// 로그인 화면 상단 토글 — 선택된 쪽을 진한 채움색으로 명확히 구분
+export const TOGGLE_SX = {
+  mb: 3,
+  '& .MuiToggleButton-root': {
+    flex: 1,
+    fontWeight: 700,
+    py: 1,
+    color: 'text.secondary',
+    borderColor: 'divider',
+    '&.Mui-selected': {
+      bgcolor: 'primary.main',
+      color: 'primary.contrastText',
+      '&:hover': { bgcolor: 'primary.dark' },
+    },
+  },
+} as const;
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,7 +92,7 @@ export default function Login() {
             onChange={(_e, v) => {
               if (v === 'patient') navigate('/patient/login');
             }}
-            sx={{ mb: 3 }}
+            sx={TOGGLE_SX}
           >
             <ToggleButton value="admin">문진관리</ToggleButton>
             <ToggleButton value="patient">문진입력</ToggleButton>
