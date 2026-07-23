@@ -91,10 +91,20 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 800 }}>엑셀 템플릿으로 문진 만들기</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
           제공된 엑셀 템플릿의 <b>‘문진질문’ 시트</b>에 문항을 입력한 뒤 업로드하면 문진이
           자동으로 만들어집니다. 열: 질문ID·섹션·순서·질문·응답유형·선택지·필수·표시조건·기타입력허용·비고.
         </Typography>
+        <Alert severity="info" icon={false} sx={{ mb: 2, py: 0.5 }}>
+          <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
+            응답유형(프로그램 문항 유형과 동일)
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            SINGLE(단일)·MULTI(복수)·SELECT(드롭다운)·TEXT(단답)·TEXTAREA(장문)·NUMBER(숫자)·
+            DATE(날짜)·BOOLEAN(예/아니오)·SCALE(척도, 선택지에 <code>최소|최대</code>)·INFO(안내문)·
+            SIGNATURE(서명) — ‘문진질문’ 시트의 드롭다운에서 선택하세요.
+          </Typography>
+        </Alert>
 
         {/* 1) 템플릿 받기 */}
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>

@@ -84,14 +84,33 @@ function parseSheet(xml: string, shared: string[]): Grid {
 
 // ---- 템플릿 → 스키마 매핑 ----
 
-const TYPE_MAP: Record<string, QuestionType> = {
-  SINGLE: 'radio',
-  MULTI: 'checkbox',
-  TEXT: 'text',
-  NUMBER: 'number',
-  DATE: 'date',
-  SCALE: 'scale',
+// 엑셀 응답유형 코드 → 프로그램 문항 유형. 영문 코드 + 한글 표기 모두 허용.
+const TYPE_SYNONYMS: Record<QuestionType, string[]> = {
+  radio: ['SINGLE', '단일선택', '단일 선택', '라디오'],
+  checkbox: ['MULTI', 'MULTIPLE', '복수선택', '복수 선택', '체크박스'],
+  select: ['SELECT', 'DROPDOWN', '드롭다운', '셀렉트'],
+  text: ['TEXT', '단답형', '단답', '주관식'],
+  textarea: ['TEXTAREA', 'LONGTEXT', 'LONG', '장문형', '장문'],
+  number: ['NUMBER', 'NUM', '숫자'],
+  date: ['DATE', '날짜'],
+  boolean: ['BOOLEAN', 'BOOL', 'YESNO', '예/아니오', '예아니오'],
+  scale: ['SCALE', '척도'],
+  info: ['INFO', 'GUIDE', '안내문', '안내'],
+  signature: ['SIGNATURE', 'SIGN', '서명'],
 };
+
+const TYPE_MAP: Record<string, QuestionType> = (() => {
+  const m: Record<string, QuestionType> = {};
+  for (const [type, keys] of Object.entries(TYPE_SYNONYMS) as [QuestionType, string[]][]) {
+    for (const k of keys) m[k.toUpperCase().replace(/\s+/g, '')] = type;
+  }
+  return m;
+})();
+
+/** 엑셀 셀 값 → 문항 유형(정규화). 못 찾으면 null */
+function normalizeType(raw: string): QuestionType | null {
+  return TYPE_MAP[(raw || '').toUpperCase().replace(/\s+/g, '')] ?? null;
+}
 
 const HEADER_KEYS = ['질문ID', '섹션', '순서', '질문', '응답유형', '선택지', '필수', '표시조건', '기타입력허용', '비고'];
 
@@ -232,22 +251,23 @@ export function parseExcelTemplate(buffer: ArrayBuffer, fileName = '문진'): Pa
   const bySection = new Map<string, Question[]>();
 
   for (const r of rows) {
-    const type = TYPE_MAP[r.typeRaw];
+    const type = normalizeType(r.typeRaw);
     if (!type) {
-      warnings.push(`${r.qid}: 알 수 없는 응답유형 '${r.typeRaw}' → 단답형(TEXT)으로 처리`);
+      warnings.push(`${r.qid}: 알 수 없는 응답유형 '${r.typeRaw}' → 단답형으로 처리`);
     }
+    const resolved: QuestionType = type ?? 'text';
     const q: Question = {
       id: r.qid,
-      type: type ?? 'text',
+      type: resolved,
       label: r.label,
       required: r.required || undefined,
     };
 
-    if (type === 'radio' || type === 'checkbox') {
+    if (resolved === 'radio' || resolved === 'checkbox' || resolved === 'select') {
       q.options = options(r.optionsRaw);
       if (q.options.length === 0) warnings.push(`${r.qid}: 선택지가 비어 있습니다.`);
       if (r.allowEtc) q.allowEtc = true;
-    } else if (type === 'scale') {
+    } else if (resolved === 'scale') {
       const [mn, mx] = r.optionsRaw.split('|').map((s) => Number(s.trim()));
       q.min = Number.isFinite(mn) ? mn : 0;
       q.max = Number.isFinite(mx) ? mx : 10;
