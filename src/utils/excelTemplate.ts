@@ -96,6 +96,7 @@ const TYPE_SYNONYMS: Record<QuestionType, string[]> = {
   boolean: ['BOOLEAN', 'BOOL', 'YESNO', '예/아니오', '예아니오'],
   scale: ['SCALE', '척도'],
   info: ['INFO', 'GUIDE', '안내문', '안내'],
+  image: ['IMAGE', 'IMG', '이미지', '참고이미지'],
   signature: ['SIGNATURE', 'SIGN', '서명'],
 };
 

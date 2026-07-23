@@ -1,6 +1,8 @@
 // 선택된 문항 편집 패널 (§4.3 중앙 패널)
+import { useRef, useState } from 'react';
 import {
   Box,
+  Button,
   Divider,
   FormControlLabel,
   MenuItem,
@@ -9,6 +11,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
   Question,
   QuestionType,
@@ -17,6 +21,7 @@ import {
   OPTION_TYPES,
 } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
+import { fileToResizedDataUrl } from '@/utils/image';
 import OptionsEditor from './OptionsEditor';
 import ConditionEditor from './ConditionEditor';
 
@@ -31,7 +36,23 @@ interface Props {
 export default function QuestionEditPanel({ sectionId, question }: Props) {
   const { updateQuestion, changeQuestionType } = useEditorStore();
   const meta = QUESTION_TYPE_META[question.type];
-  const isInfo = question.type === 'info';
+  const isImage = question.type === 'image';
+  const isInfo = question.type === 'info' || isImage;
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const [imgBusy, setImgBusy] = useState(false);
+
+  const handleImageFile = async (file: File) => {
+    setImgBusy(true);
+    try {
+      const dataUrl = await fileToResizedDataUrl(file);
+      updateQuestion(sectionId, question.id, { image: dataUrl });
+    } catch {
+      /* 무시 */
+    } finally {
+      setImgBusy(false);
+      if (imgInputRef.current) imgInputRef.current.value = '';
+    }
+  };
 
   return (
     <Stack spacing={2.5}>
@@ -61,16 +82,85 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
       </Box>
 
       <TextField
-        label={isInfo ? '안내문 내용' : '질문(라벨)'}
+        label={isImage ? '이미지 설명(선택)' : question.type === 'info' ? '안내문 내용' : '질문(라벨)'}
         size="small"
         fullWidth
-        multiline={isInfo}
-        minRows={isInfo ? 3 : 1}
+        multiline={question.type === 'info'}
+        minRows={question.type === 'info' ? 3 : 1}
         value={question.label}
         onChange={(e) => updateQuestion(sectionId, question.id, { label: e.target.value })}
       />
 
-      {/* 글자 스타일: 크기·색상 */}
+      {/* 참고 이미지: 이미지 첨부 */}
+      {isImage && (
+        <Box>
+          <Typography variant="subtitle2" fontWeight={700} mb={1}>
+            이미지
+          </Typography>
+          <input
+            ref={imgInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleImageFile(f);
+            }}
+          />
+          {question.image ? (
+            <Box>
+              <Box
+                component="img"
+                src={question.image}
+                alt="미리보기"
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: 240,
+                  display: 'block',
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  mb: 1,
+                }}
+              />
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ImageOutlinedIcon />}
+                  onClick={() => imgInputRef.current?.click()}
+                  disabled={imgBusy}
+                >
+                  이미지 교체
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  startIcon={<DeleteOutlineIcon />}
+                  onClick={() => updateQuestion(sectionId, question.id, { image: undefined })}
+                >
+                  제거
+                </Button>
+              </Stack>
+            </Box>
+          ) : (
+            <Button
+              variant="outlined"
+              startIcon={<ImageOutlinedIcon />}
+              onClick={() => imgInputRef.current?.click()}
+              disabled={imgBusy}
+            >
+              {imgBusy ? '불러오는 중…' : '이미지 첨부'}
+            </Button>
+          )}
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+            범례·설명 그림을 첨부하면 작성 화면에서 함께 표시됩니다. (자동 축소 저장)
+          </Typography>
+        </Box>
+      )}
+
+      {/* 글자 스타일: 크기·색상 (이미지 제외) */}
+      {!isImage && (
       <Box>
         <Typography variant="subtitle2" fontWeight={700} mb={1}>
           글자 스타일
@@ -141,6 +231,7 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
           </Stack>
         </Stack>
       </Box>
+      )}
 
       {!isInfo && (
         <>

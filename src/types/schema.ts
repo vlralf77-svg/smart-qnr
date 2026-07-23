@@ -15,13 +15,14 @@ export type QuestionType =
   | 'boolean' // 예/아니오
   | 'scale' // 척도 (예: 통증 NRS 0~10)
   | 'signature' // 서명 (동의서용, Phase3)
-  | 'info'; // 안내문 (입력 없음)
+  | 'info' // 안내문 (입력 없음)
+  | 'image'; // 참고 이미지 (범례·설명 그림, 입력 없음)
 
 /** 선택지가 필요한 유형 */
 export const OPTION_TYPES: QuestionType[] = ['radio', 'checkbox', 'select'];
 
 /** 입력이 없는(값을 수집하지 않는) 유형 */
-export const NON_INPUT_TYPES: QuestionType[] = ['info'];
+export const NON_INPUT_TYPES: QuestionType[] = ['info', 'image'];
 
 /** 조건부 로직 연산자 (§3.3) */
 export type ConditionOperator =
@@ -103,6 +104,8 @@ export interface Question {
   fontSize?: number;
   /** 글자 색상(CSS color, 예: #d32f2f). 라벨·입력 텍스트에 적용 */
   color?: string;
+  /** 참고 이미지(type='image')의 이미지 데이터 URL */
+  image?: string;
 }
 
 export interface Section {
@@ -161,6 +164,7 @@ export const QUESTION_TYPE_META: Record<QuestionType, QuestionTypeMeta> = {
   scale: { type: 'scale', label: '척도(0~10)', hasOptions: false, isInput: true, hint: '통증 점수 등' },
   signature: { type: 'signature', label: '서명', hasOptions: false, isInput: true, hint: 'Phase3' },
   info: { type: 'info', label: '안내문', hasOptions: false, isInput: false, hint: '입력 없음' },
+  image: { type: 'image', label: '참고 이미지', hasOptions: false, isInput: false, hint: '범례·설명 그림' },
 };
 
 export const QUESTION_TYPE_ORDER: QuestionType[] = [
@@ -174,6 +178,7 @@ export const QUESTION_TYPE_ORDER: QuestionType[] = [
   'boolean',
   'scale',
   'info',
+  'image',
   'signature',
 ];
 

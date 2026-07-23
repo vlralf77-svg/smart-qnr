@@ -48,6 +48,51 @@ export default function QuestionField({ question: q, control, errors }: Props) {
     );
   }
 
+  // 참고 이미지: 입력 없이 이미지(+설명)만 표시 — 작성 시 보면서 확인
+  if (q.type === 'image') {
+    return (
+      <Box>
+        {q.label && (
+          <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+            {q.label}
+          </Typography>
+        )}
+        {q.image ? (
+          <Box
+            component="img"
+            src={q.image}
+            alt={q.label || '참고 이미지'}
+            sx={{
+              maxWidth: '100%',
+              display: 'block',
+              borderRadius: 1.5,
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          />
+        ) : (
+          <Box
+            sx={{
+              p: 2,
+              textAlign: 'center',
+              bgcolor: 'action.hover',
+              borderRadius: 1.5,
+              color: 'text.disabled',
+              fontSize: 13,
+            }}
+          >
+            (이미지 없음)
+          </Box>
+        )}
+        {q.description && (
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            {q.description}
+          </Typography>
+        )}
+      </Box>
+    );
+  }
+
   const labelNode = (
     <FormLabel sx={{ mb: 0.5, color: 'text.primary', fontWeight: 600, display: 'block' }}>
       {q.label}

@@ -31,6 +31,9 @@ export function createQuestion(type: QuestionType = 'text'): Question {
   if (type === 'info') {
     base.label = '안내문을 입력하세요';
   }
+  if (type === 'image') {
+    base.label = '참고 이미지';
+  }
   return base;
 }
 
