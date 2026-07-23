@@ -34,6 +34,7 @@ const TEMPLATE_URL = `${import.meta.env.BASE_URL}templates/문진업로드템플
 export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
+  const [saved, setSaved] = useState('');
   const [result, setResult] = useState<{
     schema: FormSchema;
     warnings: string[];
@@ -43,6 +44,7 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
 
   const reset = () => {
     setError('');
+    setSaved('');
     setResult(null);
     if (inputRef.current) inputRef.current.value = '';
   };
@@ -53,6 +55,21 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
   };
 
   const downloadTemplate = async () => {
+    setError('');
+    setSaved('');
+    // 설치본(Electron): 네이티브 저장창으로 확실히 저장
+    const bridge = window.smartqnr;
+    if (bridge?.saveTemplate) {
+      try {
+        const res = await bridge.saveTemplate();
+        if (res?.ok) setSaved(res.filePath ? `저장됨: ${res.filePath}` : '템플릿이 저장되었습니다.');
+        else if (!res?.canceled) setError(res?.error || '템플릿 저장에 실패했습니다.');
+      } catch {
+        setError('템플릿 저장에 실패했습니다.');
+      }
+      return;
+    }
+    // 웹(브라우저): blob 다운로드
     try {
       const res = await fetch(TEMPLATE_URL);
       const blob = await res.blob();
@@ -64,6 +81,7 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      setSaved('템플릿을 내려받았습니다.');
     } catch {
       setError('템플릿 다운로드에 실패했습니다.');
     }
@@ -115,6 +133,12 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
             처음이라면 양식을 먼저 받아 작성하세요. ‘작성가이드’ 시트 포함.
           </Typography>
         </Stack>
+
+        {saved && (
+          <Alert severity="success" sx={{ mb: 2, py: 0.25 }} onClose={() => setSaved('')}>
+            {saved}
+          </Alert>
+        )}
 
         <Divider sx={{ my: 2 }} />
 

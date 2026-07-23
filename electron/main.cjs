@@ -86,6 +86,39 @@ ipcMain.on('app:quit-confirmed', () => {
   else app.quit();
 });
 
+// 문진 엑셀 템플릿 저장 — 앱에 동봉된 템플릿을 사용자가 고른 위치에 저장(네이티브 저장창).
+//  브라우저(file://)의 fetch/다운로드 제약을 피해 설치본에서도 확실히 동작한다.
+ipcMain.handle('template:save', async () => {
+  const fs = require('node:fs');
+  const NAME = '문진업로드템플릿.xlsx';
+  const candidates = [
+    path.join(__dirname, '..', 'dist', 'templates', NAME), // 패키징(빌드) 결과
+    path.join(__dirname, '..', 'public', 'templates', NAME), // dev 실행
+  ];
+  const src = candidates.find((p) => {
+    try {
+      return fs.existsSync(p);
+    } catch {
+      return false;
+    }
+  });
+  if (!src) return { ok: false, error: '템플릿 파일을 찾을 수 없습니다.' };
+  try {
+    const data = fs.readFileSync(src);
+    const win = BrowserWindow.getAllWindows()[0];
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: '문진 템플릿 저장',
+      defaultPath: NAME,
+      filters: [{ name: 'Excel 통합 문서', extensions: ['xlsx'] }],
+    });
+    if (canceled || !filePath) return { ok: false, canceled: true };
+    fs.writeFileSync(filePath, data);
+    return { ok: true, filePath };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+});
+
 // 문서 → 문진 변환 IPC (§6): 파일 바이트 → 스키마 JSON 문자열
 // 로컬 규칙 기반 변환(오픈소스) — 외부 API 호출 없음, 완전 오프라인 동작.
 ipcMain.handle('convert:document', async (_event, payload) => {

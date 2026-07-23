@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld('smartqnr', {
   confirmQuit: () => ipcRenderer.send('app:quit-confirmed'),
   // 업데이트 준비 모달에서 '지금 재시작' 선택 시 호출 → 설치·재시작
   restartForUpdate: () => ipcRenderer.send('update:restart-now'),
+  // 문진 엑셀 템플릿을 네이티브 저장창으로 저장. { ok, canceled?, filePath?, error? }
+  saveTemplate: () => ipcRenderer.invoke('template:save'),
 });
