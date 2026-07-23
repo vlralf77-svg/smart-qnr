@@ -62,6 +62,8 @@ export default function FormList() {
   const logout = useAuthStore((s) => s.logout);
   const permissions = useAuthStore((s) => s.permissions);
   const currentUser = useAuthStore((s) => s.currentUser);
+  const displayName = useAuthStore((s) => s.displayName);
+  const department = useAuthStore((s) => s.department);
   const canEdit = !!permissions?.edit;
   const canDelete = !!permissions?.delete;
   const canManage = !!permissions?.manageAccounts;
@@ -121,8 +123,9 @@ export default function FormList() {
             variant="outlined"
             sx={{ mr: 1.5, color: 'inherit', borderColor: 'rgba(255,255,255,0.5)' }}
           />
-          <Typography variant="caption" sx={{ opacity: 0.8, mr: 1 }}>
-            {currentUser ?? 'admin'}
+          <Typography variant="caption" sx={{ opacity: 0.9, mr: 1 }}>
+            {department ? `${department} · ` : ''}
+            {displayName ?? currentUser ?? 'admin'}
           </Typography>
           <Tooltip title="로그아웃">
             <IconButton

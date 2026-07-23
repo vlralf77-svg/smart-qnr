@@ -26,12 +26,22 @@ export interface Account {
   username: string;
   passwordHash: string;
   permissions: Permissions;
+  /** 사용자 이름(표시용) */
+  displayName?: string;
+  /** 부서 */
+  department?: string;
 }
 
 interface AccountsState {
   accounts: Account[];
-  addAccount: (username: string, passwordHash: string, permissions: Permissions) => string | null;
+  addAccount: (
+    username: string,
+    passwordHash: string,
+    permissions: Permissions,
+    profile?: { displayName?: string; department?: string },
+  ) => string | null;
   updatePermissions: (id: string, permissions: Permissions) => void;
+  updateProfile: (id: string, patch: { displayName?: string; department?: string }) => void;
   setPassword: (id: string, passwordHash: string) => void;
   removeAccount: (id: string) => void;
   findByUsername: (username: string) => Account | undefined;
@@ -43,19 +53,49 @@ export const useAccountsStore = create<AccountsState>()(
   persist(
     (set, get) => ({
       accounts: [],
-      addAccount: (username, passwordHash, permissions) => {
+      addAccount: (username, passwordHash, permissions, profile) => {
         const name = username.trim();
         if (!name) return null;
         // admin(내장) 및 중복 방지
         if (name.toLowerCase() === 'admin') return null;
         if (get().accounts.some((a) => a.username.toLowerCase() === name.toLowerCase())) return null;
         const id = uid();
-        set((s) => ({ accounts: [...s.accounts, { id, username: name, passwordHash, permissions }] }));
+        set((s) => ({
+          accounts: [
+            ...s.accounts,
+            {
+              id,
+              username: name,
+              passwordHash,
+              permissions,
+              displayName: profile?.displayName?.trim() || undefined,
+              department: profile?.department?.trim() || undefined,
+            },
+          ],
+        }));
         return id;
       },
       updatePermissions: (id, permissions) =>
         set((s) => ({
           accounts: s.accounts.map((a) => (a.id === id ? { ...a, permissions } : a)),
+        })),
+      updateProfile: (id, patch) =>
+        set((s) => ({
+          accounts: s.accounts.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  displayName:
+                    patch.displayName !== undefined
+                      ? patch.displayName.trim() || undefined
+                      : a.displayName,
+                  department:
+                    patch.department !== undefined
+                      ? patch.department.trim() || undefined
+                      : a.department,
+                }
+              : a,
+          ),
         })),
       setPassword: (id, passwordHash) =>
         set((s) => ({

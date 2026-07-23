@@ -14,6 +14,9 @@ const SESSION_KEY = 'smartqnr.session';
 
 interface Session {
   user: string;
+  /** 표시용 사용자 이름(없으면 아이디로 대체) */
+  name?: string;
+  department?: string;
   permissions: Permissions;
 }
 
@@ -37,6 +40,9 @@ function writeSession(s: Session) {
 interface AuthState {
   authed: boolean;
   currentUser: string | null;
+  /** 표시용 사용자 이름(없으면 아이디) */
+  displayName: string | null;
+  department: string | null;
   permissions: Permissions | null;
   error: string;
   busy: boolean;
@@ -48,9 +54,24 @@ interface AuthState {
 
 const initial = readSession();
 
+// 세션을 저장하고 스토어 상태에 반영(로그인 성공 공통 처리)
+function applySession(set: (partial: Partial<AuthState>) => void, s: Session) {
+  writeSession(s);
+  set({
+    authed: true,
+    currentUser: s.user,
+    displayName: s.name || s.user,
+    department: s.department ?? null,
+    permissions: s.permissions,
+    error: '',
+  });
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   authed: !!initial,
   currentUser: initial?.user ?? null,
+  displayName: initial?.name ?? initial?.user ?? null,
+  department: initial?.department ?? null,
   permissions: initial?.permissions ?? null,
   error: '',
   busy: false,
@@ -61,9 +82,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (isBackendEnabled) {
       try {
         await api.login(id, pw);
-        const s = { user: id, permissions: ALL_PERMISSIONS };
-        writeSession(s);
-        set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
+        const s: Session = { user: id, name: id, permissions: ALL_PERMISSIONS };
+        applySession(set, s);
+        set({ busy: false });
         return true;
       } catch (e) {
         set({ error: (e as Error).message || '로그인에 실패했습니다.', busy: false });
@@ -73,9 +94,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     // 오프라인: 내장 admin
     if (id.trim().toLowerCase() === FIXED_ID && pw === FIXED_PW) {
-      const s = { user: FIXED_ID, permissions: ALL_PERMISSIONS };
-      writeSession(s);
-      set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
+      const s: Session = { user: FIXED_ID, name: '관리자', permissions: ALL_PERMISSIONS };
+      applySession(set, s);
+      set({ busy: false });
       return true;
     }
 
@@ -84,9 +105,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (acc) {
       const hash = await hashPassword(pw);
       if (hash === acc.passwordHash) {
-        const s = { user: acc.username, permissions: acc.permissions };
-        writeSession(s);
-        set({ authed: true, currentUser: s.user, permissions: s.permissions, busy: false });
+        const s: Session = {
+          user: acc.username,
+          name: acc.displayName || acc.username,
+          department: acc.department,
+          permissions: acc.permissions,
+        };
+        applySession(set, s);
+        set({ busy: false });
         return true;
       }
     }
@@ -107,17 +133,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     // 내장 admin
     if (name.toLowerCase() === FIXED_ID) {
-      const s = { user: FIXED_ID, permissions: ALL_PERMISSIONS };
-      writeSession(s);
-      set({ authed: true, currentUser: s.user, permissions: s.permissions, error: '' });
+      applySession(set, { user: FIXED_ID, name: '관리자', permissions: ALL_PERMISSIONS });
       return true;
     }
     // 하위 계정(아이디 일치 시 권한대로)
     const acc = useAccountsStore.getState().findByUsername(name);
     if (acc) {
-      const s = { user: acc.username, permissions: acc.permissions };
-      writeSession(s);
-      set({ authed: true, currentUser: s.user, permissions: s.permissions, error: '' });
+      applySession(set, {
+        user: acc.username,
+        name: acc.displayName || acc.username,
+        department: acc.department,
+        permissions: acc.permissions,
+      });
       return true;
     }
     set({ error: '등록되지 않은 아이디입니다.' });
@@ -130,6 +157,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       /* 무시 */
     }
     if (isBackendEnabled) api.logout();
-    set({ authed: false, currentUser: null, permissions: null, error: '' });
+    set({
+      authed: false,
+      currentUser: null,
+      displayName: null,
+      department: null,
+      permissions: null,
+      error: '',
+    });
   },
 }));

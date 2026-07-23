@@ -43,9 +43,12 @@ const DEFAULT_PERMS: Permissions = { view: true, edit: false, delete: false, man
 
 export default function Accounts() {
   const navigate = useNavigate();
-  const { accounts, addAccount, updatePermissions, setPassword, removeAccount } = useAccountsStore();
+  const { accounts, addAccount, updatePermissions, updateProfile, setPassword, removeAccount } =
+    useAccountsStore();
   const [username, setUsername] = useState('');
   const [password, setPassword2] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [department, setDepartment] = useState('');
   const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS);
   const [toast, setToast] = useState('');
 
@@ -57,10 +60,12 @@ export default function Accounts() {
     if (accounts.some((a) => a.username.toLowerCase() === name.toLowerCase()))
       return setToast('이미 있는 아이디입니다.');
     const hash = await hashPassword(password);
-    const id = addAccount(name, hash, perms);
+    const id = addAccount(name, hash, perms, { displayName, department });
     if (!id) return setToast('계정을 만들 수 없습니다.');
     setUsername('');
     setPassword2('');
+    setDisplayName('');
+    setDepartment('');
     setPerms(DEFAULT_PERMS);
     setToast(`계정 '${name}' 생성됨`);
   };
@@ -116,6 +121,24 @@ export default function Accounts() {
               sx={{ flex: 1 }}
             />
           </Stack>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 1.5 }}>
+            <TextField
+              label="사용자 이름"
+              size="small"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="예: 홍길동"
+              sx={{ flex: 1 }}
+            />
+            <TextField
+              label="부서"
+              size="small"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              placeholder="예: 원무과"
+              sx={{ flex: 1 }}
+            />
+          </Stack>
           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap alignItems="center">
             <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
               권한
@@ -154,6 +177,8 @@ export default function Accounts() {
             <TableHead>
               <TableRow sx={{ '& th': { bgcolor: '#f7f8fa', fontWeight: 700 } }}>
                 <TableCell>계정</TableCell>
+                <TableCell width={140}>이름</TableCell>
+                <TableCell width={130}>부서</TableCell>
                 {PERM_LABELS.map((p) => (
                   <TableCell key={p.key} align="center" width={78}>
                     {p.label}
@@ -173,6 +198,12 @@ export default function Accounts() {
                     <Chip size="small" label="내장" variant="outlined" />
                   </Stack>
                 </TableCell>
+                <TableCell>관리자</TableCell>
+                <TableCell>
+                  <Typography variant="caption" color="text.disabled">
+                    —
+                  </Typography>
+                </TableCell>
                 {PERM_LABELS.map((p) => (
                   <TableCell key={p.key} align="center">
                     <Checkbox size="small" checked disabled />
@@ -190,6 +221,27 @@ export default function Accounts() {
                 <TableRow key={a.id} hover>
                   <TableCell>
                     <Typography fontWeight={700}>{a.username}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      size="small"
+                      value={a.displayName ?? ''}
+                      placeholder="이름"
+                      onChange={(e) => updateProfile(a.id, { displayName: e.target.value })}
+                      InputProps={{ disableUnderline: false }}
+                      sx={{ width: 120 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      variant="standard"
+                      size="small"
+                      value={a.department ?? ''}
+                      placeholder="부서"
+                      onChange={(e) => updateProfile(a.id, { department: e.target.value })}
+                      sx={{ width: 110 }}
+                    />
                   </TableCell>
                   {PERM_LABELS.map((p) => (
                     <TableCell key={p.key} align="center">
@@ -219,7 +271,7 @@ export default function Accounts() {
 
               {accounts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={8}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                       추가된 계정이 없습니다. 위에서 새 계정을 만들어 권한을 부여하세요.
                     </Typography>
