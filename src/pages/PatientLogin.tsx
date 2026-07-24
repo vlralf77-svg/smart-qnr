@@ -19,7 +19,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { usePatientStore, TEST_PATIENT_NO } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
 import { IS_DEMO } from '@/config';
-import { TOGGLE_SX } from './Login';
+import { TOGGLE_SX, LOGIN_CARD_SX } from './Login';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function PatientLogin() {
       }}
     >
       <Container maxWidth="xs">
-        <Paper variant="outlined" sx={{ p: 4 }}>
+        <Paper variant="outlined" sx={LOGIN_CARD_SX}>
           <ToggleButtonGroup
             exclusive
             fullWidth

@@ -26,6 +26,14 @@ interface LocationState {
   from?: string;
 }
 
+// 두 로그인 화면(문진관리/문진입력) 카드 크기를 동일하게 — 내용이 달라도 같은 박스
+export const LOGIN_CARD_SX = {
+  p: 4,
+  minHeight: 468,
+  display: 'flex',
+  flexDirection: 'column',
+} as const;
+
 // 로그인 화면 상단 토글 — 선택된 쪽을 진한 채움색으로 명확히 구분
 export const TOGGLE_SX = {
   mb: 3,
@@ -84,7 +92,7 @@ export default function Login() {
       }}
     >
       <Container maxWidth="xs">
-        <Paper variant="outlined" sx={{ p: 4 }}>
+        <Paper variant="outlined" sx={LOGIN_CARD_SX}>
           <ToggleButtonGroup
             exclusive
             fullWidth
