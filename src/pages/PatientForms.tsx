@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Alert,
   AppBar,
   Box,
   Button,
@@ -27,6 +28,8 @@ import { FormResponse, FormSchema } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
+import { useApiConfigStore } from '@/store/useApiConfigStore';
+import { callEndpoint, extractRows } from '@/utils/emrFetch';
 import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
 import DisplayModeToggle from '@/components/DisplayModeToggle';
 
@@ -48,17 +51,25 @@ export default function PatientForms() {
   // formId -> 가장 최근 응답
   const [responses, setResponses] = useState<Record<string, FormResponse>>({});
   const [loading, setLoading] = useState(true);
+  const [emrNote, setEmrNote] = useState<{ severity: 'info' | 'warning' | 'error'; text: string } | null>(
+    null,
+  );
+  // 사용 설정된 '환자 문진 대상 목록' 연동(있으면 EMR에서 대상 목록을 가져온다)
+  const emrEndpoint = useApiConfigStore((s) =>
+    s.endpoints.find((e) => e.enabled && e.purpose === 'patientForms' && e.url.trim()),
+  );
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let fList: FormSchema[] = [];
+      // 문진 스키마(문항) 출처 — 내부 문진. EMR은 "어떤 문진을 작성할지" 목록만 알려준다.
+      let baseForms: FormSchema[] = [];
       let rList: FormResponse[] = [];
       if (isBackendEnabled) {
         try {
-          fList = await api.publicListForms();
+          baseForms = await api.publicListForms();
         } catch {
-          fList = [];
+          baseForms = [];
         }
         try {
           rList = patientNo ? await api.publicMyResponses(patientNo) : [];
@@ -66,9 +77,52 @@ export default function PatientForms() {
           rList = [];
         }
       } else {
-        fList = localForms.filter((f) => f.testFlag);
+        baseForms = localForms.filter((f) => f.testFlag);
         rList = localResponses.filter((r) => r.patientId === patientNo);
       }
+
+      let fList = baseForms;
+      let note: typeof emrNote = null;
+
+      // EMR 연동이 켜져 있으면 대상 목록을 API로 가져와 그 문진만, 그 순서로 표시
+      if (emrEndpoint && patientNo) {
+        const res = await callEndpoint(emrEndpoint, { patientNo });
+        if (res.ok) {
+          const rows = extractRows(res.data, emrEndpoint.rootPath, emrEndpoint.mappings);
+          const byId = new Map(baseForms.map((f) => [f.id, f]));
+          const matched: FormSchema[] = [];
+          let missing = 0;
+          for (const r of rows) {
+            const fid = String(r.formId ?? '').trim();
+            if (!fid) continue;
+            const base = byId.get(fid);
+            if (base) {
+              matched.push({
+                ...base,
+                title: r.title != null && String(r.title) ? String(r.title) : base.title,
+                category:
+                  r.category != null && String(r.category) ? String(r.category) : base.category,
+              });
+            } else {
+              missing += 1;
+            }
+          }
+          fList = matched;
+          if (rows.length === 0) note = { severity: 'info', text: 'EMR에서 받은 문진 대상이 없습니다.' };
+          else if (missing > 0)
+            note = {
+              severity: 'warning',
+              text: `EMR 대상 ${rows.length}건 중 ${missing}건은 아직 앱에 등록되지 않은 문진입니다.`,
+            };
+        } else {
+          fList = [];
+          note = {
+            severity: 'error',
+            text: `EMR 연동 호출 실패 (상태 ${res.status || '-'}) ${res.error ?? ''}`,
+          };
+        }
+      }
+
       if (cancelled) return;
       // 최근 응답만 남김(formId 기준)
       const map: Record<string, FormResponse> = {};
@@ -78,6 +132,7 @@ export default function PatientForms() {
       }
       setForms(fList);
       setResponses(map);
+      setEmrNote(note);
       setLoading(false);
     })();
     return () => {
@@ -133,6 +188,12 @@ export default function PatientForms() {
             {forms.length > 0 && ` · 전체 ${forms.length}개 중 ${doneCount}개 완료`}
           </Typography>
         </Box>
+
+        {emrNote && (
+          <Alert severity={emrNote.severity} sx={{ mb: 2 }} onClose={() => setEmrNote(null)}>
+            {emrNote.text}
+          </Alert>
+        )}
 
         {loading ? (
           <Typography color="text.secondary">불러오는 중…</Typography>
