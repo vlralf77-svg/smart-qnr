@@ -36,7 +36,14 @@ import {
   TARGET_PRESETS,
   useApiConfigStore,
 } from '@/store/useApiConfigStore';
-import { callEndpoint, extractRows, extractVars, EmrFetchResult } from '@/utils/emrFetch';
+import {
+  callEndpoint,
+  extractRows,
+  extractVars,
+  fillTemplate,
+  pairsToVars,
+  EmrFetchResult,
+} from '@/utils/emrFetch';
 
 export default function IntegrationConfig() {
   const navigate = useNavigate();
@@ -145,6 +152,10 @@ function EndpointEditor({
   const [busy, setBusy] = useState(false);
 
   const tokens = useMemo(() => extractVars(ep.url, ep.body), [ep.url, ep.body]);
+  const varMap = useMemo(() => pairsToVars(ep.variables ?? []), [ep.variables]);
+  // 실행 시 입력받아야 하는 변수(고정 변수로 채워지지 않은 것 — 예: patientNo)
+  const runtimeTokens = useMemo(() => tokens.filter((t) => !(t in varMap)), [tokens, varMap]);
+  const urlPreview = useMemo(() => fillTemplate(ep.url, varMap), [ep.url, varMap]);
   const rows = useMemo(
     () => (result?.ok ? extractRows(result.data, ep.rootPath, ep.mappings) : []),
     [result, ep.rootPath, ep.mappings],
@@ -168,6 +179,10 @@ function EndpointEditor({
   const setMapping = (i: number, patch: Partial<{ target: string; source: string }>) => {
     const mappings = ep.mappings.map((m, idx) => (idx === i ? { ...m, ...patch } : m));
     onChange({ mappings });
+  };
+  const setVariable = (i: number, patch: Partial<{ key: string; value: string }>) => {
+    const variables = (ep.variables ?? []).map((v, idx) => (idx === i ? { ...v, ...patch } : v));
+    onChange({ variables });
   };
 
   return (
@@ -243,6 +258,82 @@ function EndpointEditor({
             sx={{ mt: 1.5 }}
           />
         )}
+
+        {/* 변수 → URL 생성 */}
+        <Box sx={{ mt: 2 }}>
+          <Stack direction="row" alignItems="center" mb={0.5}>
+            <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
+              변수
+            </Typography>
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => onChange({ variables: [...(ep.variables ?? []), { key: '', value: '' }] })}
+            >
+              변수 추가
+            </Button>
+          </Stack>
+          <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+            변수명과 값을 넣으면 URL의 <code>{'{변수명}'}</code>이 그 값으로 채워집니다. (환자번호처럼
+            실행 시 정해지는 값은 비워두면 호출할 때 입력받습니다)
+          </Typography>
+          <Stack spacing={1}>
+            {(ep.variables ?? []).map((v, i) => (
+              <Stack key={i} direction="row" spacing={1} alignItems="center">
+                <TextField
+                  size="small"
+                  placeholder="변수명 (예: hospital)"
+                  value={v.key}
+                  onChange={(e) => setVariable(i, { key: e.target.value })}
+                  sx={{ width: 200 }}
+                />
+                <Typography variant="body2" color="text.disabled">
+                  =
+                </Typography>
+                <TextField
+                  size="small"
+                  placeholder="값 (예: H001)"
+                  value={v.value}
+                  onChange={(e) => setVariable(i, { value: e.target.value })}
+                  sx={{ flex: 1 }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={() =>
+                    onChange({ variables: (ep.variables ?? []).filter((_, idx) => idx !== i) })
+                  }
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            ))}
+          </Stack>
+
+          {/* 생성된 URL 미리보기 */}
+          <Box sx={{ mt: 1.5 }}>
+            <Typography variant="caption" fontWeight={700} display="block" mb={0.5}>
+              생성된 URL
+            </Typography>
+            <Box
+              sx={{
+                p: 1.25,
+                bgcolor: 'action.hover',
+                borderRadius: 1,
+                fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                fontSize: 12.5,
+                wordBreak: 'break-all',
+                color: ep.url ? 'text.primary' : 'text.disabled',
+              }}
+            >
+              {urlPreview || '(URL을 입력하세요)'}
+            </Box>
+            {runtimeTokens.length > 0 && (
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                실행 시 입력받을 변수: {runtimeTokens.map((t) => `{${t}}`).join(', ')}
+              </Typography>
+            )}
+          </Box>
+        </Box>
       </Paper>
 
       {/* 헤더 */}
@@ -362,9 +453,9 @@ function EndpointEditor({
         <Typography variant="subtitle2" fontWeight={800} mb={1}>
           테스트 호출
         </Typography>
-        {tokens.length > 0 && (
+        {runtimeTokens.length > 0 && (
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={1.5}>
-            {tokens.map((t) => (
+            {runtimeTokens.map((t) => (
               <TextField
                 key={t}
                 size="small"

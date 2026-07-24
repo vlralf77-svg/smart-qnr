@@ -22,7 +22,9 @@ export interface ApiEndpoint {
   name: string;
   purpose: ApiPurpose;
   method: 'GET' | 'POST';
-  url: string; // {변수} 치환 가능 — 예: https://emr/api/forms?patientNo={patientNo}
+  url: string; // {변수} 치환 가능 — 예: https://emr/{hospital}/api/forms?patientNo={patientNo}
+  /** URL/본문의 {변수} 에 채울 고정 변수(이름/값). 실행 시 런타임 값(예: patientNo)이 우선. */
+  variables: HeaderPair[];
   headers: HeaderPair[];
   body: string; // POST 본문(템플릿, {변수} 치환)
   rootPath: string; // 응답에서 배열 위치(예: data.list). 비우면 최상위가 배열
@@ -65,6 +67,7 @@ export const useApiConfigStore = create<ApiConfigState>()(
           purpose,
           method: 'GET',
           url: '',
+          variables: [],
           headers: [{ key: 'Content-Type', value: 'application/json' }],
           body: '',
           rootPath: '',

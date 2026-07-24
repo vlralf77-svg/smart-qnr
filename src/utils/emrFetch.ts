@@ -66,16 +66,24 @@ function headersToObject(pairs: HeaderPair[]): Record<string, string> {
   return out;
 }
 
-/** 엔드포인트 설정 + 변수로 실제 호출 */
+/** HeaderPair[] → { key: value } (빈 키 제외) */
+export function pairsToVars(pairs: { key: string; value: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const p of pairs) if (p.key.trim()) out[p.key.trim()] = p.value;
+  return out;
+}
+
+/** 엔드포인트 설정 + 변수로 실제 호출. 고정 변수(variables) 위에 런타임 vars 를 덮어씀. */
 export async function callEndpoint(
   ep: ApiEndpoint,
   vars: Record<string, string>,
 ): Promise<EmrFetchResult> {
+  const merged = { ...pairsToVars(ep.variables ?? []), ...vars };
   const req: EmrRequest = {
-    url: fillTemplate(ep.url, vars),
+    url: fillTemplate(ep.url, merged),
     method: ep.method,
     headers: headersToObject(ep.headers),
-    body: ep.method === 'POST' ? fillTemplate(ep.body, vars) : undefined,
+    body: ep.method === 'POST' ? fillTemplate(ep.body, merged) : undefined,
   };
 
   const bridge = window.smartqnr;
