@@ -29,4 +29,6 @@ contextBridge.exposeInMainWorld('smartqnr', {
   saveTemplate: () => ipcRenderer.invoke('template:save'),
   // 표시 모드(pc/mobile/auto) 알림 → 창 최소 크기 조절(모바일이면 좁게 축소 허용)
   setDisplayWindow: (mode) => ipcRenderer.send('display:mode', mode),
+  // EMR/외부 API 호출(메인 프로세스 경유, CORS 없음). { ok, status, data?, error? }
+  emrFetch: (req) => ipcRenderer.invoke('emr:fetch', req),
 });

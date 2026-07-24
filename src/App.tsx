@@ -7,6 +7,7 @@ import ResponseForm from './pages/ResponseForm';
 import UploadConvert from './pages/UploadConvert';
 import Login from './pages/Login';
 import Accounts from './pages/Accounts';
+import IntegrationConfig from './pages/IntegrationConfig';
 import PatientLogin from './pages/PatientLogin';
 import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
@@ -94,6 +95,16 @@ export default function App() {
               <RequireAuth>
                 <RequirePermission perm="manageAccounts">
                   <Accounts />
+                </RequirePermission>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/integration"
+            element={
+              <RequireAuth>
+                <RequirePermission perm="manageAccounts">
+                  <IntegrationConfig />
                 </RequirePermission>
               </RequireAuth>
             }

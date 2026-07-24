@@ -28,6 +28,13 @@ interface SmartQnrBridge {
   saveTemplate?: () => Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }>;
   /** 표시 모드(pc/mobile/auto) 알림 → 창 최소 크기 조절. */
   setDisplayWindow?: (mode: 'pc' | 'mobile' | 'auto') => void;
+  /** EMR/외부 API 호출(메인 프로세스 경유, CORS 없음). */
+  emrFetch?: (req: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  }) => Promise<{ ok: boolean; status: number; data?: unknown; error?: string }>;
 }
 
 interface Window {

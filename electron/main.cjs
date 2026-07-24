@@ -119,6 +119,28 @@ ipcMain.handle('template:save', async () => {
   }
 });
 
+// EMR/외부 API 호출 — 메인 프로세스에서 실행해 브라우저 CORS 제약을 피한다.
+ipcMain.handle('emr:fetch', async (_event, req) => {
+  const { url, method, headers, body } = req || {};
+  try {
+    const res = await fetch(url, {
+      method: method || 'GET',
+      headers: headers || {},
+      body: method === 'POST' ? body : undefined,
+    });
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, error: String((e && e.message) || e) };
+  }
+});
+
 // 표시 모드(PC/모바일)에 따라 창 최소 크기를 조절 — 모바일 모드면 좁게 줄일 수 있게.
 ipcMain.on('display:mode', (_event, mode) => {
   const win = BrowserWindow.getAllWindows()[0];

@@ -35,6 +35,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import ApiIcon from '@mui/icons-material/Api';
 import LinkIcon from '@mui/icons-material/Link';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -160,6 +161,15 @@ export default function FormList() {
                 onClick={() => navigate('/accounts')}
               >
                 계정 관리
+              </Button>
+            )}
+            {canManage && (
+              <Button
+                variant="outlined"
+                startIcon={<ApiIcon />}
+                onClick={() => navigate('/integration')}
+              >
+                API 연동
               </Button>
             )}
             <Button
