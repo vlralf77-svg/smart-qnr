@@ -119,6 +119,20 @@ ipcMain.handle('template:save', async () => {
   }
 });
 
+// 표시 모드(PC/모바일)에 따라 창 최소 크기를 조절 — 모바일 모드면 좁게 줄일 수 있게.
+ipcMain.on('display:mode', (_event, mode) => {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win || win.isDestroyed()) return;
+  const [w, h] = win.getSize();
+  if (mode === 'mobile') {
+    win.setMinimumSize(360, 600); // 모바일처럼 좁게 축소 허용
+    if (w > 500) win.setSize(430, Math.max(h, 780)); // 선택 즉시 모바일 폭으로
+  } else {
+    win.setMinimumSize(1024, 700); // PC/자동은 기존 최소 크기
+    if (w < 1024) win.setSize(1024, Math.max(h, 700));
+  }
+});
+
 // 문서 → 문진 변환 IPC (§6): 파일 바이트 → 스키마 JSON 문자열
 // 로컬 규칙 기반 변환(오픈소스) — 외부 API 호출 없음, 완전 오프라인 동작.
 ipcMain.handle('convert:document', async (_event, payload) => {

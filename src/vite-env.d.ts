@@ -26,6 +26,8 @@ interface SmartQnrBridge {
   restartForUpdate?: () => void;
   /** 문진 엑셀 템플릿을 네이티브 저장창으로 저장. */
   saveTemplate?: () => Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }>;
+  /** 표시 모드(pc/mobile/auto) 알림 → 창 최소 크기 조절. */
+  setDisplayWindow?: (mode: 'pc' | 'mobile' | 'auto') => void;
 }
 
 interface Window {

@@ -27,4 +27,6 @@ contextBridge.exposeInMainWorld('smartqnr', {
   restartForUpdate: () => ipcRenderer.send('update:restart-now'),
   // 문진 엑셀 템플릿을 네이티브 저장창으로 저장. { ok, canceled?, filePath?, error? }
   saveTemplate: () => ipcRenderer.invoke('template:save'),
+  // 표시 모드(pc/mobile/auto) 알림 → 창 최소 크기 조절(모바일이면 좁게 축소 허용)
+  setDisplayWindow: (mode) => ipcRenderer.send('display:mode', mode),
 });
