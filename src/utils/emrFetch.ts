@@ -73,6 +73,34 @@ export function pairsToVars(pairs: { key: string; value: string }[]): Record<str
   return out;
 }
 
+/** base URL 에 쿼리 파라미터를 이어붙임(기존 ? / & 상황 고려) */
+function appendQuery(base: string, params: Record<string, string>): string {
+  const entries = Object.entries(params).filter(([k]) => k);
+  if (entries.length === 0) return base;
+  const qs = entries
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v ?? '')}`)
+    .join('&');
+  if (base.includes('?')) {
+    return base + (base.endsWith('?') || base.endsWith('&') ? '' : '&') + qs;
+  }
+  return base + '?' + qs;
+}
+
+/**
+ * 최종 URL 생성.
+ *  - URL 안의 {변수} 는 값으로 치환하고,
+ *  - URL 에 {변수}로 쓰이지 않은 변수는 쿼리 파라미터(key=value)로 이어붙인다.
+ */
+export function buildUrl(urlTemplate: string, mergedVars: Record<string, string>): string {
+  const used = new Set(extractVars(urlTemplate));
+  const substituted = fillTemplate(urlTemplate, mergedVars);
+  const leftover: Record<string, string> = {};
+  for (const [k, v] of Object.entries(mergedVars)) {
+    if (!used.has(k) && v !== '' && v != null) leftover[k] = v;
+  }
+  return appendQuery(substituted, leftover);
+}
+
 /** 엔드포인트 설정 + 변수로 실제 호출. 고정 변수(variables) 위에 런타임 vars 를 덮어씀. */
 export async function callEndpoint(
   ep: ApiEndpoint,
@@ -80,7 +108,7 @@ export async function callEndpoint(
 ): Promise<EmrFetchResult> {
   const merged = { ...pairsToVars(ep.variables ?? []), ...vars };
   const req: EmrRequest = {
-    url: fillTemplate(ep.url, merged),
+    url: buildUrl(ep.url, merged),
     method: ep.method,
     headers: headersToObject(ep.headers),
     body: ep.method === 'POST' ? fillTemplate(ep.body, merged) : undefined,

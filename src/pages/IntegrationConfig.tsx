@@ -40,7 +40,7 @@ import {
   callEndpoint,
   extractRows,
   extractVars,
-  fillTemplate,
+  buildUrl,
   pairsToVars,
   EmrFetchResult,
 } from '@/utils/emrFetch';
@@ -155,7 +155,7 @@ function EndpointEditor({
   const varMap = useMemo(() => pairsToVars(ep.variables ?? []), [ep.variables]);
   // 실행 시 입력받아야 하는 변수(고정 변수로 채워지지 않은 것 — 예: patientNo)
   const runtimeTokens = useMemo(() => tokens.filter((t) => !(t in varMap)), [tokens, varMap]);
-  const urlPreview = useMemo(() => fillTemplate(ep.url, varMap), [ep.url, varMap]);
+  const urlPreview = useMemo(() => buildUrl(ep.url, varMap), [ep.url, varMap]);
   const rows = useMemo(
     () => (result?.ok ? extractRows(result.data, ep.rootPath, ep.mappings) : []),
     [result, ep.rootPath, ep.mappings],
@@ -274,8 +274,9 @@ function EndpointEditor({
             </Button>
           </Stack>
           <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-            변수명과 값을 넣으면 URL의 <code>{'{변수명}'}</code>이 그 값으로 채워집니다. (환자번호처럼
-            실행 시 정해지는 값은 비워두면 호출할 때 입력받습니다)
+            URL에 <code>{'{변수명}'}</code>이 있으면 그 값으로 치환되고, 없으면 <b>쿼리 파라미터
+            (변수명=값)로 자동으로 붙습니다.</b> 예: URL이 <code>…/.live?</code> 이고 변수 3개면 →
+            <code>…/.live?submit_id=…&business_id=…&instcd=…</code>
           </Typography>
           <Stack spacing={1}>
             {(ep.variables ?? []).map((v, i) => (
