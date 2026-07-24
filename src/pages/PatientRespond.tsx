@@ -20,6 +20,8 @@ import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
 import { uid } from '@/utils/id';
 import FormRenderer from '@/components/renderer/FormRenderer';
+import DisplayModeToggle from '@/components/DisplayModeToggle';
+import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
 
 export default function PatientRespond() {
   const { formId } = useParams();
@@ -34,6 +36,7 @@ export default function PatientRespond() {
   );
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const isMobileLayout = useIsMobileLayout();
 
   useEffect(() => {
     let cancelled = false;
@@ -102,10 +105,12 @@ export default function PatientRespond() {
           >
             목록
           </Button>
+          <Box sx={{ flex: 1 }} />
+          <DisplayModeToggle />
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 3 } }}>
+      <Container maxWidth={isMobileLayout ? 'sm' : 'md'} sx={{ py: { xs: 2, sm: 3 } }}>
         {loading ? (
           <Typography color="text.secondary">불러오는 중…</Typography>
         ) : !form ? (

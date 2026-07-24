@@ -19,7 +19,6 @@ import {
   TableRow,
   Toolbar,
   Typography,
-  useMediaQuery,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -28,6 +27,8 @@ import { FormResponse, FormSchema } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
+import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
+import DisplayModeToggle from '@/components/DisplayModeToggle';
 
 function fmt(ts?: string): string {
   if (!ts) return '';
@@ -86,8 +87,8 @@ export default function PatientForms() {
   }, []);
 
   const doneCount = forms.filter((f) => responses[f.id]).length;
-  // 모바일과 PC 는 완전히 다른 레이아웃(모바일=카드 리스트, PC=테이블)
-  const isMobile = useMediaQuery('(max-width:899px)');
+  // 모바일과 PC 는 완전히 다른 레이아웃(모바일=카드 리스트, PC=테이블) — 표시 모드 반영
+  const isMobile = useIsMobileLayout();
   const goto = (f: FormSchema) =>
     navigate(responses[f.id] ? `/patient/view/${f.id}` : `/patient/respond/${f.id}`);
 
@@ -99,7 +100,10 @@ export default function PatientForms() {
           <Typography variant="h6" sx={{ flex: 1 }}>
             문진 작성
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.9, mr: 1 }}>
+          <Box sx={{ mr: 1.5 }}>
+            <DisplayModeToggle />
+          </Box>
+          <Typography variant="caption" sx={{ opacity: 0.9, mr: 1, display: { xs: 'none', sm: 'block' } }}>
             환자 {patientNo}
           </Typography>
           <Button

@@ -15,7 +15,6 @@ import {
   TableRow,
   Toolbar,
   Typography,
-  useMediaQuery,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -26,6 +25,8 @@ import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
+import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
+import DisplayModeToggle from '@/components/DisplayModeToggle';
 
 function fmtDate(ts?: string): string {
   if (!ts) return '';
@@ -117,8 +118,8 @@ export default function PatientView() {
   }, [formId]);
 
   const answers = response?.answers ?? {};
-  // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리
-  const isMobile = useMediaQuery('(max-width:899px)');
+  // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
+  const isMobile = useIsMobileLayout();
   // 순서 = 섹션 순서 → 섹션 내 읽기순서. 그 순서대로 전체 질문 번호 매김(안내문 제외)
   const qNo: Record<string, number> = {};
   if (form) {
@@ -173,6 +174,9 @@ export default function PatientView() {
             목록
           </Button>
           <Box sx={{ flex: 1 }} />
+          <Box sx={{ mr: response ? 1 : 0 }}>
+            <DisplayModeToggle />
+          </Box>
           {response && (
             <Button
               color="inherit"

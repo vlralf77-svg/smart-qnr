@@ -2,7 +2,8 @@
 //  - PDF 오버레이 문진: 원본 PDF 위에 입력창을 얹은 그대로 표시(모바일/PC 공통, 위저드 아님)
 //  - 그 외(캔버스/일반): 모바일=단계 위저드 / PC=전체 폼
 import { useForm } from 'react-hook-form';
-import { Box, Button, Stack, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, Stack, Typography } from '@mui/material';
+import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/ko';
@@ -48,8 +49,8 @@ export default function FormRenderer({
 
   // PDF 오버레이 문진(원본 PDF 배경)은 그대로 얹어 표시. 캔버스는 제외(위저드로).
   const isPdfOverlay = isOverlayForm(schema) && !schema.canvas;
-  // 그 외: 모바일=단계 위저드 / PC=전체 폼
-  const isMobile = useMediaQuery('(max-width:899px)');
+  // 그 외: 모바일=단계 위저드 / PC=전체 폼 (표시 모드 선택 반영)
+  const isMobile = useIsMobileLayout();
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
