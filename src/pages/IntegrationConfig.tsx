@@ -11,6 +11,7 @@ import {
   Container,
   Divider,
   IconButton,
+  Menu,
   MenuItem,
   Paper,
   Stack,
@@ -50,9 +51,8 @@ export default function IntegrationConfig() {
   const navigate = useNavigate();
   const { endpoints, addEndpoint, updateEndpoint, removeEndpoint } = useApiConfigStore();
   const [selectedId, setSelectedId] = useState<string | null>(endpoints[0]?.id ?? null);
+  const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
   const ep = endpoints.find((e) => e.id === selectedId) ?? null;
-
-  const handleAdd = () => setSelectedId(addEndpoint());
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
@@ -76,9 +76,33 @@ export default function IntegrationConfig() {
               <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
                 연동 API
               </Typography>
-              <Button size="small" startIcon={<AddIcon />} onClick={handleAdd}>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={(e) => setAddAnchor(e.currentTarget)}
+              >
                 추가
               </Button>
+              <Menu anchorEl={addAnchor} open={!!addAnchor} onClose={() => setAddAnchor(null)}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ px: 2, py: 0.5, display: 'block' }}
+                >
+                  연동할 화면 선택
+                </Typography>
+                {(Object.keys(PURPOSE_LABELS) as ApiPurpose[]).map((p) => (
+                  <MenuItem
+                    key={p}
+                    onClick={() => {
+                      setSelectedId(addEndpoint(p));
+                      setAddAnchor(null);
+                    }}
+                  >
+                    {PURPOSE_LABELS[p]}
+                  </MenuItem>
+                ))}
+              </Menu>
             </Stack>
             <Divider />
             {endpoints.length === 0 ? (
@@ -213,11 +237,24 @@ function EndpointEditor({
         <Stack direction="row" spacing={1.5} mb={1.5}>
           <TextField
             select
-            label="용도"
+            label="연동 화면"
             size="small"
             value={ep.purpose}
-            onChange={(e) => onChange({ purpose: e.target.value as ApiPurpose })}
-            sx={{ width: 200 }}
+            onChange={(e) => {
+              const purpose = e.target.value as ApiPurpose;
+              // 화면을 고르면 그 화면이 받는 기본 응답 컬럼(앱 필드)을 매핑에 채워 넣음
+              const fields = APP_FIELDS[purpose];
+              if (fields.length) {
+                const bySource = new Map(ep.mappings.map((m) => [m.target, m.source]));
+                const merged = fields.map((f) => ({ target: f.key, source: bySource.get(f.key) ?? '' }));
+                const extra = ep.mappings.filter((m) => !fields.some((f) => f.key === m.target));
+                onChange({ purpose, mappings: [...merged, ...extra] });
+              } else {
+                onChange({ purpose });
+              }
+            }}
+            sx={{ width: 220 }}
+            helperText="선택하면 그 화면의 기본 응답 컬럼이 매핑에 채워집니다"
           >
             {(Object.keys(PURPOSE_LABELS) as ApiPurpose[]).map((p) => (
               <MenuItem key={p} value={p}>
