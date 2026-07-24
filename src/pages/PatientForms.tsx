@@ -149,7 +149,7 @@ export default function PatientForms() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f6f8' }}>
-      <AppBar position="static" color="secondary" elevation={0}>
+      <AppBar position="sticky" color="secondary" elevation={0}>
         <Toolbar>
           <AssignmentIcon sx={{ mr: 1 }} />
           <Typography variant="h6" sx={{ flex: 1 }}>

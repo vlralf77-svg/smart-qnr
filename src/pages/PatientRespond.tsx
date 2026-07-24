@@ -96,7 +96,7 @@ export default function PatientRespond() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" color="secondary" elevation={0}>
+      <AppBar position="sticky" color="secondary" elevation={0}>
         <Toolbar variant="dense">
           <Button
             color="inherit"

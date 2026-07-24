@@ -113,7 +113,7 @@ export default function FormList() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" color="primary" elevation={0}>
+      <AppBar position="sticky" color="primary" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flex: 1 }}>
             SmartQnR · 문진 관리

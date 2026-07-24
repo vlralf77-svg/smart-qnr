@@ -33,7 +33,7 @@ export default function PreviewDialog({ open, schema, onClose }: Props) {
   const wide = isOverlayForm(schema) && !schema.canvas;
   return (
     <Dialog fullScreen open={open} onClose={onClose} TransitionComponent={Transition}>
-      <AppBar sx={{ position: 'relative' }} color="primary">
+      <AppBar sx={{ position: 'sticky', top: 0 }} color="primary">
         <Toolbar>
           <Typography variant="h6" sx={{ flex: 1 }}>
             미리보기 — 응답 화면

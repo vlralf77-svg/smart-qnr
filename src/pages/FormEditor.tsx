@@ -215,7 +215,7 @@ export default function FormEditor() {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static" color="primary" elevation={0}>
+      <AppBar position="sticky" color="primary" elevation={0}>
         <Toolbar variant="dense">
           <Button color="inherit" startIcon={<ArrowBackIcon />} onClick={() => navigate('/')}>
             목록
