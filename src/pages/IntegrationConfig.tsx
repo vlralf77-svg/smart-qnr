@@ -33,7 +33,8 @@ import ApiIcon from '@mui/icons-material/Api';
 import {
   ApiEndpoint,
   ApiPurpose,
-  TARGET_PRESETS,
+  APP_FIELDS,
+  PURPOSE_LABELS,
   useApiConfigStore,
 } from '@/store/useApiConfigStore';
 import {
@@ -161,6 +162,7 @@ function EndpointEditor({
     [result, ep.rootPath, ep.mappings],
   );
   const cols = ep.mappings.map((m) => m.target).filter(Boolean);
+  const appFields = APP_FIELDS[ep.purpose];
 
   const runTest = async () => {
     setBusy(true);
@@ -217,9 +219,9 @@ function EndpointEditor({
             onChange={(e) => onChange({ purpose: e.target.value as ApiPurpose })}
             sx={{ width: 200 }}
           >
-            {(Object.keys(TARGET_PRESETS) as ApiPurpose[]).map((p) => (
+            {(Object.keys(PURPOSE_LABELS) as ApiPurpose[]).map((p) => (
               <MenuItem key={p} value={p}>
-                {TARGET_PRESETS[p].label}
+                {PURPOSE_LABELS[p]}
               </MenuItem>
             ))}
           </TextField>
@@ -386,10 +388,28 @@ function EndpointEditor({
 
       {/* 컬럼 매핑 */}
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" mb={0.5}>
+        <Stack direction="row" alignItems="center" mb={0.5} spacing={1}>
           <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
             응답 컬럼 매핑
           </Typography>
+          {appFields.length > 0 && (
+            <Button
+              size="small"
+              onClick={() => {
+                // 앱 기본 필드(formId/이름/분류/상태)를 매핑 목록에 채워 넣음(기존 source 유지)
+                const bySource = new Map(ep.mappings.map((m) => [m.target, m.source]));
+                const merged = appFields.map((f) => ({
+                  target: f.key,
+                  source: bySource.get(f.key) ?? '',
+                }));
+                // 프리셋에 없는 기존 매핑도 뒤에 유지
+                const extra = ep.mappings.filter((m) => !appFields.some((f) => f.key === m.target));
+                onChange({ mappings: [...merged, ...extra] });
+              }}
+            >
+              앱 필드 불러오기
+            </Button>
+          )}
           <Button
             size="small"
             startIcon={<AddIcon />}
@@ -406,10 +426,10 @@ function EndpointEditor({
           placeholder="예: data.list  (응답 최상위가 배열이면 비움)"
           sx={{ my: 1, width: 320 }}
         />
-        {ep.purpose !== 'custom' && (
+        {appFields.length > 0 && (
           <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-            앱 필드(대상): {TARGET_PRESETS[ep.purpose].targets.join(', ')} — 응답의 어떤 필드를 여기에
-            넣을지 지정하세요.
+            앱 필드: {appFields.map((f) => `${f.label}(${f.key})`).join(', ')} — 응답의 어떤 필드를
+            여기에 넣을지 지정하세요.
           </Typography>
         )}
         <Stack spacing={1}>
@@ -424,13 +444,36 @@ function EndpointEditor({
           </Stack>
           {ep.mappings.map((m, i) => (
             <Stack key={i} direction="row" spacing={1}>
-              <TextField
-                size="small"
-                value={m.target}
-                placeholder="formId"
-                onChange={(e) => setMapping(i, { target: e.target.value })}
-                sx={{ width: 200 }}
-              />
+              {appFields.length > 0 ? (
+                <TextField
+                  select
+                  size="small"
+                  value={m.target}
+                  onChange={(e) => setMapping(i, { target: e.target.value })}
+                  sx={{ width: 200 }}
+                >
+                  <MenuItem value="">
+                    <em>선택</em>
+                  </MenuItem>
+                  {appFields.map((f) => (
+                    <MenuItem key={f.key} value={f.key}>
+                      {f.label} ({f.key})
+                    </MenuItem>
+                  ))}
+                  {/* 프리셋에 없는 기존 값도 유지 */}
+                  {m.target && !appFields.some((f) => f.key === m.target) && (
+                    <MenuItem value={m.target}>{m.target}</MenuItem>
+                  )}
+                </TextField>
+              ) : (
+                <TextField
+                  size="small"
+                  value={m.target}
+                  placeholder="formId"
+                  onChange={(e) => setMapping(i, { target: e.target.value })}
+                  sx={{ width: 200 }}
+                />
+              )}
               <TextField
                 size="small"
                 value={m.source}

@@ -41,18 +41,27 @@ interface ApiConfigState {
 
 const uid = () => `api_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
-/** 용도별 기본 매핑 대상(앱이 기대하는 필드) */
-export const TARGET_PRESETS: Record<ApiPurpose, { label: string; targets: string[] }> = {
-  patientForms: {
-    label: '환자 문진 대상 목록',
-    targets: ['formId', 'title', 'category', 'status'],
-  },
-  custom: { label: '기타(직접 정의)', targets: [] },
+export const PURPOSE_LABELS: Record<ApiPurpose, string> = {
+  patientForms: '환자 문진 대상 목록',
+  custom: '기타(직접 정의)',
+};
+
+/** 용도별 앱 필드 목록(매핑 대상) — 화면에서 기본으로 골라 쓸 수 있게 제공 */
+export const APP_FIELDS: Record<ApiPurpose, { key: string; label: string }[]> = {
+  patientForms: [
+    { key: 'formId', label: '문진 ID' },
+    { key: 'title', label: '문진 이름' },
+    { key: 'category', label: '분류' },
+    { key: 'status', label: '상태' },
+  ],
+  custom: [],
 };
 
 function defaultMappings(purpose: ApiPurpose): FieldMapping[] {
-  const t = TARGET_PRESETS[purpose].targets;
-  return t.length ? t.map((target) => ({ target, source: '' })) : [{ target: '', source: '' }];
+  const fields = APP_FIELDS[purpose];
+  return fields.length
+    ? fields.map((f) => ({ target: f.key, source: '' }))
+    : [{ target: '', source: '' }];
 }
 
 export const useApiConfigStore = create<ApiConfigState>()(
