@@ -15,7 +15,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import { usePatientStore, TEST_PATIENT_NO } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
 import { IS_DEMO } from '@/config';
@@ -85,7 +85,7 @@ export default function PatientLogin() {
                 justifyContent: 'center',
               }}
             >
-              <AssignmentIndIcon />
+              <EditNoteRoundedIcon sx={{ fontSize: 32 }} />
             </Box>
             <Typography variant="h6" fontWeight={700}>
               문진 작성
