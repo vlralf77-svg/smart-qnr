@@ -44,7 +44,7 @@ function fmt(ts?: string): string {
 
 export default function PatientForms() {
   const navigate = useNavigate();
-  const { patientNo, logout } = usePatientStore();
+  const { patientNo, name: patientName, idType, logout } = usePatientStore();
   const localForms = useFormsStore((s) => s.forms);
   const localResponses = useFormsStore((s) => s.responses);
   const [forms, setForms] = useState<FormSchema[]>([]);
@@ -86,7 +86,12 @@ export default function PatientForms() {
 
       // EMR 연동이 켜져 있으면 대상 목록을 API로 가져와 그 문진만, 그 순서로 표시
       if (emrEndpoint && patientNo) {
-        const res = await callEndpoint(emrEndpoint, { patientNo });
+        // EMR에 넘길 변수: 환자번호/이름/등록번호/주민번호(선택 유형에 따라)
+        const vars: Record<string, string> = { patientNo };
+        if (patientName) vars.patientName = patientName;
+        if (idType === 'rrn') vars.rrn = patientNo;
+        else vars.regno = patientNo;
+        const res = await callEndpoint(emrEndpoint, vars);
         if (res.ok) {
           const rows = extractRows(res.data, emrEndpoint.rootPath, emrEndpoint.mappings);
           const byId = new Map(baseForms.map((f) => [f.id, f]));
@@ -159,7 +164,8 @@ export default function PatientForms() {
             <DisplayModeToggle />
           </Box>
           <Typography variant="caption" sx={{ opacity: 0.9, mr: 1, display: { xs: 'none', sm: 'block' } }}>
-            환자 {patientNo}
+            {patientName ? `${patientName} · ` : ''}
+            {patientNo}
           </Typography>
           <Button
             color="inherit"
