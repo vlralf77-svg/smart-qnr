@@ -15,7 +15,7 @@ export interface FieldMapping {
   source: string;
 }
 
-export type ApiPurpose = 'patientForms' | 'custom';
+export type ApiPurpose = 'patientLogin' | 'patientForms' | 'custom';
 
 export interface ApiEndpoint {
   id: string;
@@ -42,12 +42,18 @@ interface ApiConfigState {
 const uid = () => `api_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
 export const PURPOSE_LABELS: Record<ApiPurpose, string> = {
+  patientLogin: '환자 로그인/인증',
   patientForms: '환자 문진 대상 목록',
   custom: '기타(직접 정의)',
 };
 
 /** 용도별 앱 필드 목록(매핑 대상) — 화면에서 기본으로 골라 쓸 수 있게 제공 */
 export const APP_FIELDS: Record<ApiPurpose, { key: string; label: string }[]> = {
+  patientLogin: [
+    { key: 'valid', label: '성공여부(옵션)' },
+    { key: 'patientNo', label: '환자 식별번호' },
+    { key: 'name', label: '환자 이름' },
+  ],
   patientForms: [
     { key: 'formId', label: '문진 ID' },
     { key: 'title', label: '문진 이름' },
@@ -72,7 +78,7 @@ export const useApiConfigStore = create<ApiConfigState>()(
         const id = uid();
         const ep: ApiEndpoint = {
           id,
-          name: purpose === 'patientForms' ? '환자 문진 대상 조회' : '새 연동',
+          name: purpose === 'custom' ? '새 연동' : PURPOSE_LABELS[purpose],
           purpose,
           method: 'GET',
           url: '',

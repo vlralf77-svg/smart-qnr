@@ -60,6 +60,34 @@ export function extractRows(
   });
 }
 
+/** 응답에서 단일 레코드(객체)를 매핑 (로그인/인증 등 목록이 아닌 응답용) */
+export function extractRecord(
+  data: unknown,
+  rootPath: string,
+  mappings: FieldMapping[],
+): Record<string, unknown> {
+  const at = getByPath(data, rootPath);
+  let obj: unknown;
+  if (at && typeof at === 'object' && !Array.isArray(at)) obj = at;
+  else if (Array.isArray(at)) obj = at[0];
+  else if (Array.isArray(data)) obj = (data as unknown[])[0];
+  else obj = data;
+  const row: Record<string, unknown> = {};
+  for (const m of mappings) {
+    if (m.target) row[m.target] = getByPath(obj, m.source);
+  }
+  return row;
+}
+
+/** 로그인/성공 판단용 truthy 해석 */
+export function isTruthy(x: unknown): boolean {
+  if (x === true || x === 1) return true;
+  if (x == null) return false;
+  return ['true', 'y', 'yes', '1', 'ok', 'success', '성공', 't'].includes(
+    String(x).trim().toLowerCase(),
+  );
+}
+
 function headersToObject(pairs: HeaderPair[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of pairs) if (p.key.trim()) out[p.key.trim()] = p.value;

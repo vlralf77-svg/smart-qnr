@@ -1,6 +1,9 @@
-// 환자(실사용자) 로그인 — 환자 이름 + (등록번호/주민등록번호 선택) 입력. (테스트: 0000011111)
+// 환자(실사용자) 로그인 — 환자 이름 + (환자번호/주민등록번호 선택) 입력.
+//  API 연동에 '환자 로그인/인증'이 등록되어 있으면 그 API로 검증한다. (없으면 로컬/데모)
 import { create } from 'zustand';
 import { IS_DEMO } from '@/config';
+import { useApiConfigStore } from '@/store/useApiConfigStore';
+import { callEndpoint, extractRecord, isTruthy } from '@/utils/emrFetch';
 
 // 테스트용 번호(데모 모드에서만 통과)
 export const TEST_PATIENT_NO = '0000011111';
@@ -37,8 +40,9 @@ interface PatientState {
   name: string | null;
   idType: PatientIdType | null;
   error: string;
-  /** 이름 + (등록번호/주민번호)로 로그인 */
-  login: (p: { name: string; idType: PatientIdType; idValue: string }) => boolean;
+  busy: boolean;
+  /** 이름 + (환자번호/주민번호)로 로그인. 로그인 API가 등록돼 있으면 그걸로 검증(비동기) */
+  login: (p: { name: string; idType: PatientIdType; idValue: string }) => Promise<boolean>;
   /** 딥링크 토큰(번호만)으로 로그인 */
   loginByNumber: (no: string) => boolean;
   logout: () => void;
@@ -51,7 +55,8 @@ export const usePatientStore = create<PatientState>((set) => ({
   name: init?.name ?? null,
   idType: init?.idType ?? null,
   error: '',
-  login: ({ name, idType, idValue }) => {
+  busy: false,
+  login: async ({ name, idType, idValue }) => {
     const n = name.trim();
     const v = idValue.trim();
     if (!n) {
@@ -67,7 +72,38 @@ export const usePatientStore = create<PatientState>((set) => ({
       set({ error: '주민등록번호는 13자리로 입력해 주세요. (앞 6자리 - 뒤 7자리)' });
       return false;
     }
-    // 데모 모드: 지정 테스트 번호만 통과. 운영 모드: 입력값 허용(대상 검증은 EMR/백엔드가 수행)
+
+    // 등록된 '환자 로그인/인증' API가 있으면 그걸로 검증
+    const ep = useApiConfigStore
+      .getState()
+      .endpoints.find((e) => e.enabled && e.purpose === 'patientLogin' && e.url.trim());
+    if (ep) {
+      set({ busy: true, error: '' });
+      const vars: Record<string, string> = { patientName: n, patientNo: v };
+      if (idType === 'rrn') vars.rrn = v;
+      else vars.regno = v;
+      const res = await callEndpoint(ep, vars);
+      const rec = extractRecord(res.data, ep.rootPath, ep.mappings);
+      let ok = res.ok;
+      const hasValidField = ep.mappings.some((m) => m.target === 'valid' && m.source.trim());
+      if (hasValidField) ok = ok && isTruthy(rec.valid);
+      else if (ep.mappings.some((m) => m.target && m.source.trim()))
+        ok = ok && !!(rec.patientNo || rec.name);
+      if (!ok) {
+        set({ busy: false, error: '환자 정보를 확인할 수 없습니다. 이름/번호를 확인해 주세요.' });
+        return false;
+      }
+      const s: Saved = {
+        patientNo: rec.patientNo != null && String(rec.patientNo) ? String(rec.patientNo) : v,
+        name: rec.name != null && String(rec.name) ? String(rec.name) : n,
+        idType,
+      };
+      write(s);
+      set({ ...s, busy: false, error: '' });
+      return true;
+    }
+
+    // API 미설정 → 로컬(데모: 테스트번호만 / 운영: 입력값 허용)
     if (IS_DEMO && v !== TEST_PATIENT_NO) {
       set({ error: `등록되지 않은 번호입니다. (테스트: ${TEST_PATIENT_NO})` });
       return false;

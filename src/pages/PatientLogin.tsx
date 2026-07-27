@@ -23,7 +23,7 @@ import { TOGGLE_SX, LOGIN_CARD_SX } from './Login';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
-  const { login, loginByNumber, error } = usePatientStore();
+  const { login, loginByNumber, error, busy } = usePatientStore();
   const [params] = useSearchParams();
   // 링크에 담긴 토큰(?t=... / ?token=...)을 환자번호로 복원(번호는 URL에 노출 안 됨)
   const token = params.get('t') ?? params.get('token') ?? '';
@@ -32,9 +32,9 @@ export default function PatientLogin() {
   const [idType, setIdType] = useState<PatientIdType>('regno');
   const [idValue, setIdValue] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login({ name, idType, idValue })) navigate('/patient/forms', { replace: true });
+    if (await login({ name, idType, idValue })) navigate('/patient/forms', { replace: true });
   };
 
   // 링크로 토큰이 전달되면 자동 로그인 → 문진 목록으로 바로 이동
@@ -145,8 +145,8 @@ export default function PatientLogin() {
               />
 
               {error && <Alert severity="error">{error}</Alert>}
-              <Button type="submit" variant="contained" size="large" fullWidth>
-                시작하기
+              <Button type="submit" variant="contained" size="large" fullWidth disabled={busy}>
+                {busy ? '확인 중…' : '시작하기'}
               </Button>
               {IS_DEMO && (
                 <Typography variant="caption" color="text.secondary" textAlign="center">
