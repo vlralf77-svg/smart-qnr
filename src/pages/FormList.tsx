@@ -425,6 +425,7 @@ export default function FormList() {
                   <TableCell width={100}>상태</TableCell>
                   <TableCell width={80}>버전</TableCell>
                   <TableCell width={110}>문항 수</TableCell>
+                  <TableCell width={160}>최초등록일</TableCell>
                   <TableCell width={160}>수정일</TableCell>
                   <TableCell width={160} align="right">
                     작업
@@ -465,6 +466,11 @@ export default function FormList() {
                       </TableCell>
                       <TableCell>v{f.version}</TableCell>
                       <TableCell>{qCount}</TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {f.createdAt ? new Date(f.createdAt).toLocaleString('ko-KR') : '-'}
+                        </Typography>
+                      </TableCell>
                       <TableCell>
                         <Typography variant="caption">
                           {f.updatedAt ? new Date(f.updatedAt).toLocaleString('ko-KR') : '-'}

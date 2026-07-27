@@ -68,7 +68,9 @@ export const useFormsStore = create<FormsState>()(
           set((st) => ({ forms: upsert(st.forms, saved) }));
           return;
         }
-        const stamped = { ...form, updatedAt: new Date().toISOString() };
+        const now = new Date().toISOString();
+        // 최초등록일(createdAt)은 첫 저장 때 기록하고 이후 유지
+        const stamped = { ...form, createdAt: form.createdAt ?? now, updatedAt: now };
         set((st) => ({ forms: upsert(st.forms, stamped) }));
       },
 
