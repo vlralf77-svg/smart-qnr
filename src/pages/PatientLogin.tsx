@@ -134,12 +134,13 @@ export default function PatientLogin() {
                 onChange={(e) => setIdValue(e.target.value)}
                 fullWidth
                 inputMode="numeric"
+                inputProps={idType === 'rrn' ? { maxLength: 14 } : undefined}
                 placeholder={
                   idType === 'rrn'
                     ? '앞 6자리-뒤 7자리'
                     : IS_DEMO
                       ? TEST_PATIENT_NO
-                      : '등록번호'
+                      : '환자번호'
                 }
               />
 

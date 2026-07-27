@@ -62,6 +62,11 @@ export const usePatientStore = create<PatientState>((set) => ({
       set({ error: idType === 'rrn' ? '주민등록번호를 입력해 주세요.' : '환자번호를 입력해 주세요.' });
       return false;
     }
+    // 주민등록번호 길이 체크(하이픈 제외 13자리)
+    if (idType === 'rrn' && v.replace(/\D/g, '').length !== 13) {
+      set({ error: '주민등록번호는 13자리로 입력해 주세요. (앞 6자리 - 뒤 7자리)' });
+      return false;
+    }
     // 데모 모드: 지정 테스트 번호만 통과. 운영 모드: 입력값 허용(대상 검증은 EMR/백엔드가 수행)
     if (IS_DEMO && v !== TEST_PATIENT_NO) {
       set({ error: `등록되지 않은 번호입니다. (테스트: ${TEST_PATIENT_NO})` });
