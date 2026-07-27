@@ -124,12 +124,12 @@ export default function PatientLogin() {
                   }
                 }}
               >
-                <ToggleButton value="regno">등록번호</ToggleButton>
+                <ToggleButton value="regno">환자번호</ToggleButton>
                 <ToggleButton value="rrn">주민등록번호</ToggleButton>
               </ToggleButtonGroup>
 
               <TextField
-                label={idType === 'rrn' ? '주민등록번호' : '등록번호'}
+                label={idType === 'rrn' ? '주민등록번호' : '환자번호'}
                 value={idValue}
                 onChange={(e) => setIdValue(e.target.value)}
                 fullWidth

@@ -59,7 +59,7 @@ export const usePatientStore = create<PatientState>((set) => ({
       return false;
     }
     if (!v) {
-      set({ error: idType === 'rrn' ? '주민등록번호를 입력해 주세요.' : '등록번호를 입력해 주세요.' });
+      set({ error: idType === 'rrn' ? '주민등록번호를 입력해 주세요.' : '환자번호를 입력해 주세요.' });
       return false;
     }
     // 데모 모드: 지정 테스트 번호만 통과. 운영 모드: 입력값 허용(대상 검증은 EMR/백엔드가 수행)
