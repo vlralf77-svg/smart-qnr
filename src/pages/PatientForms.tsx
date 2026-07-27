@@ -164,8 +164,10 @@ export default function PatientForms() {
             <DisplayModeToggle />
           </Box>
           <Typography variant="caption" sx={{ opacity: 0.9, mr: 1, display: { xs: 'none', sm: 'block' } }}>
-            {patientName ? `${patientName} · ` : ''}
-            {patientNo}
+            {/* 주민등록번호는 표시하지 않음(이름만). 환자번호는 함께 표시 */}
+            {idType === 'rrn'
+              ? (patientName ?? '환자')
+              : `${patientName ? `${patientName} · ` : ''}${patientNo ?? ''}`}
           </Typography>
           <Button
             color="inherit"

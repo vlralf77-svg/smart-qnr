@@ -74,6 +74,8 @@ export default function PatientView() {
   const { formId } = useParams();
   const navigate = useNavigate();
   const patientNo = usePatientStore((s) => s.patientNo);
+  const patientName = usePatientStore((s) => s.name);
+  const patientIdType = usePatientStore((s) => s.idType);
   const localForms = useFormsStore((s) => s.forms);
   const localResponses = useFormsStore((s) => s.responses);
   const [form, setForm] = useState<FormSchema | undefined>();
@@ -253,7 +255,8 @@ export default function PatientView() {
                 </Typography>
                 <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: 'text.disabled' }} />
                 <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                  환자 {response.patientId}
+                  {/* 주민등록번호는 표시하지 않고 이름으로 표시 */}
+                  환자 {patientIdType === 'rrn' ? (patientName ?? '') : response.patientId}
                 </Typography>
               </Stack>
             </Box>
