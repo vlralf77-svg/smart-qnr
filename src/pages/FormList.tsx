@@ -9,6 +9,7 @@ import {
   Container,
   IconButton,
   InputAdornment,
+  Menu,
   MenuItem,
   Paper,
   Stack,
@@ -37,6 +38,7 @@ import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ApiIcon from '@mui/icons-material/Api';
 import LinkIcon from '@mui/icons-material/Link';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
@@ -57,6 +59,86 @@ const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success'
   archived: { label: '보관됨', color: 'warning' },
 };
 
+// 트렌디 필 버튼 스타일
+const PILL_SX = {
+  borderRadius: 999,
+  textTransform: 'none',
+  fontWeight: 700,
+  px: 2,
+  height: 40,
+} as const;
+const GRAD_PILL_SX = {
+  ...PILL_SX,
+  color: '#fff',
+  background: 'linear-gradient(135deg,#12a0b6,#0b8fa3)',
+  boxShadow: '0 8px 18px -8px rgba(11,143,163,.7)',
+  '&:hover': { background: 'linear-gradient(135deg,#0f93a8,#0a7d90)' },
+} as const;
+
+// 드롭다운 섹션 라벨
+function MenuSection({ label }: { label: string }) {
+  return (
+    <Typography
+      sx={{
+        px: 1.75,
+        pt: 1.25,
+        pb: 0.5,
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: 'text.disabled',
+        letterSpacing: '0.08em',
+      }}
+    >
+      {label}
+    </Typography>
+  );
+}
+
+// 아이콘 칩 + 제목·설명 메뉴 항목
+function ActionItem({
+  icon,
+  chipColor,
+  chipBg,
+  title,
+  desc,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  chipColor: string;
+  chipBg: string;
+  title: string;
+  desc?: string;
+  onClick: () => void;
+}) {
+  return (
+    <MenuItem onClick={onClick} sx={{ borderRadius: 2, py: 0.9, px: 1, mx: 0.5, gap: 1.25 }}>
+      <Box
+        sx={{
+          width: 34,
+          height: 34,
+          borderRadius: 2,
+          bgcolor: chipBg,
+          color: chipColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25 }}>{title}</Typography>
+        {desc && (
+          <Typography sx={{ fontSize: 11.5, color: 'text.secondary', lineHeight: 1.3 }}>
+            {desc}
+          </Typography>
+        )}
+      </Box>
+    </MenuItem>
+  );
+}
+
 export default function FormList() {
   const navigate = useNavigate();
   const { forms, saveForm, deleteForm, refreshForms } = useFormsStore();
@@ -76,6 +158,8 @@ export default function FormList() {
   const [manageOpen, setManageOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const closeMenu = () => setMenuAnchor(null);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
   useEffect(() => {
@@ -153,68 +237,136 @@ export default function FormList() {
               총 {forms.length}개
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1}>
-            {canManage && (
-              <Button
-                variant="outlined"
-                startIcon={<ManageAccountsIcon />}
-                onClick={() => navigate('/accounts')}
-              >
-                계정 관리
-              </Button>
-            )}
-            {canManage && (
-              <Button
-                variant="outlined"
-                startIcon={<ApiIcon />}
-                onClick={() => navigate('/integration')}
-              >
-                API 연동
-              </Button>
-            )}
-            <Button
-              variant="outlined"
-              startIcon={<LinkIcon />}
-              onClick={() => setLinkOpen(true)}
-            >
-              환자 링크
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<AssignmentIndIcon />}
-              onClick={() => window.open('#/patient/login', '_blank')}
-            >
-              환자 화면
-            </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
             {canEdit && (
               <Button
-                variant="outlined"
-                startIcon={<UploadFileIcon />}
-                onClick={() => navigate('/upload')}
-              >
-                문서로 변환
-              </Button>
-            )}
-            {canEdit && (
-              <Button
-                variant="outlined"
-                startIcon={<TableChartOutlinedIcon />}
-                onClick={() => setExcelOpen(true)}
-              >
-                엑셀로 만들기
-              </Button>
-            )}
-            {canEdit && (
-              <Button
+                disableElevation
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/editor/new')}
+                sx={GRAD_PILL_SX}
               >
                 새 문진
               </Button>
             )}
+            <Button
+              variant="outlined"
+              onClick={(e) => setMenuAnchor(e.currentTarget)}
+              sx={{ ...PILL_SX, minWidth: 44, px: 1.5, borderColor: 'divider', color: 'text.primary' }}
+            >
+              <MoreHorizIcon />
+            </Button>
           </Stack>
+
+          <Menu
+            anchorEl={menuAnchor}
+            open={!!menuAnchor}
+            onClose={closeMenu}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            PaperProps={{
+              sx: {
+                mt: 1,
+                minWidth: 264,
+                borderRadius: 3,
+                boxShadow: '0 20px 50px -16px rgba(15,30,46,.3)',
+                py: 0.5,
+              },
+            }}
+          >
+            {canEdit && <MenuSection label="만들기" />}
+            {canEdit && (
+              <ActionItem
+                icon={<AddIcon fontSize="small" />}
+                chipColor="#0b8fa3"
+                chipBg="#e3f4f7"
+                title="새 문진"
+                desc="빈 문진 새로 작성"
+                onClick={() => {
+                  closeMenu();
+                  navigate('/editor/new');
+                }}
+              />
+            )}
+            {canEdit && (
+              <ActionItem
+                icon={<UploadFileIcon fontSize="small" />}
+                chipColor="#d98324"
+                chipBg="#fdf0e3"
+                title="문서로 변환"
+                desc="PDF·워드 불러오기"
+                onClick={() => {
+                  closeMenu();
+                  navigate('/upload');
+                }}
+              />
+            )}
+            {canEdit && (
+              <ActionItem
+                icon={<TableChartOutlinedIcon fontSize="small" />}
+                chipColor="#1f9d57"
+                chipBg="#e6f6ec"
+                title="엑셀로 만들기"
+                desc="템플릿 업로드"
+                onClick={() => {
+                  closeMenu();
+                  setExcelOpen(true);
+                }}
+              />
+            )}
+
+            <MenuSection label="환자" />
+            <ActionItem
+              icon={<LinkIcon fontSize="small" />}
+              chipColor="#0b8fa3"
+              chipBg="#e3f4f7"
+              title="환자 링크"
+              desc="문진 링크 생성"
+              onClick={() => {
+                closeMenu();
+                setLinkOpen(true);
+              }}
+            />
+            <ActionItem
+              icon={<AssignmentIndIcon fontSize="small" />}
+              chipColor="#3f76d0"
+              chipBg="#e8f0fe"
+              title="환자 화면"
+              desc="문진 입력 화면 열기"
+              onClick={() => {
+                closeMenu();
+                window.open('#/patient/login', '_blank');
+              }}
+            />
+
+            {canManage && <MenuSection label="관리" />}
+            {canManage && (
+              <ActionItem
+                icon={<ManageAccountsIcon fontSize="small" />}
+                chipColor="#5b6b7d"
+                chipBg="#eef1f5"
+                title="계정 관리"
+                desc="계정·권한"
+                onClick={() => {
+                  closeMenu();
+                  navigate('/accounts');
+                }}
+              />
+            )}
+            {canManage && (
+              <ActionItem
+                icon={<ApiIcon fontSize="small" />}
+                chipColor="#3f76d0"
+                chipBg="#e8f0fe"
+                title="API 연동"
+                desc="EMR 연동 설정"
+                onClick={() => {
+                  closeMenu();
+                  navigate('/integration');
+                }}
+              />
+            )}
+          </Menu>
         </Stack>
 
         <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
