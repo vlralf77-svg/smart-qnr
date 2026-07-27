@@ -39,9 +39,12 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ApiIcon from '@mui/icons-material/Api';
 import LinkIcon from '@mui/icons-material/Link';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
+import { useUiPrefs } from '@/store/useUiPrefs';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
 import { FormSchema } from '@/types/schema';
@@ -102,6 +105,7 @@ function ActionItem({
   title,
   desc,
   onClick,
+  trailing,
 }: {
   icon: React.ReactNode;
   chipColor: string;
@@ -109,6 +113,7 @@ function ActionItem({
   title: string;
   desc?: string;
   onClick: () => void;
+  trailing?: React.ReactNode;
 }) {
   return (
     <MenuItem onClick={onClick} sx={{ borderRadius: 2, py: 0.9, px: 1, mx: 0.5, gap: 1.25 }}>
@@ -127,7 +132,7 @@ function ActionItem({
       >
         {icon}
       </Box>
-      <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25 }}>{title}</Typography>
         {desc && (
           <Typography sx={{ fontSize: 11.5, color: 'text.secondary', lineHeight: 1.3 }}>
@@ -135,6 +140,7 @@ function ActionItem({
           </Typography>
         )}
       </Box>
+      {trailing}
     </MenuItem>
   );
 }
@@ -195,6 +201,36 @@ export default function FormList() {
     );
   };
 
+  // 상단 메뉴/기본버튼 액션 정의
+  const primaryKey = useUiPrefs((s) => s.primaryAction);
+  const setPrimaryAction = useUiPrefs((s) => s.setPrimaryAction);
+
+  interface Action {
+    key: string;
+    section: '만들기' | '환자' | '관리';
+    title: string;
+    desc: string;
+    icon: JSX.Element;
+    chipColor: string;
+    chipBg: string;
+    allowed: boolean;
+    run: () => void;
+  }
+  const actions: Action[] = [
+    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#0b8fa3', chipBg: '#e3f4f7', allowed: canEdit, run: () => navigate('/editor/new') },
+    { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, run: () => navigate('/upload') },
+    { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, run: () => setExcelOpen(true) },
+    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#0b8fa3', chipBg: '#e3f4f7', allowed: true, run: () => setLinkOpen(true) },
+    { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, run: () => window.open('#/patient/login', '_blank') },
+    { key: 'accounts', section: '관리', title: '계정 관리', desc: '계정·권한', icon: <ManageAccountsIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/accounts') },
+    { key: 'api', section: '관리', title: 'API 연동', desc: 'EMR 연동 설정', icon: <ApiIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: canManage, run: () => navigate('/integration') },
+  ];
+  const available = actions.filter((a) => a.allowed);
+  // 앞에 고정할 기본 액션(권한 없으면 첫 번째로 폴백)
+  const primary =
+    available.find((a) => a.key === primaryKey) ?? available.find((a) => a.key === 'new') ?? available[0];
+  const SECTIONS: Action['section'][] = ['만들기', '환자', '관리'];
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="primary" elevation={0}>
@@ -238,15 +274,15 @@ export default function FormList() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1} alignItems="center">
-            {canEdit && (
+            {primary && (
               <Button
                 disableElevation
                 variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/editor/new')}
+                startIcon={primary.icon}
+                onClick={primary.run}
                 sx={GRAD_PILL_SX}
               >
-                새 문진
+                {primary.title}
               </Button>
             )}
             <Button
@@ -267,105 +303,55 @@ export default function FormList() {
             PaperProps={{
               sx: {
                 mt: 1,
-                minWidth: 264,
+                minWidth: 288,
                 borderRadius: 3,
                 boxShadow: '0 20px 50px -16px rgba(15,30,46,.3)',
                 py: 0.5,
               },
             }}
           >
-            {canEdit && <MenuSection label="만들기" />}
-            {canEdit && (
-              <ActionItem
-                icon={<AddIcon fontSize="small" />}
-                chipColor="#0b8fa3"
-                chipBg="#e3f4f7"
-                title="새 문진"
-                desc="빈 문진 새로 작성"
-                onClick={() => {
-                  closeMenu();
-                  navigate('/editor/new');
-                }}
-              />
-            )}
-            {canEdit && (
-              <ActionItem
-                icon={<UploadFileIcon fontSize="small" />}
-                chipColor="#d98324"
-                chipBg="#fdf0e3"
-                title="문서로 변환"
-                desc="PDF·워드 불러오기"
-                onClick={() => {
-                  closeMenu();
-                  navigate('/upload');
-                }}
-              />
-            )}
-            {canEdit && (
-              <ActionItem
-                icon={<TableChartOutlinedIcon fontSize="small" />}
-                chipColor="#1f9d57"
-                chipBg="#e6f6ec"
-                title="엑셀로 만들기"
-                desc="템플릿 업로드"
-                onClick={() => {
-                  closeMenu();
-                  setExcelOpen(true);
-                }}
-              />
-            )}
-
-            <MenuSection label="환자" />
-            <ActionItem
-              icon={<LinkIcon fontSize="small" />}
-              chipColor="#0b8fa3"
-              chipBg="#e3f4f7"
-              title="환자 링크"
-              desc="문진 링크 생성"
-              onClick={() => {
-                closeMenu();
-                setLinkOpen(true);
-              }}
-            />
-            <ActionItem
-              icon={<AssignmentIndIcon fontSize="small" />}
-              chipColor="#3f76d0"
-              chipBg="#e8f0fe"
-              title="환자 화면"
-              desc="문진 입력 화면 열기"
-              onClick={() => {
-                closeMenu();
-                window.open('#/patient/login', '_blank');
-              }}
-            />
-
-            {canManage && <MenuSection label="관리" />}
-            {canManage && (
-              <ActionItem
-                icon={<ManageAccountsIcon fontSize="small" />}
-                chipColor="#5b6b7d"
-                chipBg="#eef1f5"
-                title="계정 관리"
-                desc="계정·권한"
-                onClick={() => {
-                  closeMenu();
-                  navigate('/accounts');
-                }}
-              />
-            )}
-            {canManage && (
-              <ActionItem
-                icon={<ApiIcon fontSize="small" />}
-                chipColor="#3f76d0"
-                chipBg="#e8f0fe"
-                title="API 연동"
-                desc="EMR 연동 설정"
-                onClick={() => {
-                  closeMenu();
-                  navigate('/integration');
-                }}
-              />
-            )}
+            <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, fontSize: 11, color: 'text.secondary' }}>
+              📌 아이콘을 누르면 <b>앞에 고정</b>할 화면을 바꿀 수 있어요.
+            </Typography>
+            {SECTIONS.map((section) => {
+              const items = available.filter((a) => a.section === section);
+              if (items.length === 0) return null;
+              return [
+                <MenuSection key={`s-${section}`} label={section} />,
+                ...items.map((a) => (
+                  <ActionItem
+                    key={a.key}
+                    icon={a.icon}
+                    chipColor={a.chipColor}
+                    chipBg={a.chipBg}
+                    title={a.title}
+                    desc={a.desc}
+                    onClick={() => {
+                      closeMenu();
+                      a.run();
+                    }}
+                    trailing={
+                      <Tooltip title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrimaryAction(a.key);
+                          }}
+                          sx={{ ml: 0.5 }}
+                        >
+                          {a.key === primaryKey ? (
+                            <PushPinIcon fontSize="small" sx={{ color: '#0b8fa3' }} />
+                          ) : (
+                            <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    }
+                  />
+                )),
+              ];
+            })}
           </Menu>
         </Stack>
 
