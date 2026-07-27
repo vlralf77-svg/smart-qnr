@@ -426,7 +426,7 @@ export default function FormList() {
                   <TableCell width={80}>버전</TableCell>
                   <TableCell width={110}>문항 수</TableCell>
                   <TableCell width={160}>최초등록일</TableCell>
-                  <TableCell width={160}>수정일</TableCell>
+                  <TableCell width={160}>최종수정일</TableCell>
                   <TableCell width={160} align="right">
                     작업
                   </TableCell>
