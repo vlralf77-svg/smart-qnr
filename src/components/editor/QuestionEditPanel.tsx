@@ -56,40 +56,128 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
 
   return (
     <Stack spacing={2.5}>
+      {/* 1행: 문항 유형 + 글자 스타일(크기·색상) */}
       <Box>
         <Typography variant="overline" color="text.secondary">
           문항 설정
         </Typography>
-
-        <TextField
-          select
-          label="문항 유형"
-          size="small"
-          fullWidth
-          value={question.type}
-          onChange={(e) =>
-            changeQuestionType(sectionId, question.id, e.target.value as QuestionType)
-          }
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
           sx={{ mt: 1 }}
         >
-          {QUESTION_TYPE_ORDER.map((t) => (
-            <MenuItem key={t} value={t}>
-              {QUESTION_TYPE_META[t].label}
-              {QUESTION_TYPE_META[t].hint ? ` · ${QUESTION_TYPE_META[t].hint}` : ''}
-            </MenuItem>
-          ))}
-        </TextField>
+          <TextField
+            select
+            label="문항 유형"
+            size="small"
+            value={question.type}
+            onChange={(e) =>
+              changeQuestionType(sectionId, question.id, e.target.value as QuestionType)
+            }
+            sx={{ flex: '1 1 190px', minWidth: 180 }}
+          >
+            {QUESTION_TYPE_ORDER.map((t) => (
+              <MenuItem key={t} value={t}>
+                {QUESTION_TYPE_META[t].label}
+                {QUESTION_TYPE_META[t].hint ? ` · ${QUESTION_TYPE_META[t].hint}` : ''}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {/* 글자 스타일: 크기·색상 (이미지 제외) — 문항 유형과 같은 행 */}
+          {!isImage && (
+            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+              <TextField
+                select
+                label="크기"
+                size="small"
+                value={String(question.fontSize ?? 13)}
+                onChange={(e) =>
+                  updateQuestion(sectionId, question.id, { fontSize: Number(e.target.value) })
+                }
+                sx={{ width: 92 }}
+              >
+                {FONT_SIZES.map((s) => (
+                  <MenuItem key={s} value={String(s)}>
+                    {s}px
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Typography variant="body2" color="text.secondary">
+                색상
+              </Typography>
+              <Box
+                component="input"
+                type="color"
+                value={question.color ?? '#1e293b'}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  updateQuestion(sectionId, question.id, { color: e.target.value })
+                }
+                sx={{
+                  width: 40,
+                  height: 34,
+                  p: 0,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                }}
+              />
+              {COLOR_PRESETS.map((c) => (
+                <Box
+                  key={c}
+                  onClick={() => updateQuestion(sectionId, question.id, { color: c })}
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    bgcolor: c,
+                    borderRadius: '50%',
+                    border: '1px solid rgba(0,0,0,0.2)',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+              {question.color && (
+                <Typography
+                  variant="caption"
+                  sx={{ cursor: 'pointer', color: 'text.secondary', ml: 0.5 }}
+                  onClick={() => updateQuestion(sectionId, question.id, { color: undefined })}
+                >
+                  기본색
+                </Typography>
+              )}
+            </Stack>
+          )}
+        </Stack>
       </Box>
 
-      <TextField
-        label={isImage ? '이미지 설명(선택)' : question.type === 'info' ? '안내문 내용' : '질문(라벨)'}
-        size="small"
-        fullWidth
-        multiline={question.type === 'info'}
-        minRows={question.type === 'info' ? 3 : 1}
-        value={question.label}
-        onChange={(e) => updateQuestion(sectionId, question.id, { label: e.target.value })}
-      />
+      {/* 2행: 질문(라벨) + 보조 설명 */}
+      <Stack direction="row" spacing={2} alignItems="flex-start" flexWrap="wrap" useFlexGap>
+        <TextField
+          label={
+            isImage ? '이미지 설명(선택)' : question.type === 'info' ? '안내문 내용' : '질문(라벨)'
+          }
+          size="small"
+          multiline={question.type === 'info'}
+          minRows={question.type === 'info' ? 3 : 1}
+          value={question.label}
+          onChange={(e) => updateQuestion(sectionId, question.id, { label: e.target.value })}
+          sx={{ flex: '1 1 240px' }}
+        />
+        {!isInfo && (
+          <TextField
+            label="보조 설명 (선택)"
+            size="small"
+            value={question.description ?? ''}
+            onChange={(e) => updateQuestion(sectionId, question.id, { description: e.target.value })}
+            sx={{ flex: '1 1 200px' }}
+          />
+        )}
+      </Stack>
 
       {/* 참고 이미지: 이미지 첨부 */}
       {isImage && (
@@ -159,92 +247,8 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
         </Box>
       )}
 
-      {/* 글자 스타일: 크기·색상 (이미지 제외) */}
-      {!isImage && (
-      <Box>
-        <Typography variant="subtitle2" fontWeight={700} mb={1}>
-          글자 스타일
-        </Typography>
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-          <TextField
-            select
-            label="크기"
-            size="small"
-            value={String(question.fontSize ?? 13)}
-            onChange={(e) =>
-              updateQuestion(sectionId, question.id, { fontSize: Number(e.target.value) })
-            }
-            sx={{ width: 100 }}
-          >
-            {FONT_SIZES.map((s) => (
-              <MenuItem key={s} value={String(s)}>
-                {s}px
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              색상
-            </Typography>
-            <Box
-              component="input"
-              type="color"
-              value={question.color ?? '#1e293b'}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                updateQuestion(sectionId, question.id, { color: e.target.value })
-              }
-              sx={{
-                width: 40,
-                height: 34,
-                p: 0,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                bgcolor: 'transparent',
-                cursor: 'pointer',
-              }}
-            />
-            {COLOR_PRESETS.map((c) => (
-              <Box
-                key={c}
-                onClick={() => updateQuestion(sectionId, question.id, { color: c })}
-                sx={{
-                  width: 20,
-                  height: 20,
-                  bgcolor: c,
-                  borderRadius: '50%',
-                  border: '1px solid rgba(0,0,0,0.2)',
-                  cursor: 'pointer',
-                }}
-              />
-            ))}
-            {question.color && (
-              <Typography
-                variant="caption"
-                sx={{ cursor: 'pointer', color: 'text.secondary', ml: 0.5 }}
-                onClick={() => updateQuestion(sectionId, question.id, { color: undefined })}
-              >
-                기본색
-              </Typography>
-            )}
-          </Stack>
-        </Stack>
-      </Box>
-      )}
-
       {!isInfo && (
         <>
-          <TextField
-            label="보조 설명 (선택)"
-            size="small"
-            fullWidth
-            value={question.description ?? ''}
-            onChange={(e) =>
-              updateQuestion(sectionId, question.id, { description: e.target.value })
-            }
-          />
-
           {(question.type === 'text' || question.type === 'textarea' || question.type === 'number') && (
             <TextField
               label="플레이스홀더 (선택)"
