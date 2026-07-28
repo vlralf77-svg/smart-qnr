@@ -81,26 +81,46 @@ export default function FormEditor() {
     const v = Number(localStorage.getItem(LS_KEY));
     return v >= 20 && v <= 70 ? v : 42;
   });
+  // 우측 미리보기 패널 폭(px)도 드래그로 조절 — 옵션 설정(중앙) ↔ 미리보기 사이 구분선
+  const PREVIEW_PX_KEY = 'smartqnr.editorPreviewPx';
+  const PREVIEW_MIN = 300;
+  const PREVIEW_MAX = 760;
+  const [previewPx, setPreviewPx] = useState<number>(() => {
+    const v = Number(localStorage.getItem(PREVIEW_PX_KEY));
+    return v >= PREVIEW_MIN && v <= PREVIEW_MAX ? v : 400;
+  });
   const splitRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
+  // 어떤 구분선을 드래그 중인지: 'left'(좌↔중) | 'preview'(중↔미리보기) | null
+  const draggingRef = useRef<null | 'left' | 'preview'>(null);
   const leftPctRef = useRef(leftPct);
   leftPctRef.current = leftPct;
+  const previewPxRef = useRef(previewPx);
+  previewPxRef.current = previewPx;
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const el = splitRef.current;
       if (!draggingRef.current || !el) return;
       const rect = el.getBoundingClientRect();
-      let pct = ((e.clientX - rect.left) / rect.width) * 100;
-      pct = Math.min(70, Math.max(20, pct));
-      setLeftPct(pct);
+      if (draggingRef.current === 'left') {
+        let pct = ((e.clientX - rect.left) / rect.width) * 100;
+        pct = Math.min(70, Math.max(20, pct));
+        setLeftPct(pct);
+      } else {
+        // 미리보기 폭 = 컨테이너 우측 끝 - 커서 위치
+        let px = rect.right - e.clientX;
+        px = Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, px));
+        setPreviewPx(px);
+      }
     };
     const onUp = () => {
       if (!draggingRef.current) return;
-      draggingRef.current = false;
+      const which = draggingRef.current;
+      draggingRef.current = null;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      localStorage.setItem(LS_KEY, String(Math.round(leftPctRef.current)));
+      if (which === 'left') localStorage.setItem(LS_KEY, String(Math.round(leftPctRef.current)));
+      else localStorage.setItem(PREVIEW_PX_KEY, String(Math.round(previewPxRef.current)));
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -110,9 +130,9 @@ export default function FormEditor() {
     };
   }, []);
 
-  const startDrag = (e: React.MouseEvent) => {
+  const startDrag = (which: 'left' | 'preview') => (e: React.MouseEvent) => {
     e.preventDefault();
-    draggingRef.current = true;
+    draggingRef.current = which;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   };
@@ -362,10 +382,10 @@ export default function FormEditor() {
           {isOverlayForm(form) ? <OverlayEditor form={form} /> : <EditorOutline form={form} />}
         </Box>
 
-        {/* 좌우 너비 조절 구분선(드래그) */}
+        {/* 좌(아웃라인) ↔ 중(옵션 설정) 너비 조절 구분선(드래그) */}
         <Tooltip title="드래그하여 너비 조절 · 더블클릭 시 기본값" placement="left">
           <Box
-            onMouseDown={startDrag}
+            onMouseDown={startDrag('left')}
             onDoubleClick={() => {
               setLeftPct(42);
               localStorage.setItem(LS_KEY, '42');
@@ -431,14 +451,54 @@ export default function FormEditor() {
           )}
         </Box>
 
+        {/* 중(옵션 설정) ↔ 우(미리보기) 너비 조절 구분선(드래그) */}
+        {sidePreview && !isOverlayForm(form) && (
+          <Tooltip title="드래그하여 미리보기 폭 조절 · 더블클릭 시 기본값" placement="left">
+            <Box
+              onMouseDown={startDrag('preview')}
+              onDoubleClick={() => {
+                setPreviewPx(400);
+                localStorage.setItem(PREVIEW_PX_KEY, '400');
+              }}
+              sx={{
+                flexShrink: 0,
+                width: '8px',
+                cursor: 'col-resize',
+                position: 'relative',
+                bgcolor: 'divider',
+                transition: 'background-color .15s',
+                '&:hover': { bgcolor: 'primary.main' },
+                '&:hover .grip': { bgcolor: 'primary.contrastText' },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  inset: '0 -4px',
+                },
+              }}
+            >
+              <Box
+                className="grip"
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '2px',
+                  height: 34,
+                  borderRadius: 1,
+                  bgcolor: 'text.disabled',
+                }}
+              />
+            </Box>
+          </Tooltip>
+        )}
+
         {/* 우측: 실시간 미리보기 패널 (섹션형 문진에서 자동 표시) */}
         {sidePreview && !isOverlayForm(form) && (
           <Box
             sx={{
-              width: 400,
+              width: previewPx,
               flexShrink: 0,
-              borderLeft: '1px solid',
-              borderColor: 'divider',
               display: 'flex',
               flexDirection: 'column',
               bgcolor: 'background.default',
