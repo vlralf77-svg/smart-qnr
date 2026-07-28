@@ -262,6 +262,8 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
           )}
 
           <FormControlLabel
+            // 세로 Stack에서 전체 폭으로 늘어나 옆 빈 공간까지 눌리는 것 방지 — 콘텐츠 폭만 차지
+            sx={{ alignSelf: 'flex-start', mr: 0 }}
             control={
               <Switch
                 checked={!!question.required}
