@@ -34,13 +34,16 @@ export const LOGIN_CARD_SX = {
   flexDirection: 'column',
 } as const;
 
-// 로그인 화면 상단 토글 — 선택된 쪽을 진한 채움색으로 명확히 구분
+// 로그인 화면 상단 토글 — 선택된 쪽을 진한 채움색으로, 높이는 고정(두 화면 동일)
 export const TOGGLE_SX = {
   mb: 3,
   '& .MuiToggleButton-root': {
     flex: 1,
     fontWeight: 700,
-    py: 1,
+    height: 42, // 고정 높이 — 화면 전환 시에도 토글 크기가 변하지 않도록
+    py: 0,
+    lineHeight: 1.2,
+    fontSize: 14,
     color: 'text.secondary',
     borderColor: 'divider',
     '&.Mui-selected': {
