@@ -23,6 +23,8 @@ import SaveIcon from '@mui/icons-material/Save';
 import PublishIcon from '@mui/icons-material/Publish';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
+import ViewSidebarIcon from '@mui/icons-material/ViewSidebar';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import { isOverlayForm } from '@/types/schema';
@@ -33,6 +35,7 @@ import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
 import PreviewDialog from '@/components/editor/PreviewDialog';
+import FormRenderer from '@/components/renderer/FormRenderer';
 
 export default function FormEditor() {
   const { formId } = useParams();
@@ -59,11 +62,24 @@ export default function FormEditor() {
   const [preview, setPreview] = useState(false);
   const [toast, setToast] = useState('');
 
-  // 좌(컴포넌트 세팅) ↔ 우(옵션 편집) 너비를 드래그로 조절 — 값은 브라우저에 기억
+  // 우측 실시간 미리보기 패널 표시 여부 (기본 표시) — 오버레이(PDF) 문진에는 없음
+  const PREVIEW_KEY = 'smartqnr.editorSidePreview';
+  const [sidePreview, setSidePreview] = useState<boolean>(() => {
+    const v = localStorage.getItem(PREVIEW_KEY);
+    return v === null ? true : v === '1';
+  });
+  const toggleSidePreview = () =>
+    setSidePreview((v) => {
+      localStorage.setItem(PREVIEW_KEY, v ? '0' : '1');
+      return !v;
+    });
+
+  // 좌(아웃라인) ↔ 우(옵션 편집) 너비를 드래그로 조절 — 값은 브라우저에 기억
+  //  · 미리보기 패널이 켜지면 3분할이라 좌측을 조금 좁게(기본 42%), 아니면 기존 55%
   const LS_KEY = 'smartqnr.editorLeftPct';
   const [leftPct, setLeftPct] = useState<number>(() => {
     const v = Number(localStorage.getItem(LS_KEY));
-    return v >= 25 && v <= 80 ? v : 55;
+    return v >= 20 && v <= 70 ? v : 42;
   });
   const splitRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
@@ -76,7 +92,7 @@ export default function FormEditor() {
       if (!draggingRef.current || !el) return;
       const rect = el.getBoundingClientRect();
       let pct = ((e.clientX - rect.left) / rect.width) * 100;
-      pct = Math.min(80, Math.max(25, pct));
+      pct = Math.min(70, Math.max(20, pct));
       setLeftPct(pct);
     };
     const onUp = () => {
@@ -241,9 +257,21 @@ export default function FormEditor() {
               {form.title || '제목 없는 문진'}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {!isOverlayForm(form) && (
+              <Tooltip title={sidePreview ? '미리보기 패널 숨기기' : '미리보기 패널 표시'}>
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={toggleSidePreview}
+                  sx={{ opacity: sidePreview ? 1 : 0.6 }}
+                >
+                  <ViewSidebarIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             <Button color="inherit" startIcon={<VisibilityIcon />} onClick={() => setPreview(true)}>
-              미리보기
+              전체 미리보기
             </Button>
             <Button color="inherit" startIcon={<SaveIcon />} onClick={handleSave}>
               저장{dirty ? ' *' : ''}
@@ -339,8 +367,8 @@ export default function FormEditor() {
           <Box
             onMouseDown={startDrag}
             onDoubleClick={() => {
-              setLeftPct(55);
-              localStorage.setItem(LS_KEY, '55');
+              setLeftPct(42);
+              localStorage.setItem(LS_KEY, '42');
             }}
             sx={{
               flexShrink: 0,
@@ -402,6 +430,49 @@ export default function FormEditor() {
             </Box>
           )}
         </Box>
+
+        {/* 우측: 실시간 미리보기 패널 (섹션형 문진에서 자동 표시) */}
+        {sidePreview && !isOverlayForm(form) && (
+          <Box
+            sx={{
+              width: 400,
+              flexShrink: 0,
+              borderLeft: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              bgcolor: 'background.default',
+            }}
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{
+                px: 2,
+                py: 1,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+              }}
+            >
+              <VisibilityIcon fontSize="small" color="action" />
+              <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
+                미리보기
+              </Typography>
+              <Chip label="실시간" size="small" color="success" variant="outlined" />
+              <Tooltip title="전체 화면으로 보기">
+                <IconButton size="small" onClick={() => setPreview(true)}>
+                  <OpenInFullIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+              {/* 편집 내용이 바뀌면 즉시 반영 (응답 화면과 동일 렌더) */}
+              <FormRenderer key={form.id} schema={form} preview />
+            </Box>
+          </Box>
+        )}
       </Box>
 
       <PreviewDialog open={preview} schema={form} onClose={() => setPreview(false)} />
