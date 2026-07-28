@@ -93,8 +93,18 @@ export default function QuestionField({ question: q, control, errors }: Props) {
     );
   }
 
+  // 편집기에서 지정한 글자 스타일(크기·색상)을 실제 문항 라벨에 반영
   const labelNode = (
-    <FormLabel sx={{ mb: 0.5, color: 'text.primary', fontWeight: 600, display: 'block' }}>
+    <FormLabel
+      sx={{
+        mb: 0.5,
+        color: q.color ?? 'text.primary',
+        fontWeight: 600,
+        display: 'block',
+        fontSize: q.fontSize ? `${q.fontSize}px` : undefined,
+        lineHeight: 1.4,
+      }}
+    >
       {q.label}
       {q.required && <span style={{ color: '#d32f2f' }}> *</span>}
     </FormLabel>
