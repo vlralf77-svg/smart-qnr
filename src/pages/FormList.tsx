@@ -378,7 +378,7 @@ export default function FormList() {
             onChange={(e) => setCatFilter(e.target.value)}
             sx={{ width: 180 }}
           >
-            <MenuItem value={ALL}>전체 분류</MenuItem>
+            <MenuItem value={ALL}>전체</MenuItem>
             {filterCategories.map((c) => (
               <MenuItem key={c} value={c}>
                 {c}
