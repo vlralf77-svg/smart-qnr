@@ -15,7 +15,7 @@ import {
   createOption,
   createQuestion,
   createSection,
-  createBlankCanvasForm,
+  createEmptyForm,
   blankPageDataUrl,
   BLANK_PAGE_W,
   BLANK_PAGE_H,
@@ -295,7 +295,8 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({ form, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
   newForm: () =>
     set({
-      form: createBlankCanvasForm(),
+      // 엑셀 가져오기와 동일한 섹션형(아웃라인) 편집기로 열림 (빈 캔버스/배치모드 아님)
+      form: createEmptyForm(),
       selected: null,
       selectedIds: [],
       dirty: false,
