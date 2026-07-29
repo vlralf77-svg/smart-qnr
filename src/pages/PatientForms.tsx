@@ -44,7 +44,15 @@ function fmt(ts?: string): string {
 
 export default function PatientForms() {
   const navigate = useNavigate();
-  const { patientNo, name: patientName, idType, logout } = usePatientStore();
+  const {
+    patientNo,
+    name: patientName,
+    idType,
+    visitDate,
+    department,
+    doctor,
+    logout,
+  } = usePatientStore();
   const localForms = useFormsStore((s) => s.forms);
   const localResponses = useFormsStore((s) => s.responses);
   const [forms, setForms] = useState<FormSchema[]>([]);
@@ -184,6 +192,52 @@ export default function PatientForms() {
       </AppBar>
 
       <Container maxWidth="md" sx={{ py: { xs: 3, sm: 4 } }}>
+        {/* 환자·진료 정보 */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 1.75, sm: 2.25 },
+            mb: { xs: 2, sm: 2.5 },
+            borderRadius: 3,
+            border: '1px solid rgba(15,23,42,0.06)',
+            boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.14)',
+            bgcolor: '#fff',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(auto-fit, minmax(120px, 1fr))',
+              },
+              columnGap: 2,
+              rowGap: 1.5,
+            }}
+          >
+            {[
+              { label: '환자명', value: patientName },
+              // 주민등록번호로 로그인한 경우 식별번호는 표시하지 않음
+              ...(idType !== 'rrn' ? [{ label: '환자번호', value: patientNo }] : []),
+              { label: '진료일자', value: visitDate },
+              { label: '진료과', value: department },
+              { label: '진료의사', value: doctor },
+            ].map((f) => (
+              <Box key={f.label}>
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}
+                >
+                  {f.label}
+                </Typography>
+                <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 15 }} noWrap>
+                  {f.value || '-'}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Paper>
+
         {/* 헤더 */}
         <Box sx={{ mb: { xs: 2.5, sm: 3.5 } }}>
           <Typography

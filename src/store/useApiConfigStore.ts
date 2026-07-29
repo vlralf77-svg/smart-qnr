@@ -53,6 +53,9 @@ export const APP_FIELDS: Record<ApiPurpose, { key: string; label: string }[]> = 
     { key: 'valid', label: '성공여부(옵션)' },
     { key: 'patientNo', label: '환자 식별번호' },
     { key: 'name', label: '환자 이름' },
+    { key: 'visitDate', label: '진료일자(예약일자)' },
+    { key: 'department', label: '진료과' },
+    { key: 'doctor', label: '진료의사' },
   ],
   patientForms: [
     { key: 'formId', label: '문진 ID' },

@@ -16,6 +16,10 @@ interface Saved {
   patientNo: string; // 선택한 식별번호(등록번호 또는 주민등록번호)
   name: string | null;
   idType: PatientIdType | null;
+  // 진료 정보(로그인 API 응답에서 매핑되면 채워짐)
+  visitDate?: string | null; // 진료일자(예약일자)
+  department?: string | null; // 진료과
+  doctor?: string | null; // 진료의사
 }
 
 function read(): Saved | null {
@@ -39,6 +43,9 @@ interface PatientState {
   patientNo: string | null;
   name: string | null;
   idType: PatientIdType | null;
+  visitDate: string | null;
+  department: string | null;
+  doctor: string | null;
   error: string;
   busy: boolean;
   /** 이름 + (환자번호/주민번호)로 로그인. 로그인 API가 등록돼 있으면 그걸로 검증(비동기) */
@@ -54,6 +61,9 @@ export const usePatientStore = create<PatientState>((set) => ({
   patientNo: init?.patientNo ?? null,
   name: init?.name ?? null,
   idType: init?.idType ?? null,
+  visitDate: init?.visitDate ?? null,
+  department: init?.department ?? null,
+  doctor: init?.doctor ?? null,
   error: '',
   busy: false,
   login: async ({ name, idType, idValue }) => {
@@ -93,10 +103,15 @@ export const usePatientStore = create<PatientState>((set) => ({
         set({ busy: false, error: '환자 정보를 확인할 수 없습니다. 이름/번호를 확인해 주세요.' });
         return false;
       }
+      const str = (x: unknown): string | null =>
+        x != null && String(x).trim() ? String(x).trim() : null;
       const s: Saved = {
         patientNo: rec.patientNo != null && String(rec.patientNo) ? String(rec.patientNo) : v,
         name: rec.name != null && String(rec.name) ? String(rec.name) : n,
         idType,
+        visitDate: str(rec.visitDate),
+        department: str(rec.department),
+        doctor: str(rec.doctor),
       };
       write(s);
       set({ ...s, busy: false, error: '' });
@@ -108,7 +123,15 @@ export const usePatientStore = create<PatientState>((set) => ({
       set({ error: `등록되지 않은 번호입니다. (테스트: ${TEST_PATIENT_NO})` });
       return false;
     }
-    const s: Saved = { patientNo: v, name: n, idType };
+    // 데모에서는 진료 정보 예시를 채워 화면 구성을 확인할 수 있게 함(운영 로컬은 미표시)
+    const demoVisit = IS_DEMO
+      ? {
+          visitDate: new Date().toISOString().slice(0, 10),
+          department: '내과',
+          doctor: '김의사',
+        }
+      : { visitDate: null, department: null, doctor: null };
+    const s: Saved = { patientNo: v, name: n, idType, ...demoVisit };
     write(s);
     set({ ...s, error: '' });
     return true;
@@ -120,7 +143,14 @@ export const usePatientStore = create<PatientState>((set) => ({
       set({ error: '등록되지 않은 번호입니다.' });
       return false;
     }
-    const s: Saved = { patientNo: v, name: null, idType: 'regno' };
+    const s: Saved = {
+      patientNo: v,
+      name: null,
+      idType: 'regno',
+      visitDate: null,
+      department: null,
+      doctor: null,
+    };
     write(s);
     set({ ...s, error: '' });
     return true;
@@ -131,6 +161,14 @@ export const usePatientStore = create<PatientState>((set) => ({
     } catch {
       /* 무시 */
     }
-    set({ patientNo: null, name: null, idType: null, error: '' });
+    set({
+      patientNo: null,
+      name: null,
+      idType: null,
+      visitDate: null,
+      department: null,
+      doctor: null,
+      error: '',
+    });
   },
 }));
