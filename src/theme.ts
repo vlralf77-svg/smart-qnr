@@ -1,22 +1,26 @@
 import { createTheme } from '@mui/material/styles';
 import { koKR } from '@mui/material/locale';
 
-// LHospital 브랜드 네이비 (작업지시서 §8 Phase3)
-const BRAND_NAVY = '#1E3A5F';
+// SmartQnR 브랜드 그린 — 앱 아이콘(초록) 기준으로 전체 테마 통일
+const BRAND_GREEN = '#22a06b';
 
 export const theme = createTheme(
   {
     palette: {
       primary: {
-        main: BRAND_NAVY,
-        light: '#3d5a80',
-        dark: '#12233b',
+        main: BRAND_GREEN,
+        light: '#4cbf8c',
+        dark: '#167c50',
+        contrastText: '#ffffff',
       },
       secondary: {
-        main: '#4A90D9',
+        main: '#0d7d52', // 딥 그린 — 환자 화면 등 보조 강조
+        light: '#2f9d70',
+        dark: '#095c3c',
+        contrastText: '#ffffff',
       },
       background: {
-        default: '#f4f6f8',
+        default: '#f2f6f4', // 살짝 초록빛이 도는 뉴트럴 배경
       },
     },
     shape: {

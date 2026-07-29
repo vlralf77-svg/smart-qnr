@@ -73,9 +73,9 @@ const PILL_SX = {
 const GRAD_PILL_SX = {
   ...PILL_SX,
   color: '#fff',
-  background: 'linear-gradient(135deg,#12a0b6,#0b8fa3)',
-  boxShadow: '0 8px 18px -8px rgba(11,143,163,.7)',
-  '&:hover': { background: 'linear-gradient(135deg,#0f93a8,#0a7d90)' },
+  background: 'linear-gradient(135deg,#22a06b,#167c50)',
+  boxShadow: '0 8px 18px -8px rgba(22,124,80,.7)',
+  '&:hover': { background: 'linear-gradient(135deg,#1c9160,#126844)' },
 } as const;
 
 // 드롭다운 섹션 라벨
@@ -217,10 +217,10 @@ export default function FormList() {
     run: () => void;
   }
   const actions: Action[] = [
-    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#0b8fa3', chipBg: '#e3f4f7', allowed: canEdit, run: () => navigate('/editor/new') },
+    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: canEdit, run: () => navigate('/editor/new') },
     { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, run: () => navigate('/upload') },
     { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, run: () => setExcelOpen(true) },
-    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#0b8fa3', chipBg: '#e3f4f7', allowed: true, run: () => setLinkOpen(true) },
+    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, run: () => setLinkOpen(true) },
     { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, run: () => window.open('#/patient/login', '_blank') },
     { key: 'accounts', section: '관리', title: '계정 관리', desc: '계정·권한', icon: <ManageAccountsIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/accounts') },
     { key: 'api', section: '관리', title: 'API 연동', desc: 'EMR 연동 설정', icon: <ApiIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: canManage, run: () => navigate('/integration') },
@@ -341,7 +341,7 @@ export default function FormList() {
                           sx={{ ml: 0.5 }}
                         >
                           {a.key === primaryKey ? (
-                            <PushPinIcon fontSize="small" sx={{ color: '#0b8fa3' }} />
+                            <PushPinIcon fontSize="small" sx={{ color: '#167c50' }} />
                           ) : (
                             <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
                           )}

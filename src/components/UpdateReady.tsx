@@ -52,7 +52,7 @@ export default function UpdateReady() {
       }}
     >
       {/* 상단 아이콘 밴드 */}
-      <Box sx={{ pt: 4, pb: 2.5, background: 'linear-gradient(180deg, #e9f6f9 0%, #ffffff 100%)' }}>
+      <Box sx={{ pt: 4, pb: 2.5, background: 'linear-gradient(180deg, #e6f5ee 0%, #ffffff 100%)' }}>
         <Box
           sx={{
             width: 68,
@@ -62,9 +62,9 @@ export default function UpdateReady() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: '#0b8fa3',
+            bgcolor: '#22a06b',
             color: '#fff',
-            boxShadow: '0 8px 20px -8px rgba(11,143,163,0.6)',
+            boxShadow: '0 8px 20px -8px rgba(34,160,107,0.6)',
           }}
         >
           <RocketLaunchRoundedIcon sx={{ fontSize: 32 }} />
@@ -78,7 +78,7 @@ export default function UpdateReady() {
         <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
           {version ? (
             <>
-              새 버전 <b style={{ color: '#0b8fa3' }}>v{version}</b>이 준비되었습니다.
+              새 버전 <b style={{ color: '#167c50' }}>v{version}</b>이 준비되었습니다.
               <br />
             </>
           ) : (
@@ -116,8 +116,8 @@ export default function UpdateReady() {
               borderRadius: 2.5,
               py: 1.1,
               fontWeight: 800,
-              bgcolor: '#0b8fa3',
-              '&:hover': { bgcolor: '#097e90' },
+              bgcolor: '#22a06b',
+              '&:hover': { bgcolor: '#1c9160' },
             }}
           >
             지금 재시작
