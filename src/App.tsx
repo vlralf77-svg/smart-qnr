@@ -15,6 +15,8 @@ import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
 import PatientView from './pages/PatientView';
 import { installLogCapture } from './utils/logCapture';
+import { setLogActorResolver } from './store/useLogStore';
+import { APP_VERSION } from './version';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
 import { Permissions } from './store/useAccountsStore';
@@ -53,6 +55,19 @@ export default function App() {
   // 화면 로그 캡처(콘솔/전역 오류/네트워크) 설치 — 1회
   useEffect(() => {
     installLogCapture();
+    // 각 로그에 현재 사용자 식별정보(아이디·이름·부서·버전)를 붙임 — 나중 중앙 수집 대비
+    setLogActorResolver(() => {
+      const a = useAuthStore.getState();
+      const p = usePatientStore.getState();
+      const who =
+        a.displayName ||
+        a.currentUser ||
+        (p.name ? `환자:${p.name}` : '') ||
+        (p.patientNo ? `환자:${p.patientNo}` : '') ||
+        '미로그인';
+      const dept = a.department ? `·${a.department}` : '';
+      return `${who}${dept} · v${APP_VERSION}`;
+    });
   }, []);
   return (
     <ThemeProvider theme={theme}>

@@ -81,7 +81,9 @@ export default function LogViewer() {
     const q = query.trim().toLowerCase();
     return entries
       .filter((e) => (level === 'all' ? true : e.level === level))
-      .filter((e) => (q ? (e.message + ' ' + (e.detail ?? '')).toLowerCase().includes(q) : true))
+      .filter((e) =>
+        q ? (e.message + ' ' + (e.detail ?? '') + ' ' + (e.actor ?? '')).toLowerCase().includes(q) : true,
+      )
       .slice()
       .reverse(); // 최신이 위로
   }, [entries, level, query]);
@@ -115,7 +117,8 @@ export default function LogViewer() {
     const lines =
       tab === 'client'
         ? clientFiltered.map(
-            (e) => `[${fmtTime(e.ts)}] ${e.level.toUpperCase()} ${e.message}${e.detail ? '\n    ' + e.detail : ''}`,
+            (e) =>
+              `[${fmtTime(e.ts)}] ${e.level.toUpperCase()} ${e.actor ? `{${e.actor}} ` : ''}${e.message}${e.detail ? '\n    ' + e.detail : ''}`,
           )
         : serverLogs.map((r) => JSON.stringify(r));
     const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
@@ -240,6 +243,24 @@ export default function LogViewer() {
                     </Box>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
                       <Typography component="div" sx={{ fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {e.actor && (
+                          <Box
+                            component="span"
+                            sx={{
+                              display: 'inline-block',
+                              mr: 0.75,
+                              px: 0.6,
+                              py: '1px',
+                              borderRadius: 0.75,
+                              bgcolor: 'action.hover',
+                              color: 'text.secondary',
+                              fontSize: 11,
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {e.actor}
+                          </Box>
+                        )}
                         {e.message}
                       </Typography>
                       {e.detail && (
