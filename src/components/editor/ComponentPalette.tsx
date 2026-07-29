@@ -13,8 +13,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import { QuestionType, QUESTION_TYPE_META } from '@/types/schema';
 
-// 팔레트에 노출할 유형(서명 제외) + 아이콘
-const ITEMS: { type: QuestionType; icon: JSX.Element }[] = [
+// 팔레트에 노출할 유형(서명 제외) + 아이콘 — 순서대로 F1, F2, … 단축키가 부여됨
+export const PALETTE_ITEMS: { type: QuestionType; icon: JSX.Element }[] = [
   { type: 'radio', icon: <RadioButtonCheckedIcon fontSize="small" /> },
   { type: 'checkbox', icon: <CheckBoxIcon fontSize="small" /> },
   { type: 'select', icon: <ArrowDropDownCircleOutlinedIcon fontSize="small" /> },
@@ -37,22 +37,25 @@ export default function ComponentPalette({ onAdd }: Props) {
   return (
     <Paper variant="outlined" sx={{ px: 1, py: 0.75, mb: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontWeight: 700, px: 0.75, mr: 0.25 }}
-        >
-          컴포넌트
-        </Typography>
-        {ITEMS.map(({ type, icon }) => {
+        <Tooltip title="섹션을 클릭한 뒤 F1~ 단축키로도 추가할 수 있어요" arrow>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700, px: 0.75, mr: 0.25, cursor: 'default' }}
+          >
+            컴포넌트 <span style={{ opacity: 0.6, fontWeight: 400 }}>(F1~)</span>
+          </Typography>
+        </Tooltip>
+        {PALETTE_ITEMS.map(({ type, icon }, i) => {
           const meta = QUESTION_TYPE_META[type];
-          const title = meta.hint ? `${meta.label} · ${meta.hint}` : meta.label;
+          const fkey = `F${i + 1}`;
+          const title = meta.hint ? `${fkey} · ${meta.label} · ${meta.hint}` : `${fkey} · ${meta.label}`;
           return (
             <Tooltip key={type} title={title} arrow>
               <IconButton
                 size="small"
                 onClick={() => onAdd(type)}
-                aria-label={meta.label}
+                aria-label={`${meta.label} (${fkey})`}
                 sx={{
                   color: 'text.secondary',
                   borderRadius: 1.5,

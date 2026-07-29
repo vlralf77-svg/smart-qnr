@@ -14,10 +14,22 @@ interface Props {
 }
 
 export default function SectionBlock({ section, sectionDragHandle, canDeleteSection }: Props) {
-  const { addQuestion, updateSection, removeSection } = useEditorStore();
+  const { addQuestion, updateSection, removeSection, setActiveSection } = useEditorStore();
+  const activeSectionId = useEditorStore((s) => s.activeSectionId);
+  const isActive = activeSectionId === section.id;
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.5 }}>
+    <Paper
+      variant="outlined"
+      onMouseDown={() => setActiveSection(section.id)}
+      sx={{
+        p: 1.5,
+        // 활성 섹션(단축키 추가 대상)을 테두리로 강조
+        borderColor: isActive ? 'primary.main' : 'divider',
+        boxShadow: isActive ? (t) => `0 0 0 1px ${t.palette.primary.main}` : 'none',
+        transition: 'border-color .12s, box-shadow .12s',
+      }}
+    >
       <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
         <Box {...sectionDragHandle} sx={{ cursor: 'grab', display: 'flex', color: 'text.disabled' }}>
           <DragIndicatorIcon fontSize="small" />

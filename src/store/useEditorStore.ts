@@ -41,6 +41,10 @@ interface EditorState {
   selected: Selection | null;
   /** 다중 선택된 문항 id 목록(기준 선택 포함). 일괄 삭제·이동에 사용 */
   selectedIds: string[];
+  /** 단축키(F1~)로 컴포넌트를 추가할 대상(활성) 섹션 */
+  activeSectionId: string | null;
+  /** 활성 섹션 지정(섹션 클릭 시) */
+  setActiveSection: (id: string | null) => void;
   dirty: boolean;
 
   // 실행 취소 이력
@@ -192,10 +196,13 @@ export const useEditorStore = create<EditorState>((set) => ({
   form: null,
   selected: null,
   selectedIds: [],
+  activeSectionId: null,
   dirty: false,
   _past: [],
   _future: [],
   _clipboard: [],
+
+  setActiveSection: (id) => set({ activeSectionId: id }),
 
   undo: () =>
     set((st) => {
@@ -292,19 +299,38 @@ export const useEditorStore = create<EditorState>((set) => ({
     }),
 
   loadForm: (form) =>
-    set({ form, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
-  newForm: () =>
     set({
-      // 엑셀 가져오기와 동일한 섹션형(아웃라인) 편집기로 열림 (빈 캔버스/배치모드 아님)
-      form: createEmptyForm(),
+      form,
       selected: null,
       selectedIds: [],
+      activeSectionId: form.sections[0]?.id ?? null,
       dirty: false,
       _past: [],
       _future: [],
     }),
+  newForm: () => {
+    // 엑셀 가져오기와 동일한 섹션형(아웃라인) 편집기로 열림 (빈 캔버스/배치모드 아님)
+    const form = createEmptyForm();
+    set({
+      form,
+      selected: null,
+      selectedIds: [],
+      activeSectionId: form.sections[0]?.id ?? null,
+      dirty: false,
+      _past: [],
+      _future: [],
+    });
+  },
   reset: () =>
-    set({ form: null, selected: null, selectedIds: [], dirty: false, _past: [], _future: [] }),
+    set({
+      form: null,
+      selected: null,
+      selectedIds: [],
+      activeSectionId: null,
+      dirty: false,
+      _past: [],
+      _future: [],
+    }),
 
   updateMeta: (patch) =>
     set((st) => (st.form ? { form: { ...st.form, ...patch }, dirty: true } : st)),
@@ -337,6 +363,8 @@ export const useEditorStore = create<EditorState>((set) => ({
       return {
         form: mapSections(st.form, () => sections),
         selected: st.selected?.sectionId === sectionId ? null : st.selected,
+        activeSectionId:
+          st.activeSectionId === sectionId ? sections[0]?.id ?? null : st.activeSectionId,
         dirty: true,
       };
     }),
@@ -433,6 +461,7 @@ export const useEditorStore = create<EditorState>((set) => ({
         form,
         selected: { sectionId, questionId: newQuestionId },
         selectedIds: [newQuestionId],
+        activeSectionId: sectionId,
         dirty: true,
       };
     }),
@@ -591,7 +620,13 @@ export const useEditorStore = create<EditorState>((set) => ({
         : st,
     ),
 
-  select: (sel) => set({ selected: sel, selectedIds: sel ? [sel.questionId] : [] }),
+  select: (sel) =>
+    set((st) => ({
+      selected: sel,
+      selectedIds: sel ? [sel.questionId] : [],
+      // 문항을 고르면 그 섹션이 활성 섹션이 되도록(단축키 추가 대상)
+      activeSectionId: sel ? sel.sectionId : st.activeSectionId,
+    })),
 
   toggleSelect: (sectionId, questionId) =>
     set((st) => {

@@ -34,7 +34,7 @@ import { useCategoriesStore } from '@/store/useCategoriesStore';
 import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
-import ComponentPalette from '@/components/editor/ComponentPalette';
+import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPalette';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import FormRenderer from '@/components/renderer/FormRenderer';
 
@@ -58,6 +58,7 @@ export default function FormEditor() {
   } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
+  const activeSectionId = useEditorStore((s) => s.activeSectionId);
   const categories = useCategoriesStore((s) => s.categories);
   const addCategory = useCategoriesStore((s) => s.addCategory);
   const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
@@ -218,6 +219,27 @@ export default function FormEditor() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [undo, redo, deleteSelected, nudgeSelected, copySelected, paste]);
+
+  // F1~F(N): 팔레트 순서대로 컴포넌트를 활성 섹션에 추가
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const m = /^F(\d{1,2})$/.exec(e.key);
+      if (!m) return;
+      const idx = Number(m[1]) - 1;
+      if (idx < 0 || idx >= PALETTE_ITEMS.length) return;
+      const st = useEditorStore.getState();
+      if (!st.form || isOverlayForm(st.form)) return;
+      const target =
+        st.activeSectionId ||
+        st.selected?.sectionId ||
+        st.form.sections[st.form.sections.length - 1]?.id;
+      if (!target) return;
+      e.preventDefault();
+      st.addQuestion(target, PALETTE_ITEMS[idx].type);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   if (!form) return null;
 
@@ -389,7 +411,9 @@ export default function FormEditor() {
               <ComponentPalette
                 onAdd={(t) => {
                   const targetSectionId =
-                    selectedSectionId || form.sections[form.sections.length - 1]?.id;
+                    activeSectionId ||
+                    selectedSectionId ||
+                    form.sections[form.sections.length - 1]?.id;
                   if (targetSectionId) addQuestion(targetSectionId, t);
                 }}
               />
