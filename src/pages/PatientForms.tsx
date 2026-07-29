@@ -192,27 +192,28 @@ export default function PatientForms() {
       </AppBar>
 
       <Container maxWidth="md" sx={{ py: { xs: 3, sm: 4 } }}>
-        {/* 환자·진료 정보 */}
+        {/* 환자·진료 정보 — 한 줄로(작게) 표시, 좁으면 가로 스크롤 */}
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 1.75, sm: 2.25 },
+            px: { xs: 1.5, sm: 2 },
+            py: 1,
             mb: { xs: 2, sm: 2.5 },
-            borderRadius: 3,
+            borderRadius: 2.5,
             border: '1px solid rgba(15,23,42,0.06)',
             boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.14)',
             bgcolor: '#fff',
+            overflowX: 'auto',
           }}
         >
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: 'repeat(2, 1fr)',
-                sm: 'repeat(auto-fit, minmax(120px, 1fr))',
-              },
-              columnGap: 2,
-              rowGap: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              whiteSpace: 'nowrap',
+              width: 'max-content',
+              minWidth: '100%',
             }}
           >
             {[
@@ -222,17 +223,19 @@ export default function PatientForms() {
               { label: '진료일자', value: visitDate },
               { label: '진료과', value: department },
               { label: '진료의사', value: doctor },
-            ].map((f) => (
-              <Box key={f.label}>
-                <Typography
-                  variant="caption"
-                  sx={{ color: 'text.secondary', display: 'block', mb: 0.25 }}
-                >
-                  {f.label}
-                </Typography>
-                <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 15 }} noWrap>
-                  {f.value || '-'}
-                </Typography>
+            ].map((f, i, arr) => (
+              <Box key={f.label} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {f.label}
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 13 }}>
+                    {f.value || '-'}
+                  </Typography>
+                </Box>
+                {i < arr.length - 1 && (
+                  <Box sx={{ width: '1px', height: 14, bgcolor: 'rgba(15,23,42,0.12)' }} />
+                )}
               </Box>
             ))}
           </Box>
