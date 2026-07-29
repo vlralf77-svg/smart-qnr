@@ -13,12 +13,6 @@ import {
   MenuItem,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Toolbar,
   Tooltip,
@@ -97,6 +91,75 @@ function MenuSection({ label }: { label: string }) {
   );
 }
 
+// 사이드 필터 항목(라벨 + 건수 + 선택 강조 + 상태 점)
+function SideItem({
+  label,
+  count,
+  active,
+  onClick,
+  dot,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  dot?: string;
+}) {
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 1,
+        px: 1.25,
+        py: 0.8,
+        borderRadius: 2,
+        cursor: 'pointer',
+        bgcolor: active ? 'background.paper' : 'transparent',
+        boxShadow: active ? '0 4px 12px -6px rgba(15,23,42,.25)' : 'none',
+        border: '1px solid',
+        borderColor: active ? 'divider' : 'transparent',
+        '&:hover': { bgcolor: active ? 'background.paper' : 'action.hover' },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        {dot && (
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
+        )}
+        <Typography noWrap sx={{ fontSize: 13.5, fontWeight: active ? 700 : 500 }}>
+          {label}
+        </Typography>
+      </Box>
+      <Typography
+        sx={{ fontSize: 11.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+      >
+        {count}
+      </Typography>
+    </Box>
+  );
+}
+
+// 사이드 섹션 라벨
+function SideLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography
+      sx={{
+        px: 0.75,
+        mt: 1.5,
+        mb: 0.5,
+        fontSize: 10.5,
+        fontWeight: 800,
+        letterSpacing: '0.06em',
+        color: 'text.disabled',
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
 // 아이콘 칩 + 제목·설명 메뉴 항목
 function ActionItem({
   icon,
@@ -161,6 +224,7 @@ export default function FormList() {
   const managedCategories = useCategoriesStore((s) => s.categories);
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState<string>(ALL);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
   const [manageOpen, setManageOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
@@ -190,10 +254,24 @@ export default function FormList() {
         const matchCat =
           catFilter === ALL ||
           (catFilter === NONE ? !f.category : f.category === catFilter);
-        return matchQ && matchCat;
+        const matchStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'published' ? f.status === 'published' : f.status !== 'published');
+        return matchQ && matchCat && matchStatus;
       }),
-    [forms, query, catFilter],
+    [forms, query, catFilter, statusFilter],
   );
+
+  // 사이드 필터 건수(상태·분류별)
+  const counts = useMemo(() => {
+    const published = forms.filter((f) => f.status === 'published').length;
+    const byCat: Record<string, number> = {};
+    forms.forEach((f) => {
+      const k = f.category ?? NONE;
+      byCat[k] = (byCat[k] ?? 0) + 1;
+    });
+    return { total: forms.length, published, draft: forms.length - published, byCat };
+  }, [forms]);
 
   const seedSample = () => {
     void saveForm({ ...SAMPLE_FORM, id: `${SAMPLE_FORM.id}_${Date.now().toString(36)}` }).catch(
@@ -355,46 +433,6 @@ export default function FormList() {
           </Menu>
         </Stack>
 
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-          <TextField
-            size="small"
-            placeholder="제목 또는 ID 검색"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            sx={{ width: 300 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            select
-            size="small"
-            label="분류"
-            value={catFilter}
-            onChange={(e) => setCatFilter(e.target.value)}
-            sx={{ width: 180 }}
-          >
-            <MenuItem value={ALL}>전체</MenuItem>
-            {filterCategories.map((c) => (
-              <MenuItem key={c} value={c}>
-                {c}
-              </MenuItem>
-            ))}
-            {hasUncategorized && <MenuItem value={NONE}>분류 없음</MenuItem>}
-          </TextField>
-          <Button
-            variant="outlined"
-            startIcon={<LabelOutlinedIcon />}
-            onClick={() => setManageOpen(true)}
-          >
-            분류 관리
-          </Button>
-        </Stack>
-
         {forms.length === 0 ? (
           <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
             <Typography color="text.secondary" mb={2}>
@@ -416,67 +454,158 @@ export default function FormList() {
             )}
           </Paper>
         ) : (
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>제목</TableCell>
-                  <TableCell width={130}>분류</TableCell>
-                  <TableCell width={100}>상태</TableCell>
-                  <TableCell width={80}>버전</TableCell>
-                  <TableCell width={110}>문항 수</TableCell>
-                  <TableCell width={160}>최초등록일</TableCell>
-                  <TableCell width={160}>최종수정일</TableCell>
-                  <TableCell width={160} align="right">
-                    작업
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
+              gap: 2.5,
+              alignItems: 'start',
+            }}
+          >
+            {/* 좌: 검색 + 상태·분류 필터 (상시 노출) */}
+            <Paper
+              variant="outlined"
+              sx={{ p: 1.5, borderRadius: 3, position: { md: 'sticky' }, top: 88 }}
+            >
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="제목 · ID 검색"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <SideLabel>상태</SideLabel>
+              <SideItem
+                label="전체"
+                count={counts.total}
+                active={statusFilter === 'all'}
+                onClick={() => setStatusFilter('all')}
+              />
+              <SideItem
+                label="인증저장"
+                dot="#22a06b"
+                count={counts.published}
+                active={statusFilter === 'published'}
+                onClick={() => setStatusFilter('published')}
+              />
+              <SideItem
+                label="임시저장"
+                dot="#b7791f"
+                count={counts.draft}
+                active={statusFilter === 'draft'}
+                onClick={() => setStatusFilter('draft')}
+              />
+
+              <SideLabel>분류</SideLabel>
+              <SideItem
+                label="전체"
+                count={counts.total}
+                active={catFilter === ALL}
+                onClick={() => setCatFilter(ALL)}
+              />
+              {filterCategories.map((c) => (
+                <SideItem
+                  key={c}
+                  label={c}
+                  count={counts.byCat[c] ?? 0}
+                  active={catFilter === c}
+                  onClick={() => setCatFilter(c)}
+                />
+              ))}
+              {hasUncategorized && (
+                <SideItem
+                  label="분류 없음"
+                  count={counts.byCat[NONE] ?? 0}
+                  active={catFilter === NONE}
+                  onClick={() => setCatFilter(NONE)}
+                />
+              )}
+
+              <Button
+                variant="outlined"
+                size="small"
+                fullWidth
+                startIcon={<LabelOutlinedIcon />}
+                onClick={() => setManageOpen(true)}
+                sx={{ mt: 1.5 }}
+              >
+                분류 관리
+              </Button>
+            </Paper>
+
+            {/* 우: 문진 리스트(여유로운 행) */}
+            {filtered.length === 0 ? (
+              <Paper variant="outlined" sx={{ p: 5, textAlign: 'center', borderRadius: 3 }}>
+                <Typography color="text.secondary">조건에 맞는 문진이 없습니다.</Typography>
+              </Paper>
+            ) : (
+              <Stack spacing={1.25}>
                 {filtered.map((f) => {
                   const qCount = f.sections.reduce((a, s) => a + s.questions.length, 0);
                   const st = STATUS_LABEL[f.status] ?? STATUS_LABEL.draft;
                   return (
-                    <TableRow key={f.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
+                    <Paper
+                      key={f.id}
+                      variant="outlined"
+                      sx={{
+                        p: 1.75,
+                        borderRadius: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        transition: 'box-shadow .15s, border-color .15s',
+                        '&:hover': {
+                          borderColor: 'divider',
+                          boxShadow: '0 10px 26px -16px rgba(15,23,42,.35)',
+                        },
+                      }}
+                    >
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography fontWeight={700} noWrap>
                           {f.title}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {f.id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {f.category ? (
-                          <Chip
-                            label={f.category}
-                            size="small"
-                            variant="outlined"
-                            onClick={() => setCatFilter(f.category as string)}
-                            sx={{ cursor: 'pointer' }}
-                          />
-                        ) : (
-                          <Typography variant="caption" color="text.disabled">
-                            —
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
+                          sx={{ mt: 0.5 }}
+                        >
+                          {f.category ? (
+                            <Chip
+                              label={f.category}
+                              size="small"
+                              variant="outlined"
+                              onClick={() => setCatFilter(f.category as string)}
+                              sx={{ cursor: 'pointer' }}
+                            />
+                          ) : null}
+                          <Chip label={st.label} color={st.color} size="small" />
+                          <Typography variant="caption" color="text.secondary">
+                            문항 {qCount} · v{f.version}
                           </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={st.label} color={st.color} size="small" />
-                      </TableCell>
-                      <TableCell>v{f.version}</TableCell>
-                      <TableCell>{qCount}</TableCell>
-                      <TableCell>
-                        <Typography variant="caption">
-                          {f.createdAt ? new Date(f.createdAt).toLocaleString('ko-KR') : '-'}
+                        </Stack>
+                      </Box>
+
+                      <Box sx={{ textAlign: 'right', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          등록 {f.createdAt ? new Date(f.createdAt).toLocaleDateString('ko-KR') : '-'}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="caption">
-                          {f.updatedAt ? new Date(f.updatedAt).toLocaleString('ko-KR') : '-'}
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          수정 {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('ko-KR') : '-'}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
+                      </Box>
+
+                      <Box sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
                         {canView && (
                           <Tooltip title="내용 보기">
                             <IconButton size="small" onClick={() => setPreviewForm(f)}>
@@ -512,13 +641,13 @@ export default function FormList() {
                             </IconButton>
                           </Tooltip>
                         )}
-                      </TableCell>
-                    </TableRow>
+                      </Box>
+                    </Paper>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </Stack>
+            )}
+          </Box>
         )}
       </Container>
 
