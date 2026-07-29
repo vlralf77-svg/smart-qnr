@@ -1,6 +1,7 @@
 // 선택된 문항 편집 패널 (§4.3 중앙 패널)
 import { useRef, useState } from 'react';
 import {
+  Autocomplete,
   Box,
   Button,
   Divider,
@@ -27,6 +28,53 @@ import ConditionEditor from './ConditionEditor';
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
 const COLOR_PRESETS = ['#1e293b', '#d32f2f', '#1976d2', '#2e7d32', '#ed6c02', '#7b1fa2'];
+
+// 숫자/척도 범위 콤보용 프리셋(직접 입력도 가능)
+const MIN_PRESETS = ['0', '1', '5', '10'];
+const MAX_PRESETS = ['5', '10', '20', '50', '100'];
+const STEP_PRESETS = ['1', '2', '5', '10'];
+
+// 숫자 콤보 — 프리셋에서 고르거나 직접 입력(빈 값이면 미지정)
+function NumberCombo({
+  label,
+  value,
+  presets,
+  width = 116,
+  onCommit,
+}: {
+  label: string;
+  value: number | undefined;
+  presets: string[];
+  width?: number;
+  onCommit: (n: number | undefined) => void;
+}) {
+  const parse = (raw: string | null): number | undefined => {
+    const s = (raw ?? '').trim();
+    if (s === '') return undefined;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  return (
+    <Autocomplete
+      freeSolo
+      size="small"
+      options={presets}
+      inputValue={value != null ? String(value) : ''}
+      onChange={(_e, v) => onCommit(parse(typeof v === 'string' ? v : ''))}
+      onInputChange={(_e, v, reason) => {
+        if (reason === 'input') onCommit(parse(v));
+      }}
+      sx={{ width }}
+      renderInput={(p) => (
+        <TextField
+          {...p}
+          label={label}
+          inputProps={{ ...p.inputProps, inputMode: 'numeric' }}
+        />
+      )}
+    />
+  );
+}
 
 interface Props {
   sectionId: string;
@@ -291,40 +339,25 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
             <Typography variant="subtitle2" fontWeight={700} mb={1}>
               {question.type === 'scale' ? '척도 범위' : '숫자 범위 (선택)'}
             </Typography>
-            <Stack direction="row" spacing={1}>
-              <TextField
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <NumberCombo
                 label="최소"
-                type="number"
-                size="small"
-                value={question.min ?? ''}
-                onChange={(e) =>
-                  updateQuestion(sectionId, question.id, {
-                    min: e.target.value === '' ? undefined : Number(e.target.value),
-                  })
-                }
+                value={question.min}
+                presets={MIN_PRESETS}
+                onCommit={(n) => updateQuestion(sectionId, question.id, { min: n })}
               />
-              <TextField
+              <NumberCombo
                 label="최대"
-                type="number"
-                size="small"
-                value={question.max ?? ''}
-                onChange={(e) =>
-                  updateQuestion(sectionId, question.id, {
-                    max: e.target.value === '' ? undefined : Number(e.target.value),
-                  })
-                }
+                value={question.max}
+                presets={MAX_PRESETS}
+                onCommit={(n) => updateQuestion(sectionId, question.id, { max: n })}
               />
               {question.type === 'scale' && (
-                <TextField
+                <NumberCombo
                   label="간격"
-                  type="number"
-                  size="small"
-                  value={question.step ?? 1}
-                  onChange={(e) =>
-                    updateQuestion(sectionId, question.id, {
-                      step: e.target.value === '' ? undefined : Number(e.target.value),
-                    })
-                  }
+                  value={question.step}
+                  presets={STEP_PRESETS}
+                  onCommit={(n) => updateQuestion(sectionId, question.id, { step: n })}
                 />
               )}
             </Stack>
