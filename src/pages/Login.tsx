@@ -1,4 +1,4 @@
-// 로그인 화면 — 프로그램 실행 시 최초 진입
+// 로그인 화면 — 프로그램 실행 시 최초 진입 (시안 B: 중앙 카드·클리닉형)
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -17,6 +17,8 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AppIcon from '@/components/AppIcon';
 import { IS_DEMO } from '@/config';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -26,13 +28,39 @@ interface LocationState {
   from?: string;
 }
 
-// 두 로그인 화면(문진관리/문진입력) 카드 크기를 동일하게 — 내용이 달라도 같은 박스
+// 두 로그인 화면(문진관리/문진입력) 카드 규격을 동일하게 — 내용이 달라도 같은 박스
+//  · 상단 강조바를 위해 카드 자체는 여백 없이(overflow hidden), 내부 본문에서 여백을 준다.
 export const LOGIN_CARD_SX = {
-  p: 4,
+  p: 0,
   minHeight: 468,
+  borderRadius: 3,
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  boxShadow: '0 1px 2px rgba(15,23,42,.05), 0 22px 44px -26px rgba(15,23,42,.28)',
+} as const;
+
+// 카드 내부 본문 여백(강조바 아래)
+export const LOGIN_BODY_SX = {
+  p: 4,
+  flex: 1,
   display: 'flex',
   flexDirection: 'column',
 } as const;
+
+// 카드 상단 강조바 — 앱 브랜드(네이비) 그라데이션
+export function LoginAccentBar() {
+  return (
+    <Box
+      sx={{
+        height: 5,
+        flexShrink: 0,
+        background: (t) =>
+          `linear-gradient(90deg, ${t.palette.primary.main}, ${t.palette.primary.light})`,
+      }}
+    />
+  );
+}
 
 // 로그인 화면 상단 토글 — 선택된 쪽을 진한 채움색으로, 높이는 고정(두 화면 동일)
 export const TOGGLE_SX = {
@@ -92,83 +120,107 @@ export default function Login() {
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
+        p: 2,
       }}
     >
       <Container maxWidth="xs">
         <Paper variant="outlined" sx={LOGIN_CARD_SX}>
-          <ToggleButtonGroup
-            exclusive
-            fullWidth
-            size="small"
-            color="primary"
-            value="admin"
-            onChange={(_e, v) => {
-              if (v === 'patient') navigate('/patient/login');
-            }}
-            sx={TOGGLE_SX}
-          >
-            <ToggleButton value="admin">문진관리</ToggleButton>
-            <ToggleButton value="patient">문진입력</ToggleButton>
-          </ToggleButtonGroup>
+          <LoginAccentBar />
+          <Box sx={LOGIN_BODY_SX}>
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              size="small"
+              color="primary"
+              value="admin"
+              onChange={(_e, v) => {
+                if (v === 'patient') navigate('/patient/login');
+              }}
+              sx={TOGGLE_SX}
+            >
+              <ToggleButton value="admin">문진관리</ToggleButton>
+              <ToggleButton value="patient">문진입력</ToggleButton>
+            </ToggleButtonGroup>
 
-          <Stack alignItems="center" spacing={1} mb={3}>
-            <AppIcon size={64} />
-            <Typography variant="h6" fontWeight={700}>
-              SmartQnR 문진관리
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              로그인이 필요합니다
-            </Typography>
-            <Typography variant="caption" color="text.disabled">
-              버전 v{APP_VERSION}
-            </Typography>
-          </Stack>
+            <Stack alignItems="center" spacing={1} mb={3}>
+              <AppIcon size={56} />
+              <Typography variant="h6" fontWeight={800}>
+                SmartQnR 문진관리
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                로그인이 필요합니다
+              </Typography>
+            </Stack>
 
-          <form onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              <TextField
-                label="아이디"
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-                fullWidth
-                autoFocus
-                size="small"
-                autoComplete="username"
-              />
-              <TextField
-                label="비밀번호"
-                type={showPw ? 'text' : 'password'}
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                fullWidth
-                size="small"
-                autoComplete="current-password"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPw((v) => !v)}
-                        edge="end"
-                        size="small"
-                        tabIndex={-1}
-                      >
-                        {showPw ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              {error && <Alert severity="error">{error}</Alert>}
-              <Button type="submit" variant="contained" size="large" fullWidth>
-                로그인
-              </Button>
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={2}>
+                <TextField
+                  label="아이디"
+                  value={id}
+                  onChange={(e) => setId(e.target.value)}
+                  fullWidth
+                  autoFocus
+                  size="small"
+                  autoComplete="username"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonOutlineIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <TextField
+                  label="비밀번호"
+                  type={showPw ? 'text' : 'password'}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  fullWidth
+                  size="small"
+                  autoComplete="current-password"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPw((v) => !v)}
+                          edge="end"
+                          size="small"
+                          tabIndex={-1}
+                        >
+                          {showPw ? (
+                            <VisibilityOff fontSize="small" />
+                          ) : (
+                            <Visibility fontSize="small" />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                {error && <Alert severity="error">{error}</Alert>}
+                <Button type="submit" variant="contained" size="large" fullWidth>
+                  로그인
+                </Button>
+              </Stack>
+            </form>
+
+            <Box sx={{ flex: 1 }} />
+            <Stack alignItems="center" spacing={0.25} sx={{ mt: 2 }}>
               {IS_DEMO && (
                 <Typography variant="caption" color="text.disabled" textAlign="center">
                   단축키: 아이디 입력 후 Ctrl+Q
                 </Typography>
               )}
+              <Typography variant="caption" color="text.disabled">
+                버전 v{APP_VERSION}
+              </Typography>
             </Stack>
-          </form>
+          </Box>
         </Paper>
       </Container>
     </Box>
