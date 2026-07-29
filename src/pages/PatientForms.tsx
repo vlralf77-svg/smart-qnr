@@ -192,9 +192,11 @@ export default function PatientForms() {
             문진 목록
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-            작성할 문진을 선택하세요. 완료한 문진은 눌러서 내용을 확인할 수 있습니다.
+            작성할 문진을 선택하세요.
+            완료한 문진은 눌러서 내용을 확인할 수 있습니다.
             {forms.length > 0 && ` · 전체 ${forms.length}개 중 ${doneCount}개 완료`}
           </Typography>
+         
         </Box>
 
         {emrNote && (
