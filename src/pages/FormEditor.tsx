@@ -34,6 +34,7 @@ import { useCategoriesStore } from '@/store/useCategoriesStore';
 import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
+import ComponentPalette from '@/components/editor/ComponentPalette';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import FormRenderer from '@/components/renderer/FormRenderer';
 
@@ -53,6 +54,7 @@ export default function FormEditor() {
     nudgeSelected,
     copySelected,
     paste,
+    addQuestion,
   } = useEditorStore();
   const canUndo = useEditorStore((s) => s._past.length > 0);
   const canRedo = useEditorStore((s) => s._future.length > 0);
@@ -379,7 +381,21 @@ export default function FormEditor() {
             />
           </Paper>
 
-          {isOverlayForm(form) ? <OverlayEditor form={form} /> : <EditorOutline form={form} />}
+          {isOverlayForm(form) ? (
+            <OverlayEditor form={form} />
+          ) : (
+            <>
+              {/* 상단 컴포넌트 팔레트 — 유형을 눌러 현재 섹션에 바로 삽입 */}
+              <ComponentPalette
+                onAdd={(t) => {
+                  const targetSectionId =
+                    selectedSectionId || form.sections[form.sections.length - 1]?.id;
+                  if (targetSectionId) addQuestion(targetSectionId, t);
+                }}
+              />
+              <EditorOutline form={form} />
+            </>
+          )}
         </Box>
 
         {/* 좌(아웃라인) ↔ 중(옵션 설정) 너비 조절 구분선(드래그) */}
