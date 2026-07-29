@@ -19,7 +19,7 @@ import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import { usePatientStore, TEST_PATIENT_NO, PatientIdType } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
 import { IS_DEMO } from '@/config';
-import { TOGGLE_SX, LOGIN_CARD_SX, LOGIN_BODY_SX, LoginAccentBar } from './Login';
+import { TOGGLE_SX, LOGIN_CARD_SX, LOGIN_SCREEN_SX, LOGIN_FIELD_SX, LOGIN_BTN_SX } from './Login';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
@@ -47,121 +47,124 @@ export default function PatientLogin() {
   }, []);
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        p: 2,
-      }}
-    >
+    <Box sx={LOGIN_SCREEN_SX}>
       <Container maxWidth="xs">
-        <Paper variant="outlined" sx={LOGIN_CARD_SX}>
-          <LoginAccentBar />
-          <Box sx={LOGIN_BODY_SX}>
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              size="small"
-              color="primary"
-              value="patient"
-              onChange={(_e, v) => {
-                if (v === 'admin') navigate('/login');
+        <Paper elevation={0} sx={LOGIN_CARD_SX}>
+          <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                bgcolor: 'secondary.main',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
               }}
-              sx={TOGGLE_SX}
             >
-              <ToggleButton value="admin">문진관리</ToggleButton>
-              <ToggleButton value="patient">문진입력</ToggleButton>
-            </ToggleButtonGroup>
-
-            <Stack alignItems="center" spacing={1} mb={3}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'secondary.main',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <EditNoteRoundedIcon sx={{ fontSize: 32 }} />
-              </Box>
-              <Typography variant="h6" fontWeight={800}>
+              <EditNoteRoundedIcon sx={{ fontSize: 26 }} />
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={800} lineHeight={1.2}>
                 문진 작성
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                환자 이름과 번호를 입력해 주세요
+              <Typography variant="caption" color="text.secondary">
+                환자 정보를 입력해 주세요
               </Typography>
-            </Stack>
+            </Box>
+          </Stack>
 
-            <form onSubmit={handleSubmit}>
-              <Stack spacing={2}>
-                <TextField
-                  label="환자 이름"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  fullWidth
-                  autoFocus
-                  placeholder="예: 홍길동"
-                />
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            size="small"
+            color="primary"
+            value="patient"
+            onChange={(_e, v) => {
+              if (v === 'admin') navigate('/login');
+            }}
+            sx={TOGGLE_SX}
+          >
+            <ToggleButton value="admin">문진관리</ToggleButton>
+            <ToggleButton value="patient">문진입력</ToggleButton>
+          </ToggleButtonGroup>
 
-                <ToggleButtonGroup
-                  exclusive
-                  fullWidth
-                  size="small"
-                  color="secondary"
-                  value={idType}
-                  onChange={(_e, v: PatientIdType | null) => {
-                    if (v) {
-                      setIdType(v);
-                      setIdValue('');
-                    }
-                  }}
-                >
-                  <ToggleButton value="regno">환자번호</ToggleButton>
-                  <ToggleButton value="rrn">주민등록번호</ToggleButton>
-                </ToggleButtonGroup>
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={1.75}>
+              <TextField
+                label="환자 이름"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+                autoFocus
+                size="small"
+                placeholder="예: 홍길동"
+                sx={LOGIN_FIELD_SX}
+              />
 
-                <TextField
-                  label={idType === 'rrn' ? '주민등록번호' : '환자번호'}
-                  value={idValue}
-                  onChange={(e) => setIdValue(e.target.value)}
-                  fullWidth
-                  inputMode="numeric"
-                  inputProps={idType === 'rrn' ? { maxLength: 14 } : undefined}
-                  placeholder={
-                    idType === 'rrn'
-                      ? '앞 6자리-뒤 7자리'
-                      : IS_DEMO
-                        ? TEST_PATIENT_NO
-                        : '환자번호'
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                size="small"
+                color="secondary"
+                value={idType}
+                onChange={(_e, v: PatientIdType | null) => {
+                  if (v) {
+                    setIdType(v);
+                    setIdValue('');
                   }
-                />
+                }}
+                sx={{ ...TOGGLE_SX, mb: 0 }}
+              >
+                <ToggleButton value="regno">환자번호</ToggleButton>
+                <ToggleButton value="rrn">주민등록번호</ToggleButton>
+              </ToggleButtonGroup>
 
-                {error && <Alert severity="error">{error}</Alert>}
-                <Button type="submit" variant="contained" size="large" fullWidth disabled={busy}>
-                  {busy ? '확인 중…' : '시작하기'}
-                </Button>
-              </Stack>
-            </form>
+              <TextField
+                label={idType === 'rrn' ? '주민등록번호' : '환자번호'}
+                value={idValue}
+                onChange={(e) => setIdValue(e.target.value)}
+                fullWidth
+                size="small"
+                inputMode="numeric"
+                inputProps={idType === 'rrn' ? { maxLength: 14 } : undefined}
+                sx={LOGIN_FIELD_SX}
+                placeholder={
+                  idType === 'rrn'
+                    ? '앞 6자리-뒤 7자리'
+                    : IS_DEMO
+                      ? TEST_PATIENT_NO
+                      : '환자번호'
+                }
+              />
 
-            <Box sx={{ flex: 1 }} />
-            <Stack alignItems="center" spacing={0.25} sx={{ mt: 2 }}>
-              {IS_DEMO && (
-                <Typography variant="caption" color="text.secondary" textAlign="center">
-                  테스트: 이름 아무거나 · 번호 {TEST_PATIENT_NO}
-                </Typography>
-              )}
-              <Typography variant="caption" color="text.disabled">
-                버전 v{APP_VERSION}
-              </Typography>
+              {error && <Alert severity="error">{error}</Alert>}
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                fullWidth
+                disabled={busy}
+                sx={LOGIN_BTN_SX}
+              >
+                {busy ? '확인 중…' : '시작하기'}
+              </Button>
             </Stack>
-          </Box>
+          </form>
+
+          <Box sx={{ flex: 1 }} />
+          <Stack alignItems="center" spacing={0.25} sx={{ mt: 2 }}>
+            {IS_DEMO && (
+              <Typography variant="caption" color="text.secondary" textAlign="center">
+                테스트: 이름 아무거나 · 번호 {TEST_PATIENT_NO}
+              </Typography>
+            )}
+            <Typography variant="caption" color="text.disabled">
+              버전 v{APP_VERSION}
+            </Typography>
+          </Stack>
         </Paper>
       </Container>
     </Box>
