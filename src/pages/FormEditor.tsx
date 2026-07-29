@@ -37,6 +37,7 @@ import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
 import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPalette';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import FormRenderer from '@/components/renderer/FormRenderer';
+import PreviewErrorBoundary from '@/components/PreviewErrorBoundary';
 
 export default function FormEditor() {
   const { formId } = useParams();
@@ -569,7 +570,9 @@ export default function FormEditor() {
             </Stack>
             <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
               {/* 편집 내용이 바뀌면 즉시 반영 (응답 화면과 동일 렌더) */}
-              <FormRenderer key={form.id} schema={form} preview />
+              <PreviewErrorBoundary>
+                <FormRenderer key={form.id} schema={form} preview />
+              </PreviewErrorBoundary>
             </Box>
           </Box>
         )}

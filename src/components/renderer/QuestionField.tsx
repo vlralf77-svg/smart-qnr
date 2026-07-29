@@ -310,9 +310,16 @@ export default function QuestionField({ question: q, control, errors }: Props) {
     }
 
     case 'scale': {
-      const min = q.min ?? 0;
-      const max = q.max ?? 10;
-      const step = q.step ?? 1;
+      // 값이 편집 중이면(미리보기) min/max/step 이 일시적으로 잘못될 수 있어 방어적으로 보정.
+      //  - step 은 0/음수면 1 로, max 는 min 이하이면 min+step 으로 강제해 Slider 오류 방지
+      //  - 눈금(marks)은 개수가 많으면 렌더가 폭주(흰 화면/멈춤)하므로 20개 이하일 때만 표시
+      const min = Number.isFinite(q.min) ? (q.min as number) : 0;
+      const rawStep = Number.isFinite(q.step) ? (q.step as number) : 1;
+      const step = rawStep > 0 ? rawStep : 1;
+      const rawMax = Number.isFinite(q.max) ? (q.max as number) : 10;
+      const max = rawMax > min ? rawMax : min + step;
+      const markCount = Math.floor((max - min) / step);
+      const showMarks = markCount >= 1 && markCount <= 20;
       return (
         <FormControl fullWidth error={!!err}>
           {labelNode}
@@ -330,7 +337,7 @@ export default function QuestionField({ question: q, control, errors }: Props) {
                   min={min}
                   max={max}
                   step={step}
-                  marks
+                  marks={showMarks}
                   valueLabelDisplay="auto"
                 />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
