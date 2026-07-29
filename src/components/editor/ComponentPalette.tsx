@@ -1,5 +1,5 @@
-// 상단 컴포넌트 팔레트 — 유형을 클릭하면 대상 섹션에 문항으로 삽입
-import { Box, Paper, Typography } from '@mui/material';
+// 상단 컴포넌트 팔레트 — 아이콘만 표시(툴팁으로 한글명), 클릭 시 대상 섹션에 문항 삽입
+import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import ArrowDropDownCircleOutlinedIcon from '@mui/icons-material/ArrowDropDownCircleOutlined';
@@ -35,60 +35,35 @@ interface Props {
 
 export default function ComponentPalette({ onAdd }: Props) {
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
-      <Typography variant="overline" color="text.secondary">
-        컴포넌트
-      </Typography>
-      <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 1 }}>
-        원하는 유형을 클릭하면 문진에 추가됩니다.
-      </Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
-          gap: 1,
-        }}
-      >
-        {ITEMS.map(({ type, icon }) => (
-          <Box
-            key={type}
-            role="button"
-            tabIndex={0}
-            onClick={() => onAdd(type)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onAdd(type);
-              }
-            }}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 0.5,
-              py: 1,
-              px: 0.5,
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: 'divider',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              textAlign: 'center',
-              userSelect: 'none',
-              transition: 'all .12s',
-              '&:hover': {
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            {icon}
-            <Typography variant="caption" sx={{ fontWeight: 600, lineHeight: 1.1 }}>
-              {QUESTION_TYPE_META[type].label}
-            </Typography>
-          </Box>
-        ))}
+    <Paper variant="outlined" sx={{ px: 1, py: 0.75, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap' }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontWeight: 700, px: 0.75, mr: 0.25 }}
+        >
+          컴포넌트
+        </Typography>
+        {ITEMS.map(({ type, icon }) => {
+          const meta = QUESTION_TYPE_META[type];
+          const title = meta.hint ? `${meta.label} · ${meta.hint}` : meta.label;
+          return (
+            <Tooltip key={type} title={title} arrow>
+              <IconButton
+                size="small"
+                onClick={() => onAdd(type)}
+                aria-label={meta.label}
+                sx={{
+                  color: 'text.secondary',
+                  borderRadius: 1.5,
+                  '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+                }}
+              >
+                {icon}
+              </IconButton>
+            </Tooltip>
+          );
+        })}
       </Box>
     </Paper>
   );
