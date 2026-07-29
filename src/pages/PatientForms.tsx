@@ -224,17 +224,18 @@ export default function PatientForms() {
               { label: '진료과', value: department },
               { label: '진료의사', value: doctor },
             ].map((f, i, arr) => (
-              <Box key={f.label} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Box key={f.label} sx={{ display: 'flex', alignItems: 'stretch', gap: 1.25 }}>
+                {/* 위=라벨, 아래=값 (2줄) */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
                     {f.label}
                   </Typography>
-                  <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 13 }}>
+                  <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 13, lineHeight: 1.2 }}>
                     {f.value || '-'}
                   </Typography>
                 </Box>
                 {i < arr.length - 1 && (
-                  <Box sx={{ width: '1px', height: 14, bgcolor: 'rgba(15,23,42,0.12)' }} />
+                  <Box sx={{ width: '1px', alignSelf: 'stretch', bgcolor: 'rgba(15,23,42,0.12)' }} />
                 )}
               </Box>
             ))}
