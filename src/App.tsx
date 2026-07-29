@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { theme } from './theme';
@@ -8,10 +9,12 @@ import UploadConvert from './pages/UploadConvert';
 import Login from './pages/Login';
 import Accounts from './pages/Accounts';
 import IntegrationConfig from './pages/IntegrationConfig';
+import LogViewer from './pages/LogViewer';
 import PatientLogin from './pages/PatientLogin';
 import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
 import PatientView from './pages/PatientView';
+import { installLogCapture } from './utils/logCapture';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
 import { Permissions } from './store/useAccountsStore';
@@ -47,6 +50,10 @@ function RequirePatient({ children }: { children: JSX.Element }) {
 
 // HashRouter: Electron(file://) 에서도 라우팅 안정적으로 동작
 export default function App() {
+  // 화면 로그 캡처(콘솔/전역 오류/네트워크) 설치 — 1회
+  useEffect(() => {
+    installLogCapture();
+  }, []);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -105,6 +112,16 @@ export default function App() {
               <RequireAuth>
                 <RequirePermission perm="manageAccounts">
                   <IntegrationConfig />
+                </RequirePermission>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/logs"
+            element={
+              <RequireAuth>
+                <RequirePermission perm="manageAccounts">
+                  <LogViewer />
                 </RequirePermission>
               </RequireAuth>
             }

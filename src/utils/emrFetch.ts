@@ -2,6 +2,7 @@
 //  - Electron: 메인 프로세스로 호출(브라우저 CORS 제약 회피).
 //  - 웹: fetch 직접 호출(대상 서버가 CORS 허용해야 함).
 import { ApiEndpoint, FieldMapping, HeaderPair } from '@/store/useApiConfigStore';
+import { pushLog } from '@/store/useLogStore';
 
 export interface EmrFetchResult {
   ok: boolean;
@@ -142,9 +143,22 @@ export async function callEndpoint(
     body: ep.method === 'POST' ? fillTemplate(ep.body, merged) : undefined,
   };
 
+  const started = Date.now();
+  pushLog('api', `→ ${req.method} ${req.url}`, ep.name ? `연동: ${ep.name}` : undefined);
+  const finish = (r: EmrFetchResult): EmrFetchResult => {
+    const ms = Date.now() - started;
+    if (r.ok) pushLog('api', `← ${r.status} ${req.method} ${req.url} (${ms}ms)`);
+    else pushLog('error', `← 실패 ${r.status || '-'} ${req.method} ${req.url} (${ms}ms)`, r.error);
+    return r;
+  };
+
   const bridge = window.smartqnr;
   if (bridge?.emrFetch) {
-    return bridge.emrFetch(req);
+    try {
+      return finish(await bridge.emrFetch(req));
+    } catch (e) {
+      return finish({ ok: false, status: 0, error: (e as Error).message });
+    }
   }
   // 웹 폴백
   try {
@@ -160,8 +174,8 @@ export async function callEndpoint(
     } catch {
       /* 텍스트 그대로 */
     }
-    return { ok: res.ok, status: res.status, data };
+    return finish({ ok: res.ok, status: res.status, data });
   } catch (e) {
-    return { ok: false, status: 0, error: (e as Error).message };
+    return finish({ ok: false, status: 0, error: (e as Error).message });
   }
 }

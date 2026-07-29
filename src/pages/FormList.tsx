@@ -31,6 +31,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ApiIcon from '@mui/icons-material/Api';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import LinkIcon from '@mui/icons-material/Link';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -305,6 +306,7 @@ export default function FormList() {
     { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, run: () => window.open('#/patient/login', '_blank') },
     { key: 'accounts', section: '관리', title: '계정 관리', desc: '계정·권한', icon: <ManageAccountsIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/accounts') },
     { key: 'api', section: '관리', title: 'API 연동', desc: 'EMR 연동 설정', icon: <ApiIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: canManage, run: () => navigate('/integration') },
+    { key: 'logs', section: '관리', title: '로그 보기', desc: '화면·서버 로그', icon: <ArticleOutlinedIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/logs') },
   ];
   const available = actions.filter((a) => a.allowed);
   // 앞에 고정할 기본 액션(권한 없으면 첫 번째로 폴백)

@@ -126,4 +126,16 @@ export const api = {
       `/api/public/responses?patientId=${encodeURIComponent(patientId)}`,
     );
   },
+
+  // 서버(백단) 로그 — 백엔드에 /api/logs 엔드포인트가 있을 때만 동작
+  serverLogs(limit = 200): Promise<ServerLogEntry[]> {
+    return request<ServerLogEntry[]>(`/api/logs?limit=${limit}`);
+  },
 };
+
+export interface ServerLogEntry {
+  ts?: string | number;
+  level?: string;
+  message?: string;
+  [k: string]: unknown;
+}
