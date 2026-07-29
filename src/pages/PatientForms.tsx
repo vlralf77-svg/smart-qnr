@@ -22,8 +22,10 @@ import {
   Typography,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { FormResponse, FormSchema } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -59,6 +61,7 @@ export default function PatientForms() {
   // formId -> 가장 최근 응답
   const [responses, setResponses] = useState<Record<string, FormResponse>>({});
   const [loading, setLoading] = useState(true);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [emrNote, setEmrNote] = useState<{ severity: 'info' | 'warning' | 'error'; text: string } | null>(
     null,
   );
@@ -181,10 +184,7 @@ export default function PatientForms() {
             color="inherit"
             size="small"
             startIcon={<LogoutIcon />}
-            onClick={() => {
-              logout();
-              navigate('/patient/login', { replace: true });
-            }}
+            onClick={() => setLogoutOpen(true)}
           >
             나가기
           </Button>
@@ -476,6 +476,20 @@ export default function PatientForms() {
           </TableContainer>
         )}
       </Container>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title="로그아웃 하시겠습니까?"
+        message="문진 작성 화면에서 나가 로그인 화면으로 돌아갑니다."
+        icon={<LogoutRoundedIcon sx={{ fontSize: 32 }} />}
+        confirmLabel="나가기"
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false);
+          logout();
+          navigate('/patient/login', { replace: true });
+        }}
+      />
     </Box>
   );
 }

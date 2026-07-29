@@ -42,10 +42,12 @@ import { useUiPrefs } from '@/store/useUiPrefs';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
 import { FormSchema } from '@/types/schema';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import CategoryManager from '@/components/editor/CategoryManager';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import PatientLinkDialog from '@/components/PatientLinkDialog';
 import ExcelImportDialog from '@/components/ExcelImportDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -229,6 +231,7 @@ export default function FormList() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const closeMenu = () => setMenuAnchor(null);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
@@ -327,14 +330,7 @@ export default function FormList() {
             {displayName ?? currentUser ?? 'admin'}
           </Typography>
           <Tooltip title="로그아웃">
-            <IconButton
-              color="inherit"
-              size="small"
-              onClick={() => {
-                logout();
-                navigate('/login', { replace: true });
-              }}
-            >
+            <IconButton color="inherit" size="small" onClick={() => setLogoutOpen(true)}>
               <LogoutIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -665,6 +661,19 @@ export default function FormList() {
       {previewForm && (
         <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
       )}
+      <ConfirmDialog
+        open={logoutOpen}
+        title="로그아웃 하시겠습니까?"
+        message="현재 계정에서 로그아웃하고 로그인 화면으로 돌아갑니다."
+        icon={<LogoutRoundedIcon sx={{ fontSize: 32 }} />}
+        confirmLabel="로그아웃"
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false);
+          logout();
+          navigate('/login', { replace: true });
+        }}
+      />
     </Box>
   );
 }
