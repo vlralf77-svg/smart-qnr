@@ -176,7 +176,7 @@ export default function CategoryManager({ open, onClose }: Props) {
             onClick={handleAddParent}
             sx={{ flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'keep-all', minWidth: 116, px: 2 }}
           >
-            대분류 추가
+            대분류
           </Button>
         </Stack>
 
