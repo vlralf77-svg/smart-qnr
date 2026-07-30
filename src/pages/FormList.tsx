@@ -121,37 +121,55 @@ function SideItem({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 1,
-        pr: 1.25,
-        pl: isChild ? 1.25 : 1.25,
+        pr: 1,
+        pl: 1.25,
         ml: isChild ? 1.5 : 0, // 하위 들여쓰기
         py: 0.7,
         borderRadius: 2,
         cursor: 'pointer',
-        // 하위는 좌측 연결선으로 뎁스 표시
+        // 하위는 좌측 연결선으로 뎁스 표시(선택 시 브랜드색)
         borderLeft: isChild ? '2px solid' : '2px solid transparent',
-        borderLeftColor: isChild ? (active ? 'primary.main' : 'divider') : 'transparent',
-        bgcolor: active ? 'background.paper' : 'transparent',
-        boxShadow: active ? '0 4px 12px -6px rgba(15,23,42,.25)' : 'none',
-        '&:hover': { bgcolor: active ? 'background.paper' : 'action.hover' },
+        borderLeftColor: isChild
+          ? active
+            ? 'primary.dark'
+            : 'divider'
+          : 'transparent',
+        // 선택 상태를 브랜드색 채움으로 확실히 구분
+        bgcolor: active ? 'primary.main' : 'transparent',
+        color: active ? 'primary.contrastText' : 'inherit',
+        boxShadow: active ? '0 6px 14px -6px rgba(22,124,80,.55)' : 'none',
+        '&:hover': { bgcolor: active ? 'primary.dark' : 'action.hover' },
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
         {dot && (
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: active ? 'primary.contrastText' : dot,
+              flexShrink: 0,
+            }}
+          />
         )}
         <Typography
           noWrap
           sx={{
             fontSize: isChild ? 12.5 : 13.5,
             fontWeight: active ? 700 : isChild ? 400 : 600,
-            color: isChild ? 'text.secondary' : 'text.primary',
+            color: active ? 'primary.contrastText' : isChild ? 'text.secondary' : 'text.primary',
           }}
         >
           {label}
         </Typography>
       </Box>
       <Typography
-        sx={{ fontSize: 11.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}
+        sx={{
+          fontSize: 11.5,
+          fontVariantNumeric: 'tabular-nums',
+          color: active ? 'rgba(255,255,255,0.9)' : 'text.secondary',
+        }}
       >
         {count}
       </Typography>
