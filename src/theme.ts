@@ -26,11 +26,12 @@ export const theme = createTheme(
     shape: {
       borderRadius: 10,
     },
-    typography: {
+    typography: { 
       // 웹에서 일반적으로 쓰이는 시스템 폰트 스택
       //  (Windows: Latin=Segoe UI, 한글=맑은 고딕 / macOS: SF·Apple SD Gothic Neo)
       fontFamily: [
         '"Noto Sans KR"',
+         'sans-serif',
         '-apple-system',
         'BlinkMacSystemFont',
         '"Segoe UI"',
@@ -39,8 +40,7 @@ export const theme = createTheme(
         'Arial',
         '"Apple SD Gothic Neo"',        
         '"Malgun Gothic"',
-        '"맑은 고딕"',
-        'sans-serif',
+        '"맑은 고딕"',        
       ].join(','),
       h6: { fontWeight: 700 },
       subtitle1: { fontWeight: 600 ,fontFamily: '"Noto Sans KR", sans-serif'}
