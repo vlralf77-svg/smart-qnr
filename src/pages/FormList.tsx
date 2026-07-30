@@ -50,6 +50,7 @@ import PreviewDialog from '@/components/editor/PreviewDialog';
 import PatientLinkDialog from '@/components/PatientLinkDialog';
 import ExcelImportDialog from '@/components/ExcelImportDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CreateFormDialog from '@/components/CreateFormDialog';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -266,6 +267,7 @@ export default function FormList() {
   const [excelOpen, setExcelOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const closeMenu = () => setMenuAnchor(null);
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
@@ -339,7 +341,7 @@ export default function FormList() {
     run: () => void;
   }
   const actions: Action[] = [
-    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: canEdit, run: () => navigate('/editor/new') },
+    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: canEdit, run: () => setCreateOpen(true) },
     { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, run: () => navigate('/upload') },
     { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, run: () => setExcelOpen(true) },
     { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, run: () => setLinkOpen(true) },
@@ -478,7 +480,7 @@ export default function FormList() {
             </Typography>
             {canEdit ? (
               <Stack direction="row" spacing={1} justifyContent="center">
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/editor/new')}>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
                   새 문진 만들기
                 </Button>
                 <Button variant="text" onClick={seedSample}>
@@ -767,6 +769,14 @@ export default function FormList() {
       {previewForm && (
         <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
       )}
+      <CreateFormDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onChoose={(mode) => {
+          setCreateOpen(false);
+          navigate(`/editor/new?mode=${mode}`);
+        }}
+      />
       <ConfirmDialog
         open={logoutOpen}
         title="로그아웃 하시겠습니까?"

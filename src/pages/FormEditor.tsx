@@ -1,6 +1,6 @@
 // QNR003 문진 에디터 페이지
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AppBar,
   Autocomplete,
@@ -43,9 +43,16 @@ import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
 import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPalette';
+import TableEditor from '@/components/editor/TableEditor';
+import FocusEditor from '@/components/editor/FocusEditor';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import FormRenderer from '@/components/renderer/FormRenderer';
 import PreviewErrorBoundary from '@/components/PreviewErrorBoundary';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import CenterFocusStrongRoundedIcon from '@mui/icons-material/CenterFocusStrongRounded';
+import ViewSidebarRoundedIcon from '@mui/icons-material/ViewSidebarRounded';
 
 export default function FormEditor() {
   const { formId } = useParams();
@@ -96,6 +103,13 @@ export default function FormEditor() {
       localStorage.setItem(META_KEY, v ? '0' : '1');
       return !v;
     });
+
+  // 편집 방식(기본 3분할 / 표 / 집중) — 새 문진은 ?mode= 로 지정, 편집 중에도 전환 가능
+  const location = useLocation();
+  const [editMode, setEditMode] = useState<'sections' | 'table' | 'focus'>(() => {
+    const m = new URLSearchParams(location.search).get('mode');
+    return m === 'table' || m === 'focus' ? m : 'sections';
+  });
 
   // 3영역(옵션/편집/미리보기) 순서 — 저장, 툴바에서 재배치 가능
   const ORDER_KEY = 'smartqnr.editorPanelOrder';
@@ -319,6 +333,9 @@ export default function FormEditor() {
   const selectedQuestion = selectedEntry?.question;
   const selectedSectionId = selectedEntry?.sectionId ?? selected?.sectionId ?? '';
 
+  // 오버레이(PDF) 문진은 표/집중 모드가 없어 기본 편집기만
+  const effectiveMode = isOverlayForm(form) ? 'sections' : editMode;
+
   const handleSave = async () => {
     try {
       if (form.category) addCategory(form.category); // 사용한 분류를 관리 목록에 등록
@@ -369,16 +386,58 @@ export default function FormEditor() {
             </Typography>
           </Box>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Tooltip title="영역 위치 바꾸기">
-              <IconButton
-                color="inherit"
-                size="small"
-                onClick={(e) => setLayoutAnchor(e.currentTarget)}
-              >
-                <ViewColumnIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
             {!isOverlayForm(form) && (
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={editMode}
+                onChange={(_e, v) => v && setEditMode(v)}
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  borderRadius: 1,
+                  mr: 0.5,
+                  '& .MuiToggleButton-root': {
+                    color: 'rgba(255,255,255,0.85)',
+                    border: 0,
+                    px: 1,
+                    py: 0.4,
+                    '&.Mui-selected': {
+                      bgcolor: '#fff',
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: '#fff' },
+                    },
+                  },
+                }}
+              >
+                <ToggleButton value="sections">
+                  <Tooltip title="기본 편집기">
+                    <ViewSidebarRoundedIcon fontSize="small" />
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="table">
+                  <Tooltip title="표(빠른 입력)">
+                    <TableChartOutlinedIcon fontSize="small" />
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="focus">
+                  <Tooltip title="집중 편집">
+                    <CenterFocusStrongRoundedIcon fontSize="small" />
+                  </Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
+            {effectiveMode === 'sections' && (
+              <Tooltip title="영역 위치 바꾸기">
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={(e) => setLayoutAnchor(e.currentTarget)}
+                >
+                  <ViewColumnIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {effectiveMode === 'sections' && !isOverlayForm(form) && (
               <Tooltip title={sidePreview ? '미리보기 패널 숨기기' : '미리보기 패널 표시'}>
                 <IconButton
                   color="inherit"
@@ -408,6 +467,15 @@ export default function FormEditor() {
         </Toolbar>
       </AppBar>
 
+      {effectiveMode === 'table' ? (
+        <Box sx={{ flex: 1, overflow: 'hidden', bgcolor: 'background.default' }}>
+          <TableEditor form={form} />
+        </Box>
+      ) : effectiveMode === 'focus' ? (
+        <Box sx={{ flex: 1, overflow: 'hidden', bgcolor: 'background.default' }}>
+          <FocusEditor form={form} />
+        </Box>
+      ) : (
       <Box
         ref={splitRef}
         sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}
@@ -650,6 +718,7 @@ export default function FormEditor() {
           ));
         })()}
       </Box>
+      )}
 
       {/* 영역 순서 바꾸기 메뉴 */}
       <Menu
