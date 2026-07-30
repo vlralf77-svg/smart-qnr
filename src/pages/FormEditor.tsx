@@ -337,8 +337,77 @@ export default function FormEditor() {
         ref={splitRef}
         sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}
       >
-        {/* 좌: 폼 메타 + 아웃라인 (너비 조절 가능) */}
+        {/* 좌: 옵션(선택 문항 편집) — 너비 조절 가능 */}
         <Box sx={{ width: `${leftPct}%`, flexShrink: 0, overflowY: 'auto', p: 2.5 }}>
+          {selectedQuestion && selected ? (
+            <Paper variant="outlined" sx={{ p: 2.5 }}>
+              <QuestionEditPanel sectionId={selectedSectionId} question={selectedQuestion} />
+            </Paper>
+          ) : (
+            <Box
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'text.disabled',
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="body1">가운데에서 문항을 선택하면</Typography>
+              <Typography variant="body1">여기에서 옵션을 편집할 수 있습니다.</Typography>
+              <Divider sx={{ my: 2, width: 120 }} />
+              <Typography variant="caption">
+                AI 자동 변환 결과는 초안입니다. 반드시 확인·수정하세요.
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* 좌(옵션) ↔ 중(컴포넌트/섹션) 너비 조절 구분선(드래그) */}
+        <Tooltip title="드래그하여 너비 조절 · 더블클릭 시 기본값" placement="left">
+          <Box
+            onMouseDown={startDrag('left')}
+            onDoubleClick={() => {
+              setLeftPct(42);
+              localStorage.setItem(LS_KEY, '42');
+            }}
+            sx={{
+              flexShrink: 0,
+              width: '8px',
+              cursor: 'col-resize',
+              position: 'relative',
+              bgcolor: 'divider',
+              transition: 'background-color .15s',
+              '&:hover': { bgcolor: 'primary.main' },
+              '&:hover .grip': { bgcolor: 'primary.contrastText' },
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                inset: '0 -4px', // 클릭 영역을 좌우로 넓게
+              },
+            }}
+          >
+            {/* 가운데 손잡이 표시 */}
+            <Box
+              className="grip"
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '2px',
+                height: 34,
+                borderRadius: 1,
+                bgcolor: 'text.disabled',
+              }}
+            />
+          </Box>
+        </Tooltip>
+
+        {/* 중: 폼 메타 + 컴포넌트 팔레트 + 섹션 아웃라인 */}
+        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 2.5 }}>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
               <Chip
@@ -408,7 +477,7 @@ export default function FormEditor() {
             <OverlayEditor form={form} />
           ) : (
             <>
-              {/* 상단 컴포넌트 팔레트 — 유형을 눌러 현재 섹션에 바로 삽입 */}
+              {/* 컴포넌트 팔레트 — 유형을 눌러 현재 섹션에 바로 삽입 */}
               <ComponentPalette
                 onAdd={(t) => {
                   const targetSectionId =
@@ -420,75 +489,6 @@ export default function FormEditor() {
               />
               <EditorOutline form={form} />
             </>
-          )}
-        </Box>
-
-        {/* 좌(아웃라인) ↔ 중(옵션 설정) 너비 조절 구분선(드래그) */}
-        <Tooltip title="드래그하여 너비 조절 · 더블클릭 시 기본값" placement="left">
-          <Box
-            onMouseDown={startDrag('left')}
-            onDoubleClick={() => {
-              setLeftPct(42);
-              localStorage.setItem(LS_KEY, '42');
-            }}
-            sx={{
-              flexShrink: 0,
-              width: '8px',
-              cursor: 'col-resize',
-              position: 'relative',
-              bgcolor: 'divider',
-              transition: 'background-color .15s',
-              '&:hover': { bgcolor: 'primary.main' },
-              '&:hover .grip': { bgcolor: 'primary.contrastText' },
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                inset: '0 -4px', // 클릭 영역을 좌우로 넓게
-              },
-            }}
-          >
-            {/* 가운데 손잡이 표시 */}
-            <Box
-              className="grip"
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '2px',
-                height: 34,
-                borderRadius: 1,
-                bgcolor: 'text.disabled',
-              }}
-            />
-          </Box>
-        </Tooltip>
-
-        {/* 우: 선택 문항 편집 */}
-        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 2.5 }}>
-          {selectedQuestion && selected ? (
-            <Paper variant="outlined" sx={{ p: 2.5 }}>
-              <QuestionEditPanel sectionId={selectedSectionId} question={selectedQuestion} />
-            </Paper>
-          ) : (
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'text.disabled',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="body1">왼쪽에서 문항을 선택하면</Typography>
-              <Typography variant="body1">여기에서 편집할 수 있습니다.</Typography>
-              <Divider sx={{ my: 2, width: 120 }} />
-              <Typography variant="caption">
-                AI 자동 변환 결과는 초안입니다. 반드시 확인·수정하세요.
-              </Typography>
-            </Box>
           )}
         </Box>
 
