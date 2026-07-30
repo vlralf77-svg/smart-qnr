@@ -40,7 +40,7 @@ import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
 import { useUiPrefs } from '@/store/useUiPrefs';
-import { CATEGORY_SEP } from '@/store/useCategoriesStore';
+import { CATEGORY_SEP, splitCategory } from '@/store/useCategoriesStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
 import { FormSchema } from '@/types/schema';
@@ -102,13 +102,17 @@ function SideItem({
   active,
   onClick,
   dot,
+  depth = 0,
 }: {
   label: string;
   count: number;
   active: boolean;
   onClick: () => void;
   dot?: string;
+  /** 0=대분류, 1=하위(들여쓰기 + 연결선 표시) */
+  depth?: number;
 }) {
+  const isChild = depth > 0;
   return (
     <Box
       onClick={onClick}
@@ -117,14 +121,17 @@ function SideItem({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 1,
-        px: 1.25,
-        py: 0.8,
+        pr: 1.25,
+        pl: isChild ? 1.25 : 1.25,
+        ml: isChild ? 1.5 : 0, // 하위 들여쓰기
+        py: 0.7,
         borderRadius: 2,
         cursor: 'pointer',
+        // 하위는 좌측 연결선으로 뎁스 표시
+        borderLeft: isChild ? '2px solid' : '2px solid transparent',
+        borderLeftColor: isChild ? (active ? 'primary.main' : 'divider') : 'transparent',
         bgcolor: active ? 'background.paper' : 'transparent',
         boxShadow: active ? '0 4px 12px -6px rgba(15,23,42,.25)' : 'none',
-        border: '1px solid',
-        borderColor: active ? 'divider' : 'transparent',
         '&:hover': { bgcolor: active ? 'background.paper' : 'action.hover' },
       }}
     >
@@ -132,7 +139,14 @@ function SideItem({
         {dot && (
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
         )}
-        <Typography noWrap sx={{ fontSize: 13.5, fontWeight: active ? 700 : 500 }}>
+        <Typography
+          noWrap
+          sx={{
+            fontSize: isChild ? 12.5 : 13.5,
+            fontWeight: active ? 700 : isChild ? 400 : 600,
+            color: isChild ? 'text.secondary' : 'text.primary',
+          }}
+        >
           {label}
         </Typography>
       </Box>
@@ -540,7 +554,8 @@ export default function FormList() {
                       items.push(
                         <SideItem
                           key={c}
-                          label={`↳ ${child}`}
+                          label={child}
+                          depth={1}
                           count={catCount(c)}
                           active={catFilter === c}
                           onClick={() => setCatFilter(c)}
@@ -610,15 +625,54 @@ export default function FormList() {
                           useFlexGap
                           sx={{ mt: 0.5 }}
                         >
-                          {f.category ? (
-                            <Chip
-                              label={f.category}
-                              size="small"
-                              variant="outlined"
-                              onClick={() => setCatFilter(f.category as string)}
-                              sx={{ cursor: 'pointer' }}
-                            />
-                          ) : null}
+                          {f.category
+                            ? (() => {
+                                const { parent, child } = splitCategory(f.category as string);
+                                return (
+                                  <Box
+                                    onClick={() => setCatFilter(f.category as string)}
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 0.5,
+                                      height: 24,
+                                      pl: 1,
+                                      pr: child ? 0.5 : 1,
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                      borderRadius: 999,
+                                      cursor: 'pointer',
+                                      bgcolor: 'background.paper',
+                                      '&:hover': { borderColor: 'primary.main' },
+                                    }}
+                                  >
+                                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                      {parent}
+                                    </Typography>
+                                    {child && (
+                                      <>
+                                        <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
+                                          ›
+                                        </Typography>
+                                        <Box
+                                          sx={{
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            color: 'primary.dark',
+                                            bgcolor: 'action.hover',
+                                            borderRadius: 999,
+                                            px: 0.9,
+                                            py: '1px',
+                                          }}
+                                        >
+                                          {child}
+                                        </Box>
+                                      </>
+                                    )}
+                                  </Box>
+                                );
+                              })()
+                            : null}
                           <Chip label={st.label} color={st.color} size="small" />
                           <Typography variant="caption" color="text.secondary">
                             문항 {qCount} · v{f.version}
