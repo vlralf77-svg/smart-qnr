@@ -173,8 +173,10 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     center: true,
+    // 콘텐츠가 처음 그려지기 전에는 창을 숨겨 검은 프레임(잔상) 번쩍임 방지
+    show: false,
+    backgroundColor: '#f2f6f4', // 앱 배경과 동일 톤(첫 페인트 전 바탕색)
     title: 'SmartQnR 문진관리',
-    backgroundColor: '#f4f6f8',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -182,12 +184,16 @@ function createWindow() {
     },
   });
 
-  // 첫 실행 시 화면을 넉넉히 — 큰 모니터에서는 최대화로 열되, 사용자가 되돌릴 수 있음
+  // 첫 실행 시 화면을 넉넉히 — 숨긴 상태에서 최대화해 두고, 첫 렌더가 끝나면 표시
   try {
     win.maximize();
   } catch {
     /* 무시 */
   }
+  win.once('ready-to-show', () => {
+    win.show();
+    win.focus();
+  });
 
   // 창을 닫을 때(X 버튼·Alt+F4 등) "종료하시겠습니까?" 확인
   //  네이티브 창 대신 렌더러(앱 내부)의 예쁜 커스텀 모달로 확인받는다.
