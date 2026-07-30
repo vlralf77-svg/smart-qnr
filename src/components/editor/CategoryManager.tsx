@@ -1,6 +1,6 @@
-// 분류(카테고리) 관리 다이얼로그 — 추가/이름변경/삭제.
-//  이름변경·삭제 시 해당 분류를 쓰는 문진에도 반영(연쇄 저장).
-import { useState } from 'react';
+// 분류(카테고리) 관리 다이얼로그 — 2뎁스(대분류/소분류) 추가·이름변경·삭제.
+//  이름변경·삭제 시 해당 분류(및 하위)를 쓰는 문진에도 반영(연쇄 저장).
+import { useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -18,8 +18,14 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import { FormSchema } from '@/types/schema';
-import { useCategoriesStore } from '@/store/useCategoriesStore';
+import {
+  useCategoriesStore,
+  CATEGORY_SEP,
+  splitCategory,
+  makeCategoryPath,
+} from '@/store/useCategoriesStore';
 import { useFormsStore } from '@/store/useFormsStore';
 
 interface Props {
@@ -28,109 +34,241 @@ interface Props {
 }
 
 export default function CategoryManager({ open, onClose }: Props) {
-  const { categories, addCategory, renameCategory, removeCategory } = useCategoriesStore();
+  const { categories, addCategory, addSubCategory, renameCategory, removeCategory } =
+    useCategoriesStore();
   const forms = useFormsStore((s) => s.forms);
   const saveForm = useFormsStore((s) => s.saveForm);
-  const [newName, setNewName] = useState('');
+  const [newParent, setNewParent] = useState('');
+  const [subInput, setSubInput] = useState<Record<string, string>>({});
 
-  const usageCount = (name: string) => forms.filter((f) => f.category === name).length;
+  // 트리 구성: 대분류 목록(명시 + 하위경로에서 유추) + 대분류별 하위경로
+  const tree = useMemo(() => {
+    const parents = Array.from(
+      new Set([
+        ...categories.filter((c) => !c.includes(CATEGORY_SEP)),
+        ...categories.filter((c) => c.includes(CATEGORY_SEP)).map((c) => splitCategory(c).parent),
+      ]),
+    );
+    return parents.map((p) => ({
+      parent: p,
+      children: categories.filter((c) => c.startsWith(p + CATEGORY_SEP)),
+    }));
+  }, [categories]);
 
-  const handleAdd = () => {
-    const v = newName.trim();
-    if (!v) return;
-    addCategory(v);
-    setNewName('');
+  // 정확히 이 경로를 쓰는 문진 수
+  const usageExact = (path: string) => forms.filter((f) => f.category === path).length;
+  // 이 경로 및 하위까지 포함한 문진 수(대분류 배지용)
+  const usageUnder = (path: string) =>
+    forms.filter((f) => f.category === path || f.category?.startsWith(path + CATEGORY_SEP)).length;
+
+  // 문진 연쇄 갱신 — 경로 접두 교체(이름변경) / 제거(삭제)
+  const remapForms = (oldPath: string, newPath: string) => {
+    const prefix = oldPath + CATEGORY_SEP;
+    forms.forEach((f) => {
+      if (f.category === oldPath) void saveForm({ ...f, category: newPath });
+      else if (f.category?.startsWith(prefix))
+        void saveForm({ ...f, category: newPath + CATEGORY_SEP + f.category.slice(prefix.length) });
+    });
   };
-
-  const handleRename = (oldName: string) => {
-    const v = window.prompt('분류 이름 변경', oldName);
-    if (v == null) return;
-    const next = v.trim();
-    if (!next || next === oldName) return;
-    if (categories.includes(next)) {
-      window.alert('이미 있는 분류입니다.');
-      return;
-    }
-    renameCategory(oldName, next);
-    // 이 분류를 쓰는 문진들도 새 이름으로 갱신
-    forms
-      .filter((f) => f.category === oldName)
-      .forEach((f) => void saveForm({ ...f, category: next }));
-  };
-
-  const handleRemove = (name: string) => {
-    const n = usageCount(name);
-    const msg =
-      n > 0
-        ? `"${name}" 분류를 삭제하면 이 분류의 문진 ${n}개는 분류 없음으로 바뀝니다. 삭제할까요?`
-        : `"${name}" 분류를 삭제할까요?`;
-    if (!window.confirm(msg)) return;
-    removeCategory(name);
-    forms
-      .filter((f) => f.category === name)
-      .forEach((f) => {
+  const dropForms = (path: string) => {
+    const prefix = path + CATEGORY_SEP;
+    forms.forEach((f) => {
+      if (f.category === path || f.category?.startsWith(prefix)) {
         const { category: _drop, ...rest } = f;
         void saveForm(rest as FormSchema);
-      });
+      }
+    });
+  };
+
+  const handleAddParent = () => {
+    const v = newParent.trim();
+    if (!v) return;
+    if (v.includes(CATEGORY_SEP)) {
+      window.alert(`대분류 이름에는 '${CATEGORY_SEP.trim()}' 를 쓸 수 없습니다.`);
+      return;
+    }
+    addCategory(v);
+    setNewParent('');
+  };
+
+  const handleAddSub = (parent: string) => {
+    const v = (subInput[parent] ?? '').trim();
+    if (!v) return;
+    if (v.includes(CATEGORY_SEP)) {
+      window.alert(`하위 분류 이름에는 '${CATEGORY_SEP.trim()}' 를 쓸 수 없습니다.`);
+      return;
+    }
+    addSubCategory(parent, v);
+    setSubInput((m) => ({ ...m, [parent]: '' }));
+  };
+
+  const handleRenameParent = (parent: string) => {
+    const v = window.prompt('대분류 이름 변경', parent);
+    if (v == null) return;
+    const next = v.trim();
+    if (!next || next === parent) return;
+    if (next.includes(CATEGORY_SEP)) {
+      window.alert(`'${CATEGORY_SEP.trim()}' 는 쓸 수 없습니다.`);
+      return;
+    }
+    renameCategory(parent, next);
+    remapForms(parent, next);
+  };
+
+  const handleRenameChild = (path: string) => {
+    const { parent, child } = splitCategory(path);
+    const v = window.prompt('하위 분류 이름 변경', child ?? '');
+    if (v == null) return;
+    const next = v.trim();
+    if (!next || next === child) return;
+    if (next.includes(CATEGORY_SEP)) {
+      window.alert(`'${CATEGORY_SEP.trim()}' 는 쓸 수 없습니다.`);
+      return;
+    }
+    const newPath = makeCategoryPath(parent, next);
+    renameCategory(path, newPath);
+    remapForms(path, newPath);
+  };
+
+  const handleRemove = (path: string, isParent: boolean) => {
+    const n = usageUnder(path);
+    const extra = isParent ? ' (하위 분류도 함께 삭제됩니다)' : '';
+    const msg =
+      n > 0
+        ? `"${path}"${extra}\n이 분류의 문진 ${n}개는 분류 없음으로 바뀝니다. 삭제할까요?`
+        : `"${path}" 분류를 삭제할까요?${extra}`;
+    if (!window.confirm(msg)) return;
+    removeCategory(path);
+    dropForms(path);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontWeight: 700 }}>분류 관리</DialogTitle>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle sx={{ fontWeight: 700 }}>
+        분류 관리
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', fontWeight: 400 }}
+        >
+          대분류 아래 하위 분류(2뎁스)를 만들 수 있습니다.
+        </Typography>
+      </DialogTitle>
       <DialogContent dividers>
-        {/* 추가 */}
+        {/* 대분류 추가 */}
         <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
           <TextField
             size="small"
             fullWidth
-            placeholder="새 분류 이름"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            placeholder="새 대분류 이름"
+            value={newParent}
+            onChange={(e) => setNewParent(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                handleAdd();
+                handleAddParent();
               }
             }}
           />
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
-            추가
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddParent}>
+            대분류
           </Button>
         </Stack>
 
-        {/* 목록 */}
-        {categories.length === 0 ? (
+        {tree.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-            분류가 없습니다. 위에서 추가하세요.
+            분류가 없습니다. 위에서 대분류를 추가하세요.
           </Typography>
         ) : (
-          <Stack spacing={1}>
-            {categories.map((c) => (
+          <Stack spacing={1.5}>
+            {tree.map(({ parent, children }) => (
               <Box
-                key={c}
+                key={parent}
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  px: 1.5,
-                  py: 1,
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 1.5,
+                  borderRadius: 2,
+                  overflow: 'hidden',
                 }}
               >
-                <Typography sx={{ flex: 1, fontWeight: 600 }}>{c}</Typography>
-                <Chip size="small" label={`문진 ${usageCount(c)}`} variant="outlined" />
-                <Tooltip title="이름 변경">
-                  <IconButton size="small" onClick={() => handleRename(c)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="삭제">
-                  <IconButton size="small" color="error" onClick={() => handleRemove(c)}>
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {/* 대분류 행 */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.5,
+                    py: 1,
+                    bgcolor: 'action.hover',
+                  }}
+                >
+                  <Typography sx={{ flex: 1, fontWeight: 800 }}>{parent}</Typography>
+                  <Chip size="small" label={`문진 ${usageUnder(parent)}`} variant="outlined" />
+                  <Tooltip title="대분류 이름 변경">
+                    <IconButton size="small" onClick={() => handleRenameParent(parent)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="대분류 삭제">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemove(parent, true)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                {/* 하위 분류 목록 */}
+                <Stack spacing={0.5} sx={{ px: 1.5, py: 1 }}>
+                  {children.map((path) => (
+                    <Box key={path} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+                      <SubdirectoryArrowRightIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                      <Typography sx={{ flex: 1 }}>{splitCategory(path).child}</Typography>
+                      <Chip size="small" label={`문진 ${usageExact(path)}`} variant="outlined" />
+                      <Tooltip title="하위 이름 변경">
+                        <IconButton size="small" onClick={() => handleRenameChild(path)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="하위 삭제">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemove(path, false)}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  ))}
+
+                  {/* 하위 추가 입력 */}
+                  <Stack direction="row" spacing={1} sx={{ pl: 1, mt: 0.5 }}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      placeholder="하위 분류 추가"
+                      value={subInput[parent] ?? ''}
+                      onChange={(e) => setSubInput((m) => ({ ...m, [parent]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSub(parent);
+                        }
+                      }}
+                    />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAddSub(parent)}
+                    >
+                      추가
+                    </Button>
+                  </Stack>
+                </Stack>
               </Box>
             ))}
           </Stack>

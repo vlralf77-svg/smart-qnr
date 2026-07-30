@@ -40,6 +40,7 @@ import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
 import { useUiPrefs } from '@/store/useUiPrefs';
+import { CATEGORY_SEP } from '@/store/useCategoriesStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
 import { FormSchema } from '@/types/schema';
@@ -257,7 +258,10 @@ export default function FormList() {
         const matchQ = f.title.toLowerCase().includes(q) || f.id.toLowerCase().includes(q);
         const matchCat =
           catFilter === ALL ||
-          (catFilter === NONE ? !f.category : f.category === catFilter);
+          (catFilter === NONE
+            ? !f.category
+            : // 대분류를 고르면 그 하위(경로) 문진까지 포함
+              f.category === catFilter || f.category?.startsWith(catFilter + CATEGORY_SEP));
         const matchStatus =
           statusFilter === 'all' ||
           (statusFilter === 'published' ? f.status === 'published' : f.status !== 'published');
@@ -276,6 +280,10 @@ export default function FormList() {
     });
     return { total: forms.length, published, draft: forms.length - published, byCat };
   }, [forms]);
+
+  // 분류 건수 — 대분류는 하위(경로) 문진까지 합산
+  const catCount = (c: string) =>
+    forms.filter((f) => f.category === c || f.category?.startsWith(c + CATEGORY_SEP)).length;
 
   const seedSample = () => {
     void saveForm({ ...SAMPLE_FORM, id: `${SAMPLE_FORM.id}_${Date.now().toString(36)}` }).catch(
@@ -509,15 +517,39 @@ export default function FormList() {
                 active={catFilter === ALL}
                 onClick={() => setCatFilter(ALL)}
               />
-              {filterCategories.map((c) => (
-                <SideItem
-                  key={c}
-                  label={c}
-                  count={counts.byCat[c] ?? 0}
-                  active={catFilter === c}
-                  onClick={() => setCatFilter(c)}
-                />
-              ))}
+              {(() => {
+                // 대분류 → 하위 순서로, 하위는 들여쓰기 표시
+                const parents = Array.from(
+                  new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
+                );
+                const items: JSX.Element[] = [];
+                parents.forEach((p) => {
+                  items.push(
+                    <SideItem
+                      key={p}
+                      label={p}
+                      count={catCount(p)}
+                      active={catFilter === p}
+                      onClick={() => setCatFilter(p)}
+                    />,
+                  );
+                  filterCategories
+                    .filter((c) => c.startsWith(p + CATEGORY_SEP))
+                    .forEach((c) => {
+                      const child = c.slice((p + CATEGORY_SEP).length);
+                      items.push(
+                        <SideItem
+                          key={c}
+                          label={`↳ ${child}`}
+                          count={catCount(c)}
+                          active={catFilter === c}
+                          onClick={() => setCatFilter(c)}
+                        />,
+                      );
+                    });
+                });
+                return items;
+              })()}
               {hasUncategorized && (
                 <SideItem
                   label="분류 없음"
