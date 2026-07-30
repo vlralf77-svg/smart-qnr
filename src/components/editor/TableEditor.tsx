@@ -7,6 +7,7 @@ import {
   IconButton,
   MenuItem,
   Paper,
+  Popover,
   Stack,
   Switch,
   Table,
@@ -22,6 +23,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CallSplitIcon from '@mui/icons-material/CallSplit';
 import {
   FormSchema,
   OPTION_TYPES,
@@ -31,6 +33,7 @@ import {
 } from '@/types/schema';
 import { createOption } from '@/utils/schemaFactory';
 import { useEditorStore } from '@/store/useEditorStore';
+import ConditionEditor from './ConditionEditor';
 
 const TYPES = QUESTION_TYPE_ORDER.filter((t) => t !== 'signature');
 
@@ -47,6 +50,11 @@ export default function TableEditor({ form }: Props) {
 
   // 선택지 셀 편집 중 임시 문자열(커서 튐 방지) — 커밋은 blur 시
   const [optDraft, setOptDraft] = useState<Record<string, string>>({});
+  // 조건부 표시 편집 팝오버
+  const [condAnchor, setCondAnchor] = useState<{ el: HTMLElement; qid: string } | null>(null);
+  const condQuestion = condAnchor
+    ? section?.questions.find((q) => q.id === condAnchor.qid)
+    : undefined;
 
   const optionsText = (qid: string, opts: { label: string }[] | undefined) =>
     optDraft[qid] ?? (opts ?? []).map((o) => o.label).join(', ');
@@ -111,6 +119,9 @@ export default function TableEditor({ form }: Props) {
                 필수
               </TableCell>
               <TableCell width={240}>선택지 (쉼표로 구분)</TableCell>
+              <TableCell width={70} align="center">
+                조건
+              </TableCell>
               <TableCell width={90} align="right">
                 작업
               </TableCell>
@@ -188,6 +199,17 @@ export default function TableEditor({ form }: Props) {
                       </Typography>
                     )}
                   </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title={q.condition ? '조건부 표시 설정됨 · 편집' : '조건부 표시(분기) 설정'}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setCondAnchor({ el: e.currentTarget, qid: q.id })}
+                        sx={{ color: q.condition ? 'primary.main' : 'text.disabled' }}
+                      >
+                        <CallSplitIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     <Tooltip title="복제">
                       <IconButton size="small" onClick={() => duplicateQuestion(sectionId, q.id)}>
@@ -205,7 +227,7 @@ export default function TableEditor({ form }: Props) {
             })}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Typography variant="body2" color="text.disabled" sx={{ py: 2, textAlign: 'center' }}>
                     아래 ‘문항 추가’로 첫 문항을 만드세요.
                   </Typography>
@@ -224,6 +246,21 @@ export default function TableEditor({ form }: Props) {
       >
         문항 추가
       </Button>
+
+      {/* 조건부 표시 편집 팝오버 */}
+      <Popover
+        open={!!condAnchor && !!condQuestion}
+        anchorEl={condAnchor?.el ?? null}
+        onClose={() => setCondAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{ sx: { p: 2, width: 340, maxWidth: '90vw' } }}
+      >
+        <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+          조건부 표시 (분기)
+        </Typography>
+        {condQuestion && <ConditionEditor sectionId={sectionId} question={condQuestion} />}
+      </Popover>
     </Box>
   );
 }
