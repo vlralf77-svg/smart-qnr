@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   Divider,
   FormControlLabel,
   Menu,
@@ -29,6 +30,8 @@ import ViewSidebarIcon from '@mui/icons-material/ViewSidebar';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
@@ -80,6 +83,17 @@ export default function FormEditor() {
   const toggleSidePreview = () =>
     setSidePreview((v) => {
       localStorage.setItem(PREVIEW_KEY, v ? '0' : '1');
+      return !v;
+    });
+
+  // 문진 메타(제목·설명·분류·테스트) 영역 접기/펼치기 — 상태 기억
+  const META_KEY = 'smartqnr.editorMetaCollapsed';
+  const [metaCollapsed, setMetaCollapsed] = useState<boolean>(
+    () => localStorage.getItem(META_KEY) === '1',
+  );
+  const toggleMeta = () =>
+    setMetaCollapsed((v) => {
+      localStorage.setItem(META_KEY, v ? '0' : '1');
       return !v;
     });
 
@@ -511,7 +525,12 @@ export default function FormEditor() {
                 ) : (
                   <>
                     <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        mb={metaCollapsed ? 0 : 1.5}
+                      >
                         <Chip
                           label={
                             form.status === 'published'
@@ -524,59 +543,81 @@ export default function FormEditor() {
                           size="small"
                         />
                         <Chip label={`v${form.version}`} size="small" variant="outlined" />
-                        <Typography variant="caption" color="text.secondary">
-                          {form.id}
-                        </Typography>
-                      </Stack>
-                      <TextField
-                        label="문진 제목"
-                        size="small"
-                        fullWidth
-                        value={form.title}
-                        onChange={(e) => updateMeta({ title: e.target.value })}
-                        sx={{ mb: 1.5 }}
-                      />
-                      <TextField
-                        label="설명 (선택)"
-                        size="small"
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        value={form.description ?? ''}
-                        onChange={(e) => updateMeta({ description: e.target.value })}
-                        sx={{ mb: 1.5 }}
-                      />
-                      <Autocomplete
-                        freeSolo
-                        options={categories}
-                        value={form.category ?? ''}
-                        onInputChange={(_e, v, reason) => {
-                          if (reason === 'input') updateMeta({ category: v.trim() || undefined });
-                        }}
-                        onChange={(_e, v) => {
-                          const val = (typeof v === 'string' ? v : v ?? '').trim();
-                          updateMeta({ category: val || undefined });
-                          if (val) addCategory(val);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="분류 (선택)"
-                            size="small"
-                            placeholder="예: 건강검진"
-                          />
+                        {metaCollapsed ? (
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            noWrap
+                            sx={{ flex: 1, minWidth: 0 }}
+                          >
+                            {form.title || '제목 없는 문진'}
+                          </Typography>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
+                            {form.id}
+                          </Typography>
                         )}
-                        sx={{ mb: 1.5 }}
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={!!form.testFlag}
-                            onChange={(e) => updateMeta({ testFlag: e.target.checked })}
-                          />
-                        }
-                        label="테스트 대상 (환자 화면에 노출)"
-                      />
+                        <Tooltip title={metaCollapsed ? '문진 정보 펼치기' : '문진 정보 접기'}>
+                          <IconButton size="small" onClick={toggleMeta}>
+                            {metaCollapsed ? (
+                              <ExpandMoreIcon fontSize="small" />
+                            ) : (
+                              <ExpandLessIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                      <Collapse in={!metaCollapsed} timeout="auto" unmountOnExit>
+                        <TextField
+                          label="문진 제목"
+                          size="small"
+                          fullWidth
+                          value={form.title}
+                          onChange={(e) => updateMeta({ title: e.target.value })}
+                          sx={{ mb: 1.5 }}
+                        />
+                        <TextField
+                          label="설명 (선택)"
+                          size="small"
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          value={form.description ?? ''}
+                          onChange={(e) => updateMeta({ description: e.target.value })}
+                          sx={{ mb: 1.5 }}
+                        />
+                        <Autocomplete
+                          freeSolo
+                          options={categories}
+                          value={form.category ?? ''}
+                          onInputChange={(_e, v, reason) => {
+                            if (reason === 'input') updateMeta({ category: v.trim() || undefined });
+                          }}
+                          onChange={(_e, v) => {
+                            const val = (typeof v === 'string' ? v : v ?? '').trim();
+                            updateMeta({ category: val || undefined });
+                            if (val) addCategory(val);
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="분류 (선택)"
+                              size="small"
+                              placeholder="예: 건강검진"
+                            />
+                          )}
+                          sx={{ mb: 1.5 }}
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={!!form.testFlag}
+                              onChange={(e) => updateMeta({ testFlag: e.target.checked })}
+                            />
+                          }
+                          label="테스트 대상 (환자 화면에 노출)"
+                        />
+                      </Collapse>
                     </Paper>
 
                     {isOverlayForm(form) ? (
