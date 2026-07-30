@@ -15,7 +15,8 @@ import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
 import PatientView from './pages/PatientView';
 import { installLogCapture } from './utils/logCapture';
-import { setLogActorResolver } from './store/useLogStore';
+import { setLogContextResolver } from './store/useLogStore';
+import { startLogShipper } from './utils/logShipper';
 import { APP_VERSION } from './version';
 import { useAuthStore } from './store/useAuthStore';
 import { usePatientStore } from './store/usePatientStore';
@@ -52,22 +53,28 @@ function RequirePatient({ children }: { children: JSX.Element }) {
 
 // HashRouter: Electron(file://) 에서도 라우팅 안정적으로 동작
 export default function App() {
-  // 화면 로그 캡처(콘솔/전역 오류/네트워크) 설치 — 1회
+  // 화면 로그 캡처(콘솔/전역 오류/네트워크) 설치 + 중앙 전송기 시작 — 1회
   useEffect(() => {
     installLogCapture();
-    // 각 로그에 현재 사용자 식별정보(아이디·이름·부서·버전)를 붙임 — 나중 중앙 수집 대비
-    setLogActorResolver(() => {
+    const platform = window.smartqnr ? 'electron' : 'web';
+    // 각 로그에 현재 사용자 컨텍스트를 붙임(중앙 수집 시 사용자별 필터에 사용)
+    setLogContextResolver(() => {
       const a = useAuthStore.getState();
       const p = usePatientStore.getState();
-      const who =
-        a.displayName ||
-        a.currentUser ||
-        (p.name ? `환자:${p.name}` : '') ||
-        (p.patientNo ? `환자:${p.patientNo}` : '') ||
-        '미로그인';
-      const dept = a.department ? `·${a.department}` : '';
-      return `${who}${dept} · v${APP_VERSION}`;
+      const userId = a.currentUser ?? (p.patientNo ? `patient:${p.patientNo}` : undefined);
+      const userName =
+        a.displayName ?? a.currentUser ?? (p.name ? `환자:${p.name}` : undefined);
+      return {
+        userId,
+        userName,
+        department: a.department ?? undefined,
+        role: a.currentUser ? 'staff' : p.patientNo ? 'patient' : undefined,
+        appVersion: APP_VERSION,
+        platform,
+        route: window.location.hash || '/',
+      };
     });
+    startLogShipper();
   }, []);
   return (
     <ThemeProvider theme={theme}>
