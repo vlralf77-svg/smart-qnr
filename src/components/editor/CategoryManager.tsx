@@ -174,7 +174,7 @@ export default function CategoryManager({ open, onClose }: Props) {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleAddParent}
-            sx={{ flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
+            sx={{ flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'keep-all', minWidth: 116, px: 2 }}
           >
             대분류 추가
           </Button>
@@ -269,7 +269,7 @@ export default function CategoryManager({ open, onClose }: Props) {
                       variant="outlined"
                       startIcon={<AddIcon />}
                       onClick={() => handleAddSub(parent)}
-                      sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                      sx={{ flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'keep-all', minWidth: 76 }}
                     >
                       추가
                     </Button>
