@@ -185,7 +185,7 @@ export default function CategoryManager({ open, onClose }: Props) {
             분류가 없습니다. 위에서 대분류를 추가하세요.
           </Typography>
         ) : (
-          <Stack spacing={1.5}>
+          <Stack spacing={1}>
             {tree.map(({ parent, children }) => (
               <Box
                 key={parent}
@@ -201,26 +201,34 @@ export default function CategoryManager({ open, onClose }: Props) {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    px: 1.5,
-                    py: 1,
+                    gap: 0.5,
+                    px: 1.25,
+                    py: 0.5,
                     bgcolor: 'action.hover',
                   }}
                 >
-                  <Typography sx={{ flex: 1, fontWeight: 800 }}>{parent}</Typography>
-                  <Chip size="small" label={`문진 ${usageUnder(parent)}`} variant="outlined" />
+                  <Typography sx={{ flex: 1, fontWeight: 800, fontSize: 13.5 }} noWrap>
+                    {parent}
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={usageUnder(parent)}
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.75 } }}
+                  />
                   <Tooltip title="대분류 이름 변경">
-                    <IconButton size="small" onClick={() => handleRenameParent(parent)}>
-                      <EditIcon fontSize="small" />
+                    <IconButton size="small" sx={{ p: 0.5 }} onClick={() => handleRenameParent(parent)}>
+                      <EditIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="대분류 삭제">
                     <IconButton
                       size="small"
                       color="error"
+                      sx={{ p: 0.5 }}
                       onClick={() => handleRemove(parent, true)}
                     >
-                      <DeleteOutlineIcon fontSize="small" />
+                      <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
                 </Box>
