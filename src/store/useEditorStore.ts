@@ -87,10 +87,19 @@ interface EditorState {
 
   // 문항
   addQuestion: (sectionId: string, type?: QuestionType) => void;
+  /** 여러 문항을 한 번에 추가(엑셀 붙여넣기 등). 마지막 문항을 선택 상태로 둔다. */
+  addQuestionsBulk: (
+    sectionId: string,
+    items: { label: string; type: QuestionType; optionLabels?: string[] }[],
+  ) => void;
   updateQuestion: (sectionId: string, questionId: string, patch: Partial<Question>) => void;
   changeQuestionType: (sectionId: string, questionId: string, type: QuestionType) => void;
   removeQuestion: (sectionId: string, questionId: string) => void;
   duplicateQuestion: (sectionId: string, questionId: string) => void;
+  /** 한 섹션 안에서 문항 순서 변경(드래그) */
+  reorderQuestions: (sectionId: string, fromIndex: number, toIndex: number) => void;
+  /** 문항을 다른 섹션의 특정 위치로 이동(드래그) */
+  moveQuestion: (questionId: string, toSectionId: string, toIndex: number) => void;
   /** 캔버스 드래그·리사이즈로 문항 위치/크기 변경 */
   updateQuestionLayout: (sectionId: string, questionId: string, layout: QuestionLayout) => void;
   /** PDF 오버레이 모드: 필드 위치/크기(%) 변경 */
@@ -466,6 +475,35 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
 
+  addQuestionsBulk: (sectionId, items) =>
+    set((st) => {
+      if (!st.form || items.length === 0) return st;
+      let lastId = '';
+      const form = mapSections(st.form, (secs) =>
+        mapSection(secs, sectionId, (s) => {
+          const questions = s.questions.slice();
+          for (const item of items) {
+            const question = createQuestion(item.type);
+            question.label = item.label;
+            if (item.optionLabels && item.optionLabels.length) {
+              question.options = item.optionLabels.map((l) => createOption(l));
+            }
+            question.layout = createDefaultLayout(questions, item.type, question.options?.length ?? 0);
+            questions.push(question);
+            lastId = question.id;
+          }
+          return { ...s, questions };
+        }),
+      );
+      return {
+        form,
+        selected: lastId ? { sectionId, questionId: lastId } : st.selected,
+        selectedIds: lastId ? [lastId] : st.selectedIds,
+        activeSectionId: sectionId,
+        dirty: true,
+      };
+    }),
+
   // 섹션 이동을 지원하므로 문항 조작은 섹션 id 에 의존하지 않고 폼 전체에서 찾는다.
   updateQuestion: (_sectionId, questionId, patch) =>
     set((st) =>
@@ -529,6 +567,45 @@ export const useEditorStore = create<EditorState>((set) => ({
         form,
         selected: newId ? { sectionId: ownerSectionId, questionId: newId } : st.selected,
         selectedIds: newId ? [newId] : st.selectedIds,
+        dirty: true,
+      };
+    }),
+
+  reorderQuestions: (sectionId, fromIndex, toIndex) =>
+    set((st) => {
+      if (!st.form) return st;
+      return {
+        form: mapSections(st.form, (secs) =>
+          mapSection(secs, sectionId, (s) => ({
+            ...s,
+            questions: moveItem(s.questions, fromIndex, toIndex),
+          })),
+        ),
+        dirty: true,
+      };
+    }),
+
+  moveQuestion: (questionId, toSectionId, toIndex) =>
+    set((st) => {
+      if (!st.form) return st;
+      let moved: Question | null = null;
+      const stripped = st.form.sections.map((s) => {
+        const idx = s.questions.findIndex((q) => q.id === questionId);
+        if (idx < 0) return s;
+        moved = s.questions[idx];
+        return { ...s, questions: s.questions.filter((q) => q.id !== questionId) };
+      });
+      if (!moved) return st;
+      const sections = stripped.map((s) => {
+        if (s.id !== toSectionId) return s;
+        const questions = s.questions.slice();
+        const clamped = Math.max(0, Math.min(toIndex, questions.length));
+        questions.splice(clamped, 0, moved as Question);
+        return { ...s, questions };
+      });
+      return {
+        form: { ...st.form, sections, updatedAt: new Date().toISOString() },
+        selected: { sectionId: toSectionId, questionId },
         dirty: true,
       };
     }),

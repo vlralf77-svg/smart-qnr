@@ -2,8 +2,13 @@
 //  섹션 단위로 표시(섹션 선택 + 섹션 추가). 같은 편집 스토어를 사용하므로 다른 모드와 데이터 공유.
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
@@ -23,6 +28,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import {
   FormSchema,
@@ -37,19 +43,91 @@ import ConditionEditor from './ConditionEditor';
 
 const TYPES = QUESTION_TYPE_ORDER.filter((t) => t !== 'signature');
 
+// 붙여넣은 유형 텍스트 → 문항 유형. 유형 키·한글 라벨·흔한 동의어를 모두 허용.
+const TYPE_SYNONYMS: Record<string, QuestionType> = {
+  단일: 'radio', 단일선택: 'radio', 라디오: 'radio',
+  복수: 'checkbox', 복수선택: 'checkbox', 체크박스: 'checkbox', 다중: 'checkbox',
+  드롭다운: 'select', 콤보: 'select', 셀렉트: 'select',
+  단답: 'text', 단답형: 'text', 텍스트: 'text',
+  장문: 'textarea', 장문형: 'textarea', 서술: 'textarea',
+  숫자: 'number', 넘버: 'number',
+  날짜: 'date',
+  예아니오: 'boolean', 불린: 'boolean',
+  척도: 'scale', 스케일: 'scale',
+  안내: 'info', 안내문: 'info',
+  이미지: 'image', 그림: 'image',
+};
+
+function parseType(raw: string | undefined): QuestionType {
+  const s = (raw ?? '').trim().toLowerCase();
+  if (!s) return 'radio';
+  const byKey = TYPES.find((t) => t.toLowerCase() === s);
+  if (byKey) return byKey;
+  const byLabel = TYPES.find((t) => QUESTION_TYPE_META[t].label.toLowerCase() === s);
+  if (byLabel) return byLabel;
+  return TYPE_SYNONYMS[s.replace(/\s+/g, '')] ?? 'radio';
+}
+
+interface ParsedRow {
+  label: string;
+  type: QuestionType;
+  optionLabels: string[];
+}
+
+// 엑셀/시트 붙여넣기 파싱: 한 줄 = 한 문항. 열은 탭 구분 → 질문[\t유형][\t선택지]
+function parseRows(text: string): ParsedRow[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+$/, ''))
+    .filter((line) => line.trim() !== '')
+    .map((line) => {
+      const cols = line.split('\t');
+      const label = (cols[0] ?? '').trim();
+      const type = parseType(cols[1]);
+      const optionLabels = (cols[2] ?? '')
+        .split(/[,，]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return {
+        label,
+        type,
+        optionLabels: OPTION_TYPES.includes(type) ? optionLabels : [],
+      };
+    })
+    .filter((r) => r.label !== '');
+}
+
 interface Props {
   form: FormSchema;
 }
 
 export default function TableEditor({ form }: Props) {
-  const { addQuestion, updateQuestion, changeQuestionType, removeQuestion, duplicateQuestion, addSection } =
-    useEditorStore();
+  const {
+    addQuestion,
+    addQuestionsBulk,
+    updateQuestion,
+    changeQuestionType,
+    removeQuestion,
+    duplicateQuestion,
+    addSection,
+  } = useEditorStore();
 
   const [sectionId, setSectionId] = useState<string>(form.sections[0]?.id ?? '');
   const section = form.sections.find((s) => s.id === sectionId) ?? form.sections[0];
 
   // 선택지 셀 편집 중 임시 문자열(커서 튐 방지) — 커밋은 blur 시
   const [optDraft, setOptDraft] = useState<Record<string, string>>({});
+  // 엑셀 붙여넣기 대화상자
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const parsedPaste = useMemo(() => parseRows(pasteText), [pasteText]);
+
+  const applyPaste = () => {
+    if (parsedPaste.length === 0) return;
+    addQuestionsBulk(sectionId, parsedPaste);
+    setPasteText('');
+    setPasteOpen(false);
+  };
   // 조건부 표시 편집 팝오버
   const [condAnchor, setCondAnchor] = useState<{ el: HTMLElement; qid: string } | null>(null);
   const condQuestion = condAnchor
@@ -99,6 +177,14 @@ export default function TableEditor({ form }: Props) {
         </TextField>
         <Button size="small" variant="text" startIcon={<AddIcon />} onClick={addSection}>
           섹션 추가
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<ContentPasteIcon />}
+          onClick={() => setPasteOpen(true)}
+        >
+          엑셀 붙여넣기
         </Button>
         <Box sx={{ flex: 1 }} />
         <Typography variant="body2" color="text.secondary">
@@ -261,6 +347,45 @@ export default function TableEditor({ form }: Props) {
         </Typography>
         {condQuestion && <ConditionEditor sectionId={sectionId} question={condQuestion} />}
       </Popover>
+
+      {/* 엑셀 붙여넣기(여러 줄 한 번에) */}
+      <Dialog open={pasteOpen} onClose={() => setPasteOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>엑셀 붙여넣기</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 1.5 }}>
+            엑셀·시트에서 복사한 여러 줄을 붙여넣으세요. 한 줄이 한 문항이 됩니다.
+            <br />
+            열은 <b>탭</b>으로 구분: <b>질문 [탭] 유형 [탭] 선택지(쉼표)</b> — 유형·선택지는 생략 가능(기본 단일 선택).
+          </Alert>
+          <TextField
+            multiline
+            fullWidth
+            minRows={7}
+            maxRows={16}
+            autoFocus
+            placeholder={
+              '흡연하십니까?\t단일\t예, 아니오\n음주 빈도\t드롭다운\t안함, 주1회, 매일\n복용 중인 약'
+            }
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            InputProps={{ sx: { fontFamily: 'monospace', fontSize: 13 } }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            인식된 문항: <b>{parsedPaste.length}</b>개
+            {parsedPaste.length > 0 &&
+              ` · ${parsedPaste
+                .slice(0, 3)
+                .map((r) => `${r.label}(${QUESTION_TYPE_META[r.type].label})`)
+                .join(', ')}${parsedPaste.length > 3 ? ' …' : ''}`}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasteOpen(false)}>취소</Button>
+          <Button variant="contained" onClick={applyPaste} disabled={parsedPaste.length === 0}>
+            {parsedPaste.length > 0 ? `${parsedPaste.length}개 추가` : '추가'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
