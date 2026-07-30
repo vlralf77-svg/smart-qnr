@@ -226,31 +226,41 @@ export default function CategoryManager({ open, onClose }: Props) {
                 </Box>
 
                 {/* 하위 분류 목록 */}
-                <Stack spacing={0.5} sx={{ px: 1.5, py: 1 }}>
+                <Stack spacing={0.25} sx={{ px: 1.5, py: 0.75 }}>
                   {children.map((path) => (
-                    <Box key={path} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-                      <SubdirectoryArrowRightIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-                      <Typography sx={{ flex: 1 }}>{splitCategory(path).child}</Typography>
-                      <Chip size="small" label={`문진 ${usageExact(path)}`} variant="outlined" />
+                    <Box key={path} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 0.5 }}>
+                      <SubdirectoryArrowRightIcon
+                        sx={{ color: 'text.disabled', fontSize: 16 }}
+                      />
+                      <Typography sx={{ flex: 1, fontSize: 13 }} noWrap>
+                        {splitCategory(path).child}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={usageExact(path)}
+                        variant="outlined"
+                        sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.75 } }}
+                      />
                       <Tooltip title="하위 이름 변경">
-                        <IconButton size="small" onClick={() => handleRenameChild(path)}>
-                          <EditIcon fontSize="small" />
+                        <IconButton size="small" sx={{ p: 0.5 }} onClick={() => handleRenameChild(path)}>
+                          <EditIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="하위 삭제">
                         <IconButton
                           size="small"
                           color="error"
+                          sx={{ p: 0.5 }}
                           onClick={() => handleRemove(path, false)}
                         >
-                          <DeleteOutlineIcon fontSize="small" />
+                          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
                   ))}
 
                   {/* 하위 추가 입력 */}
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="nowrap" sx={{ pl: 1, mt: 0.5 }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="nowrap" sx={{ pl: 0.5, mt: 0.25 }}>
                     <TextField
                       size="small"
                       placeholder="하위 분류 추가"
