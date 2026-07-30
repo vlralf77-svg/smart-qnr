@@ -33,6 +33,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import { isOverlayForm } from '@/types/schema';
@@ -46,6 +47,7 @@ import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPa
 import TableEditor from '@/components/editor/TableEditor';
 import FocusEditor from '@/components/editor/FocusEditor';
 import PreviewDialog from '@/components/editor/PreviewDialog';
+import PreviewWindow from '@/components/editor/PreviewWindow';
 import FormRenderer from '@/components/renderer/FormRenderer';
 import PreviewErrorBoundary from '@/components/PreviewErrorBoundary';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -79,6 +81,8 @@ export default function FormEditor() {
   const addCategory = useCategoriesStore((s) => s.addCategory);
   const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
+  // 미리보기를 별도 창(2모니터)으로 띄우는 중인지
+  const [popoutPreview, setPopoutPreview] = useState(false);
   const [toast, setToast] = useState('');
 
   // 우측 실시간 미리보기 패널 표시 여부 (기본 표시) — 오버레이(PDF) 문진에는 없음
@@ -449,6 +453,18 @@ export default function FormEditor() {
                 </IconButton>
               </Tooltip>
             )}
+            {!isOverlayForm(form) && (
+              <Tooltip title={popoutPreview ? '미리보기 창 닫기' : '미리보기를 새 창으로 열기 (2모니터)'}>
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={() => setPopoutPreview((v) => !v)}
+                  sx={{ bgcolor: popoutPreview ? 'rgba(255,255,255,0.22)' : 'transparent' }}
+                >
+                  <OpenInNewIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
             <Button color="inherit" startIcon={<VisibilityIcon />} onClick={() => setPreview(true)}>
               전체 미리보기
             </Button>
@@ -547,17 +563,53 @@ export default function FormEditor() {
                       미리보기
                     </Typography>
                     <Chip label="실시간" size="small" color="success" variant="outlined" />
+                    <Tooltip
+                      title={popoutPreview ? '미리보기 창 닫기' : '새 창으로 열기 (2모니터)'}
+                    >
+                      <IconButton
+                        size="small"
+                        color={popoutPreview ? 'primary' : 'default'}
+                        onClick={() => setPopoutPreview((v) => !v)}
+                      >
+                        <OpenInNewIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="전체 화면으로 보기">
                       <IconButton size="small" onClick={() => setPreview(true)}>
                         <OpenInFullIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </Stack>
-                  <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-                    <PreviewErrorBoundary>
-                      <FormRenderer key={form.id} schema={form} preview />
-                    </PreviewErrorBoundary>
-                  </Box>
+                  {popoutPreview ? (
+                    <Box
+                      sx={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1.5,
+                        p: 3,
+                        color: 'text.secondary',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <OpenInNewIcon color="primary" />
+                      <Typography variant="body2">별도 창에서 미리보기 중입니다.</Typography>
+                      <Typography variant="caption">
+                        미리보기 창을 두 번째 모니터로 옮겨 함께 작업하세요.
+                      </Typography>
+                      <Button size="small" variant="outlined" onClick={() => setPopoutPreview(false)}>
+                        이 패널로 되돌리기
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+                      <PreviewErrorBoundary>
+                        <FormRenderer key={form.id} schema={form} preview />
+                      </PreviewErrorBoundary>
+                    </Box>
+                  )}
                 </Box>
               );
             }
@@ -776,6 +828,16 @@ export default function FormEditor() {
           기본 순서로 되돌리기
         </MenuItem>
       </Menu>
+
+      {popoutPreview && !isOverlayForm(form) && (
+        <PreviewWindow onClose={() => setPopoutPreview(false)}>
+          <Box sx={{ p: 2, maxWidth: 820, mx: 'auto' }}>
+            <PreviewErrorBoundary>
+              <FormRenderer key={form.id} schema={form} preview />
+            </PreviewErrorBoundary>
+          </Box>
+        </PreviewWindow>
+      )}
 
       <PreviewDialog open={preview} schema={form} onClose={() => setPreview(false)} />
       <Snackbar

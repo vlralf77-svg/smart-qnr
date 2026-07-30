@@ -184,6 +184,26 @@ function createWindow() {
     },
   });
 
+  // 미리보기 팝아웃 창(2모니터) — window.open('', 'smartqnr-preview') 요청을 깔끔한 창으로 허용
+  win.webContents.setWindowOpenHandler(({ frameName }) => {
+    if (frameName === 'smartqnr-preview') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 900,
+          height: 1040,
+          minWidth: 380,
+          minHeight: 480,
+          title: 'SmartQnR 미리보기',
+          autoHideMenuBar: true,
+          backgroundColor: '#f2f6f4',
+          webPreferences: { contextIsolation: true, nodeIntegration: false },
+        },
+      };
+    }
+    return { action: 'allow' };
+  });
+
   // 첫 실행 시 화면을 넉넉히 — 숨긴 상태에서 최대화해 두고, 첫 렌더가 끝나면 표시
   try {
     win.maximize();
