@@ -148,6 +148,7 @@ ipcMain.on('display:mode', (_event, mode) => {
   const [w, h] = win.getSize();
   if (mode === 'mobile') {
     win.setMinimumSize(360, 600); // 모바일처럼 좁게 축소 허용
+    if (win.isMaximized()) win.unmaximize(); // 최대화 상태면 먼저 해제해야 축소됨
     if (w > 500) win.setSize(430, Math.max(h, 780)); // 선택 즉시 모바일 폭으로
   } else {
     win.setMinimumSize(1024, 700); // PC/자동은 기존 최소 크기
@@ -167,10 +168,11 @@ ipcMain.handle('convert:document', async (_event, payload) => {
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1360,
-    height: 900,
+    width: 1600,
+    height: 1000,
     minWidth: 1024,
     minHeight: 700,
+    center: true,
     title: 'SmartQnR 문진관리',
     backgroundColor: '#f4f6f8',
     webPreferences: {
@@ -179,6 +181,13 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  // 첫 실행 시 화면을 넉넉히 — 큰 모니터에서는 최대화로 열되, 사용자가 되돌릴 수 있음
+  try {
+    win.maximize();
+  } catch {
+    /* 무시 */
+  }
 
   // 창을 닫을 때(X 버튼·Alt+F4 등) "종료하시겠습니까?" 확인
   //  네이티브 창 대신 렌더러(앱 내부)의 예쁜 커스텀 모달로 확인받는다.
