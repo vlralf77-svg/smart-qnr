@@ -156,12 +156,12 @@ export default function CategoryManager({ open, onClose }: Props) {
       </DialogTitle>
       <DialogContent dividers>
         {/* 대분류 추가 */}
-        <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="nowrap" sx={{ mb: 2 }}>
           <TextField
             size="small"
-            fullWidth
             placeholder="새 대분류 이름"
             value={newParent}
+            sx={{ flex: 1, minWidth: 0 }}
             onChange={(e) => setNewParent(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -250,12 +250,12 @@ export default function CategoryManager({ open, onClose }: Props) {
                   ))}
 
                   {/* 하위 추가 입력 */}
-                  <Stack direction="row" spacing={1} sx={{ pl: 1, mt: 0.5 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="nowrap" sx={{ pl: 1, mt: 0.5 }}>
                     <TextField
                       size="small"
-                      fullWidth
                       placeholder="하위 분류 추가"
                       value={subInput[parent] ?? ''}
+                      sx={{ flex: 1, minWidth: 0 }}
                       onChange={(e) => setSubInput((m) => ({ ...m, [parent]: e.target.value }))}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
