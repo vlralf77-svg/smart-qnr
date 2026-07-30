@@ -28,17 +28,30 @@ interface LocationState {
   from?: string;
 }
 
-// 몰입형 배경 — 앱 브랜드 그린 그라데이션 메시 위 딥그린 베이스 (두 로그인 화면 공용)
+// 몰입형 배경 — 앱 브랜드 그린 그라데이션이 물결처럼 천천히 흐르는 애니메이션 (두 로그인 화면 공용)
 export const LOGIN_SCREEN_SX = {
   minHeight: '100vh',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   p: 2,
+  overflow: 'hidden',
   background: `
-    radial-gradient(120% 90% at 12% 8%, rgba(34,160,107,0.45), transparent 60%),
-    radial-gradient(110% 100% at 92% 100%, rgba(13,125,82,0.55), transparent 55%),
-    #0b1811`,
+    radial-gradient(60% 80% at 20% 30%, rgba(44,189,131,0.55), transparent 60%),
+    radial-gradient(55% 75% at 80% 70%, rgba(13,125,82,0.60), transparent 60%),
+    radial-gradient(50% 60% at 60% 15%, rgba(34,160,107,0.40), transparent 60%),
+    linear-gradient(120deg, #0b1811, #0f2a1e, #0b1811)`,
+  backgroundSize: '200% 200%, 220% 220%, 180% 180%, 200% 200%',
+  animation: 'loginWave 18s ease-in-out infinite',
+  '@keyframes loginWave': {
+    '0%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
+    '50%': { backgroundPosition: '100% 50%, 0% 50%, 50% 100%, 100% 50%' },
+    '100%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
+  },
+  // 움직임 최소화 설정을 켠 사용자에겐 애니메이션 정지
+  '@media (prefers-reduced-motion: reduce)': {
+    animation: 'none',
+  },
 } as const;
 
 // 반투명 글래스 카드 — 두 로그인 화면(문진관리/문진입력) 규격 동일
