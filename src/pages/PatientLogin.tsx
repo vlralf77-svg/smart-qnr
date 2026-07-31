@@ -19,8 +19,9 @@ import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import { usePatientStore, TEST_PATIENT_NO, PatientIdType } from '@/store/usePatientStore';
 import { APP_VERSION } from '@/version';
 import { IS_DEMO } from '@/config';
-import { TOGGLE_SX, LOGIN_CARD_SX, LOGIN_SCREEN_SX, LOGIN_FIELD_SX, LOGIN_BTN_SX } from './Login';
+import { TOGGLE_SX, LOGIN_CARD_SX, loginScreenSx, LOGIN_FIELD_SX, LOGIN_BTN_SX } from './Login';
 import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
+import { useThemeSettings } from '@/store/useThemeSettings';
 
 // 주민등록번호 입력값을 숫자만 남기고 앞 6자리 뒤에 '-'를 자동 삽입 (예: 900101-1234567)
 function formatRrn(raw: string): string {
@@ -31,6 +32,7 @@ function formatRrn(raw: string): string {
 export default function PatientLogin() {
   const navigate = useNavigate();
   const { login, loginByNumber, error, busy } = usePatientStore();
+  const brand = useThemeSettings((s) => s.brand);
   const [params] = useSearchParams();
   // 링크에 담긴 토큰(?t=... / ?token=...)을 환자번호로 복원(번호는 URL에 노출 안 됨)
   const token = params.get('t') ?? params.get('token') ?? '';
@@ -54,7 +56,7 @@ export default function PatientLogin() {
   }, []);
 
   return (
-    <Box sx={LOGIN_SCREEN_SX}>
+    <Box sx={loginScreenSx(brand)}>
       <Container maxWidth="xs">
         <Paper elevation={0} sx={LOGIN_CARD_SX}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>

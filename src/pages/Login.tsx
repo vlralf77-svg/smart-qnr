@@ -21,6 +21,8 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AppIcon from '@/components/AppIcon';
 import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
+import { BRAND_PRESETS, BrandKey } from '@/theme';
+import { useThemeSettings } from '@/store/useThemeSettings';
 import { IS_DEMO } from '@/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { APP_VERSION } from '@/version';
@@ -29,31 +31,57 @@ interface LocationState {
   from?: string;
 }
 
-// 몰입형 배경 — 앱 브랜드 그린 그라데이션이 물결처럼 천천히 흐르는 애니메이션 (두 로그인 화면 공용)
-export const LOGIN_SCREEN_SX = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  p: 2,
-  overflow: 'hidden',
-  background: `
-    radial-gradient(60% 80% at 20% 30%, rgba(44,189,131,0.55), transparent 60%),
-    radial-gradient(55% 75% at 80% 70%, rgba(13,125,82,0.60), transparent 60%),
-    radial-gradient(50% 60% at 60% 15%, rgba(34,160,107,0.40), transparent 60%),
-    linear-gradient(120deg, #0b1811, #0f2a1e, #0b1811)`,
-  backgroundSize: '200% 200%, 220% 220%, 180% 180%, 200% 200%',
-  animation: 'loginWave 18s ease-in-out infinite',
-  '@keyframes loginWave': {
-    '0%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
-    '50%': { backgroundPosition: '100% 50%, 0% 50%, 50% 100%, 100% 50%' },
-    '100%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
-  },
-  // 움직임 최소화 설정을 켠 사용자에겐 애니메이션 정지
-  '@media (prefers-reduced-motion: reduce)': {
-    animation: 'none',
-  },
-} as const;
+// hex → rgba 문자열
+function rgba(hex: string, a: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+// hex 를 검정 쪽으로 섞어 어둡게 (amount: 0~1, 1이면 검정)
+function darken(hex: string, amount: number): string {
+  const h = hex.replace('#', '');
+  const r = Math.round(parseInt(h.slice(0, 2), 16) * (1 - amount));
+  const g = Math.round(parseInt(h.slice(2, 4), 16) * (1 - amount));
+  const b = Math.round(parseInt(h.slice(4, 6), 16) * (1 - amount));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// 몰입형 배경 — 선택한 브랜드 색상의 그라데이션이 물결처럼 흐르는 애니메이션 (두 로그인 화면 공용)
+export function loginScreenSx(brandKey: BrandKey) {
+  const p = BRAND_PRESETS.find((x) => x.key === brandKey) ?? BRAND_PRESETS[0];
+  const baseDark = darken(p.dark, 0.82); // 거의 검정에 가까운 브랜드 톤
+  const baseMid = darken(p.dark, 0.62);
+  return {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    p: 2,
+    overflow: 'hidden',
+    background: `
+      radial-gradient(60% 80% at 20% 30%, ${rgba(p.light, 0.55)}, transparent 60%),
+      radial-gradient(55% 75% at 80% 70%, ${rgba(p.secondary, 0.6)}, transparent 60%),
+      radial-gradient(50% 60% at 60% 15%, ${rgba(p.main, 0.4)}, transparent 60%),
+      linear-gradient(120deg, ${baseDark}, ${baseMid}, ${baseDark})`,
+    backgroundSize: '200% 200%, 220% 220%, 180% 180%, 200% 200%',
+    animation: 'loginWave 18s ease-in-out infinite',
+    '@keyframes loginWave': {
+      '0%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
+      '50%': { backgroundPosition: '100% 50%, 0% 50%, 50% 100%, 100% 50%' },
+      '100%': { backgroundPosition: '0% 50%, 100% 50%, 50% 0%, 0% 50%' },
+    },
+    // 움직임 최소화 설정을 켠 사용자에겐 애니메이션 정지
+    '@media (prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  } as const;
+}
+
+// 기본(그린) 배경 — 하위 호환용
+export const LOGIN_SCREEN_SX = loginScreenSx('green');
 
 // 반투명 글래스 카드 — 두 로그인 화면(문진관리/문진입력) 규격 동일
 export const LOGIN_CARD_SX = {
@@ -116,6 +144,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loginByIdOnly, error } = useAuthStore();
+  const brand = useThemeSettings((s) => s.brand);
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -143,7 +172,7 @@ export default function Login() {
   }, [id, from, loginByIdOnly, navigate]);
 
   return (
-    <Box sx={LOGIN_SCREEN_SX}>
+    <Box sx={loginScreenSx(brand)}>
       <Container maxWidth="xs">
         <Paper elevation={0} sx={LOGIN_CARD_SX}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
