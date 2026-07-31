@@ -309,7 +309,7 @@ function StatCard({ item }: { item: StatItem }) {
           maxDate={item.to ? dayjs(item.to) : undefined}
           onChange={(v: Dayjs | null) => updateItem(item.id, { from: v ? v.format('YYYY-MM-DD') : '' })}
           slotProps={{
-            textField: { size: 'small', sx: { width: 150 } },
+            textField: { size: 'small', sx: { width: 190 } },
             field: { clearable: true },
           }}
         />
@@ -320,7 +320,7 @@ function StatCard({ item }: { item: StatItem }) {
           minDate={item.from ? dayjs(item.from) : undefined}
           onChange={(v: Dayjs | null) => updateItem(item.id, { to: v ? v.format('YYYY-MM-DD') : '' })}
           slotProps={{
-            textField: { size: 'small', sx: { width: 150 } },
+            textField: { size: 'small', sx: { width: 190 } },
             field: { clearable: true },
           }}
         />
