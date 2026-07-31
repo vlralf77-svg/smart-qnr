@@ -25,6 +25,9 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs, { Dayjs } from 'dayjs';
 import { FormResponse, QUESTION_TYPE_META } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -37,6 +40,16 @@ import {
   StatResult,
   DistItem,
 } from '@/utils/statsAggregate';
+
+const FMT = 'YYYY-MM-DD';
+// 기간 빠른 선택 프리셋
+const RANGE_PRESETS: { label: string; range: () => { from: string; to: string } }[] = [
+  { label: '최근 7일', range: () => ({ from: dayjs().subtract(6, 'day').format(FMT), to: dayjs().format(FMT) }) },
+  { label: '최근 30일', range: () => ({ from: dayjs().subtract(29, 'day').format(FMT), to: dayjs().format(FMT) }) },
+  { label: '이번 달', range: () => ({ from: dayjs().startOf('month').format(FMT), to: dayjs().format(FMT) }) },
+  { label: '올해', range: () => ({ from: dayjs().startOf('year').format(FMT), to: dayjs().format(FMT) }) },
+  { label: '전체', range: () => ({ from: '', to: '' }) },
+];
 
 // 선택한 문진의 응답을 불러온다(백엔드 모드면 서버, 아니면 로컬 캐시).
 function useFormResponses(formId: string): FormResponse[] {
@@ -255,22 +268,48 @@ function StatCard({ item }: { item: StatItem }) {
             </MenuItem>
           ))}
         </TextField>
-        <TextField
-          type="date"
-          size="small"
+        <DatePicker
           label="시작일"
-          value={item.from}
-          onChange={(e) => updateItem(item.id, { from: e.target.value })}
-          InputLabelProps={{ shrink: true }}
+          format="YYYY.MM.DD"
+          value={item.from ? dayjs(item.from) : null}
+          maxDate={item.to ? dayjs(item.to) : undefined}
+          onChange={(v: Dayjs | null) => updateItem(item.id, { from: v ? v.format('YYYY-MM-DD') : '' })}
+          slotProps={{
+            textField: { size: 'small', sx: { width: 150 } },
+            field: { clearable: true },
+          }}
         />
-        <TextField
-          type="date"
-          size="small"
+        <DatePicker
           label="종료일"
-          value={item.to}
-          onChange={(e) => updateItem(item.id, { to: e.target.value })}
-          InputLabelProps={{ shrink: true }}
+          format="YYYY.MM.DD"
+          value={item.to ? dayjs(item.to) : null}
+          minDate={item.from ? dayjs(item.from) : undefined}
+          onChange={(v: Dayjs | null) => updateItem(item.id, { to: v ? v.format('YYYY-MM-DD') : '' })}
+          slotProps={{
+            textField: { size: 'small', sx: { width: 150 } },
+            field: { clearable: true },
+          }}
         />
+      </Stack>
+
+      {/* 기간 빠른 선택 */}
+      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+        <CalendarMonthOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+        {RANGE_PRESETS.map((p) => {
+          const r = p.range();
+          const active = item.from === r.from && item.to === r.to;
+          return (
+            <Chip
+              key={p.label}
+              label={p.label}
+              size="small"
+              variant={active ? 'filled' : 'outlined'}
+              color={active ? 'primary' : 'default'}
+              onClick={() => updateItem(item.id, r)}
+              sx={{ cursor: 'pointer' }}
+            />
+          );
+        })}
       </Stack>
 
       <Divider sx={{ mb: 2 }} />

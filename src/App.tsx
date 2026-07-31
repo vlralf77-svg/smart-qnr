@@ -1,6 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import 'dayjs/locale/ko';
 import { buildTheme } from './theme';
 import { useThemeSettings } from './store/useThemeSettings';
 import FormList from './pages/FormList';
@@ -91,6 +94,7 @@ export default function App() {
   return (
     <ThemeProvider theme={activeTheme}>
       <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
       <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -205,6 +209,7 @@ export default function App() {
       <QuitConfirm />
       {/* 업데이트 준비 완료 모달(Electron 전용) */}
       <UpdateReady />
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }
