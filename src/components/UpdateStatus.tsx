@@ -53,13 +53,13 @@ export default function UpdateStatus() {
         };
       case 'downloaded':
         return {
-          icon: <CheckCircleOutlineIcon fontSize="small" color="success" />,
+          icon: <CheckCircleOutlineIcon fontSize="small" color="primary" />,
           text: `업데이트 준비 완료${status.version ? ` (v${status.version})` : ''}`,
           bar: null,
         };
       case 'up-to-date':
         return {
-          icon: <CheckCircleOutlineIcon fontSize="small" color="success" />,
+          icon: <CheckCircleOutlineIcon fontSize="small" color="primary" />,
           text: '최신 버전입니다',
           bar: null,
         };
