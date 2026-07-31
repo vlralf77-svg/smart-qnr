@@ -507,7 +507,9 @@ function StatCard({ item }: { item: StatItem }) {
                     <Chip size="small" variant="outlined" color="secondary" label="복수응답" />
                   )}
                   {result.kind === 'text' && (
-                    <Chip size="small" variant="outlined" label={`서로 다른 답 ${result.distinct}종`} />
+                    <Tooltip title="중복을 제외한 고유 답변의 개수">
+                      <Chip size="small" variant="outlined" label={`답변 종류 ${result.distinct}가지`} />
+                    </Tooltip>
                   )}
                 </Stack>
                 <ResultView result={result} chart={item.chart} />
