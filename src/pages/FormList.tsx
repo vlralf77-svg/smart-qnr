@@ -51,6 +51,7 @@ import PatientLinkDialog from '@/components/PatientLinkDialog';
 import ExcelImportDialog from '@/components/ExcelImportDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CreateFormDialog from '@/components/CreateFormDialog';
+import ThemeSettingsButton from '@/components/ThemeSettingsButton';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -373,6 +374,7 @@ export default function FormList() {
             {department ? `${department} · ` : ''}
             {displayName ?? currentUser ?? 'admin'}
           </Typography>
+          <ThemeSettingsButton />
           <Tooltip title="로그아웃">
             <IconButton color="inherit" size="small" onClick={() => setLogoutOpen(true)}>
               <LogoutIcon fontSize="small" />

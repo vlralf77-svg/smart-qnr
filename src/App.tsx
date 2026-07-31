@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import { theme } from './theme';
+import { buildTheme } from './theme';
+import { useThemeSettings } from './store/useThemeSettings';
 import FormList from './pages/FormList';
 import FormEditor from './pages/FormEditor';
 import ResponseForm from './pages/ResponseForm';
@@ -76,8 +77,14 @@ export default function App() {
     });
     startLogShipper();
   }, []);
+
+  // 사용자가 고른 강조 색상·다크모드로 테마 구성
+  const brand = useThemeSettings((s) => s.brand);
+  const mode = useThemeSettings((s) => s.mode);
+  const activeTheme = useMemo(() => buildTheme(brand, mode), [brand, mode]);
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={activeTheme}>
       <CssBaseline />
       <HashRouter>
         <Routes>

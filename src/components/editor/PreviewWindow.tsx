@@ -1,12 +1,13 @@
 // 미리보기를 별도 OS 창으로 띄우는 컴포넌트(2모니터 작업용).
 //  React 포털로 새 창 문서에 렌더 → 같은 편집 스토어를 그대로 구독하므로 실시간으로 갱신된다.
 //  MUI(emotion) 스타일이 새 창에도 적용되도록 새 문서 head 에 전용 emotion 캐시를 주입.
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import createCache, { EmotionCache } from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
 import { CssBaseline, ThemeProvider } from '@mui/material';
-import { theme } from '@/theme';
+import { buildTheme } from '@/theme';
+import { useThemeSettings } from '@/store/useThemeSettings';
 
 interface Props {
   title?: string;
@@ -17,6 +18,9 @@ interface Props {
 export default function PreviewWindow({ title = '미리보기 — SmartQnR', onClose, children }: Props) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [cache, setCache] = useState<EmotionCache | null>(null);
+  const brand = useThemeSettings((s) => s.brand);
+  const mode = useThemeSettings((s) => s.mode);
+  const previewTheme = useMemo(() => buildTheme(brand, mode), [brand, mode]);
 
   useEffect(() => {
     const win = window.open('', 'smartqnr-preview', 'width=900,height=1040');
@@ -32,7 +36,7 @@ export default function PreviewWindow({ title = '미리보기 — SmartQnR', onC
     const base = win.document.createElement('style');
     base.textContent =
       'html,body{margin:0;padding:0;height:100%;}' +
-      'body{background:#f2f6f4;-webkit-font-smoothing:antialiased;}' +
+      `body{background:${previewTheme.palette.background.default};-webkit-font-smoothing:antialiased;}` +
       '*{box-sizing:border-box;}';
     win.document.head.appendChild(base);
 
@@ -76,7 +80,7 @@ export default function PreviewWindow({ title = '미리보기 — SmartQnR', onC
 
   return createPortal(
     <CacheProvider value={cache}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={previewTheme}>
         <CssBaseline />
         {children}
       </ThemeProvider>
