@@ -29,7 +29,7 @@ import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import DonutLargeRoundedIcon from '@mui/icons-material/DonutLargeRounded';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { ChartKind } from '@/store/useStatsStore';
+import { ChartKind, FilterOp, StatFilter } from '@/store/useStatsStore';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -38,6 +38,7 @@ import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import dayjs, { Dayjs } from 'dayjs';
@@ -50,9 +51,11 @@ import {
   aggregateQuestion,
   inputQuestions,
   withinRange,
+  responseMatchesFilters,
   StatResult,
   DistItem,
 } from '@/utils/statsAggregate';
+import { uid } from '@/utils/id';
 
 const FMT = 'YYYY-MM-DD';
 // 기간 빠른 선택 프리셋
@@ -417,6 +420,76 @@ function DateRangeField({
   );
 }
 
+// 조건 값 입력 — 문항 유형에 맞는 컨트롤 제공
+function FilterValueInput({
+  question,
+  value,
+  onChange,
+}: {
+  question?: Question;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (!question) {
+    return <TextField size="small" label="값" disabled sx={{ minWidth: 150 }} />;
+  }
+  const t = question.type;
+  if (t === 'radio' || t === 'select' || t === 'checkbox') {
+    return (
+      <TextField
+        select
+        size="small"
+        label="값"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        sx={{ minWidth: 150 }}
+      >
+        {(question.options ?? []).map((o) => (
+          <MenuItem key={o.id} value={o.value}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
+  }
+  if (t === 'boolean') {
+    return (
+      <TextField
+        select
+        size="small"
+        label="값"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        sx={{ minWidth: 110 }}
+      >
+        <MenuItem value="true">예</MenuItem>
+        <MenuItem value="false">아니오</MenuItem>
+      </TextField>
+    );
+  }
+  if (t === 'number' || t === 'scale') {
+    return (
+      <TextField
+        type="number"
+        size="small"
+        label="값"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        sx={{ width: 110 }}
+      />
+    );
+  }
+  return (
+    <TextField
+      size="small"
+      label="값"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      sx={{ minWidth: 150 }}
+    />
+  );
+}
+
 function StatCard({ item }: { item: StatItem }) {
   const theme = useTheme();
   const forms = useFormsStore((s) => s.forms);
@@ -427,16 +500,34 @@ function StatCard({ item }: { item: StatItem }) {
   // 선택된 문항들(문진에 정의된 순서 유지)
   const selectedQuestions = questions.filter((q) => item.questionIds.includes(q.id));
 
+  const filters = item.filters ?? [];
+  // 조건 편집 헬퍼
+  const setFilters = (next: StatFilter[]) => updateItem(item.id, { filters: next });
+  const addFilter = () =>
+    setFilters([...filters, { id: uid('flt'), questionId: '', op: 'eq', value: '' }]);
+  const updateFilter = (id: string, patch: Partial<StatFilter>) =>
+    setFilters(filters.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  const removeFilter = (id: string) => setFilters(filters.filter((f) => f.id !== id));
+  const defaultOp = (q?: Question): FilterOp =>
+    q && q.type === 'checkbox' ? 'includes' : 'eq';
+
   const allResponses = useFormResponses(item.formId);
   const filtered = useMemo(
     () => allResponses.filter((r) => withinRange(r.submittedAt, item.from || undefined, item.to || undefined)),
     [allResponses, item.from, item.to],
   );
-  // 선택된 각 문항의 집계 결과
-  const results = useMemo(
-    () => selectedQuestions.map((q) => ({ question: q, result: aggregateQuestion(q, filtered) })),
+  // AND 조건으로 대상 응답을 추림
+  const matched = useMemo(
+    () => (form ? filtered.filter((r) => responseMatchesFilters(form, r, filters)) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [item.questionIds.join(','), filtered, form?.id],
+    [filtered, JSON.stringify(filters), form?.id],
+  );
+  const hasActiveFilter = filters.some((f) => f.questionId && f.value !== '');
+  // 선택된 각 문항의 집계 결과(조건 적용 후)
+  const results = useMemo(
+    () => selectedQuestions.map((q) => ({ question: q, result: aggregateQuestion(q, matched) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [item.questionIds.join(','), matched, form?.id],
   );
 
   return (
@@ -558,6 +649,86 @@ function StatCard({ item }: { item: StatItem }) {
         })}
       </Stack>
 
+      {/* 대상 추리기(AND 조건) */}
+      <Box
+        sx={{
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: 'action.hover',
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: filters.length ? 1.25 : 0 }}>
+          <FilterAltOutlinedIcon fontSize="small" color="action" />
+          <Typography variant="caption" fontWeight={800} sx={{ flex: 1 }}>
+            대상 조건 (AND — 모두 만족하는 응답만 집계)
+          </Typography>
+          <Button size="small" startIcon={<AddIcon />} onClick={addFilter} disabled={!form}>
+            조건 추가
+          </Button>
+        </Stack>
+        <Stack spacing={1}>
+          {filters.map((f) => {
+            const fq = questions.find((q) => q.id === f.questionId);
+            const numeric = fq && (fq.type === 'number' || fq.type === 'scale');
+            return (
+              <Stack key={f.id} direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <TextField
+                  select
+                  size="small"
+                  label="조건 문항"
+                  value={f.questionId}
+                  onChange={(e) => {
+                    const nq = questions.find((q) => q.id === e.target.value);
+                    updateFilter(f.id, { questionId: e.target.value, op: defaultOp(nq), value: '' });
+                  }}
+                  sx={{ minWidth: 180 }}
+                >
+                  {questions.map((q) => (
+                    <MenuItem key={q.id} value={q.id}>
+                      {q.label || '(제목 없음)'} · {QUESTION_TYPE_META[q.type]?.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {numeric ? (
+                  <TextField
+                    select
+                    size="small"
+                    label="연산"
+                    value={f.op}
+                    onChange={(e) => updateFilter(f.id, { op: e.target.value as FilterOp })}
+                    sx={{ width: 88 }}
+                  >
+                    <MenuItem value="eq">=</MenuItem>
+                    <MenuItem value="gte">≥</MenuItem>
+                    <MenuItem value="lte">≤</MenuItem>
+                  </TextField>
+                ) : (
+                  <Chip
+                    size="small"
+                    label={fq?.type === 'checkbox' ? '포함' : '같음'}
+                    variant="outlined"
+                    sx={{ alignSelf: 'center' }}
+                  />
+                )}
+                <FilterValueInput
+                  question={fq}
+                  value={f.value}
+                  onChange={(v) => updateFilter(f.id, { value: v })}
+                />
+                <Tooltip title="조건 삭제">
+                  <IconButton size="small" color="error" onClick={() => removeFilter(f.id)}>
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            );
+          })}
+        </Stack>
+      </Box>
+
       <Divider sx={{ mb: 2 }} />
 
       {/* 결과 */}
@@ -568,16 +739,21 @@ function StatCard({ item }: { item: StatItem }) {
         </Box>
       ) : (
         <>
-          <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
             <Chip
               size="small"
-              label={`기간 응답 ${filtered.length}건`}
+              label={`대상 ${matched.length}건`}
               sx={{
                 fontWeight: 700,
                 bgcolor: alpha(theme.palette.primary.main, 0.12),
                 color: 'primary.dark',
               }}
             />
+            {hasActiveFilter && (
+              <Typography variant="caption" color="text.secondary">
+                (기간 {filtered.length}건 중 조건 일치)
+              </Typography>
+            )}
             <Box sx={{ flex: 1 }} />
             <ToggleButtonGroup
               size="small"

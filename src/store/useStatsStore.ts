@@ -4,12 +4,22 @@ import { persist } from 'zustand/middleware';
 import { uid } from '@/utils/id';
 
 export type ChartKind = 'bar' | 'donut';
+export type FilterOp = 'eq' | 'gte' | 'lte' | 'includes';
+
+// AND 조건 — 이 조건들을 모두 만족하는 응답만 집계 대상으로 추린다.
+export interface StatFilter {
+  id: string;
+  questionId: string;
+  op: FilterOp;
+  value: string;
+}
 
 export interface StatItem {
   id: string;
   title: string;
   formId: string;
   questionIds: string[]; // 한 기간에 대해 여러 문항을 함께 구성
+  filters: StatFilter[]; // AND 조건으로 대상 응답을 추림
   from: string; // YYYY-MM-DD ('' = 제한 없음)
   to: string; // YYYY-MM-DD ('' = 제한 없음)
   chart: ChartKind;
@@ -29,6 +39,7 @@ function blank(preset?: Partial<StatItem>): StatItem {
     title: '새 통계',
     formId: '',
     questionIds: [],
+    filters: [],
     from: '',
     to: '',
     chart: 'donut',
@@ -59,14 +70,18 @@ export const useStatsStore = create<StatsState>()(
     }),
     {
       name: 'smartqnr-stats',
-      version: 1,
-      // 예전 단일 문항(questionId) → 다중 문항(questionIds) 마이그레이션
+      version: 2,
+      // v1: 단일 문항(questionId) → 다중(questionIds), v2: AND 조건(filters) 추가
       migrate: (persisted: unknown, version: number) => {
-        const state = persisted as { items?: (StatItem & { questionId?: string })[] } | undefined;
-        if (state?.items && version < 1) {
+        const state = persisted as
+          | { items?: (StatItem & { questionId?: string })[] }
+          | undefined;
+        if (state?.items) {
           state.items = state.items.map((it) => ({
             ...it,
-            questionIds: it.questionIds ?? (it.questionId ? [it.questionId] : []),
+            questionIds:
+              it.questionIds ?? (version < 1 && it.questionId ? [it.questionId] : it.questionIds ?? []),
+            filters: it.filters ?? [],
           }));
         }
         return state as unknown as StatsState;

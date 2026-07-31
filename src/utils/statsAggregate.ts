@@ -57,6 +57,50 @@ function round(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+export type FilterOp = 'eq' | 'gte' | 'lte' | 'includes';
+export interface ResponseFilter {
+  questionId: string;
+  op: FilterOp;
+  value: string;
+}
+
+// 한 조건이 응답에 부합하는지
+function answerMatches(question: Question, ans: unknown, op: FilterOp, value: string): boolean {
+  if (ans === undefined || ans === null) return false;
+  if (question.type === 'checkbox') {
+    const arr = Array.isArray(ans) ? ans.map(String) : [String(ans)];
+    return arr.includes(value);
+  }
+  if (question.type === 'number' || question.type === 'scale') {
+    const n = Number(ans);
+    const v = Number(value);
+    if (!Number.isFinite(n) || !Number.isFinite(v)) return false;
+    if (op === 'gte') return n >= v;
+    if (op === 'lte') return n <= v;
+    return n === v;
+  }
+  if (question.type === 'boolean') {
+    const truthy = ans === true || ans === 'true' || ans === '예' || ans === 1 || ans === '1';
+    return value === 'true' || value === '예' ? truthy : !truthy;
+  }
+  return String(ans) === value;
+}
+
+// 응답이 모든 AND 조건을 만족하는지 (값이 비어있는 조건은 무시)
+export function responseMatchesFilters(
+  form: FormSchema,
+  response: FormResponse,
+  filters: ResponseFilter[],
+): boolean {
+  const qById = new Map(form.sections.flatMap((s) => s.questions).map((q) => [q.id, q]));
+  return filters.every((f) => {
+    if (!f.questionId || f.value === '') return true;
+    const q = qById.get(f.questionId);
+    if (!q) return true;
+    return answerMatches(q, response.answers?.[f.questionId], f.op, f.value);
+  });
+}
+
 // 문항 하나에 대해 응답들을 집계 (responses 는 이미 문진·기간으로 필터된 목록)
 export function aggregateQuestion(question: Question, responses: FormResponse[]): StatResult {
   const total = responses.length;
