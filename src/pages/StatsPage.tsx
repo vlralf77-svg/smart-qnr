@@ -387,7 +387,12 @@ function DateRangeField({
               </InputAdornment>
             ) : undefined,
         }}
-        sx={{ minWidth: 240, flex: 1, '& .MuiInputBase-root, & input': { cursor: 'pointer' } }}
+        sx={{
+          width: 300,
+          flexShrink: 0,
+          '& .MuiInputBase-root, & input': { cursor: 'pointer' },
+          '& input': { textOverflow: 'clip' },
+        }}
       />
       <Popover
         open={!!anchor}
