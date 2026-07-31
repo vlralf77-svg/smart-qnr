@@ -13,6 +13,7 @@ import {
   MenuItem,
   Paper,
   Stack,
+  Switch,
   TextField,
   Toolbar,
   Tooltip,
@@ -56,6 +57,7 @@ import ExcelImportDialog from '@/components/ExcelImportDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CreateFormDialog from '@/components/CreateFormDialog';
 import ThemeSettingsButton from '@/components/ThemeSettingsButton';
+import { useMenuConfig } from '@/store/useMenuConfig';
 
 const ALL = '__all__';
 const NONE = '__none__';
@@ -219,6 +221,7 @@ function ActionItem({
   desc,
   onClick,
   trailing,
+  dimmed,
 }: {
   icon: React.ReactNode;
   chipColor: string;
@@ -227,10 +230,22 @@ function ActionItem({
   desc?: string;
   onClick: () => void;
   trailing?: React.ReactNode;
+  dimmed?: boolean;
 }) {
   return (
-    <MenuItem onClick={onClick} sx={{ borderRadius: 2, py: 0.9, px: 1, mx: 0.5, gap: 1.25 }}>
+    <MenuItem
+      onClick={onClick}
+      sx={{
+        borderRadius: 2,
+        py: 0.9,
+        px: 1,
+        mx: 0.5,
+        gap: 1.25,
+        '& .ai-body, & .ai-chip': { opacity: dimmed ? 0.45 : 1 },
+      }}
+    >
       <Box
+        className="ai-chip"
         sx={{
           width: 34,
           height: 34,
@@ -245,7 +260,7 @@ function ActionItem({
       >
         {icon}
       </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
+      <Box className="ai-body" sx={{ minWidth: 0, flex: 1 }}>
         <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25 }}>{title}</Typography>
         {desc && (
           <Typography sx={{ fontSize: 11.5, color: 'text.secondary', lineHeight: 1.3 }}>
@@ -343,6 +358,11 @@ export default function FormList() {
   const primaryKey = useUiPrefs((s) => s.primaryAction);
   const setPrimaryAction = useUiPrefs((s) => s.setPrimaryAction);
 
+  // 더보기 메뉴 항목 사용여부(관리자 설정 → 사용자 메뉴 반영)
+  const menuEnabled = useMenuConfig((s) => s.enabled);
+  const toggleMenu = useMenuConfig((s) => s.toggle);
+  const isMenuEnabled = (key: string) => menuEnabled[key] !== false;
+
   interface Action {
     key: string;
     section: '만들기' | '환자' | '관리';
@@ -352,20 +372,25 @@ export default function FormList() {
     chipColor: string;
     chipBg: string;
     allowed: boolean;
+    /** 관리자가 사용자 노출 여부를 켜고 끌 수 있는 항목(관리 전용 항목은 false) */
+    userConfigurable?: boolean;
     run: () => void;
   }
   const actions: Action[] = [
-    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: canEdit, run: () => setCreateOpen(true) },
-    { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, run: () => navigate('/upload') },
-    { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, run: () => setExcelOpen(true) },
-    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, run: () => setLinkOpen(true) },
-    { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, run: () => window.open('#/patient/login', '_blank') },
+    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: canEdit, userConfigurable: true, run: () => setCreateOpen(true) },
+    { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, userConfigurable: true, run: () => navigate('/upload') },
+    { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, userConfigurable: true, run: () => setExcelOpen(true) },
+    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, userConfigurable: true, run: () => setLinkOpen(true) },
+    { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, userConfigurable: true, run: () => window.open('#/patient/login', '_blank') },
     { key: 'accounts', section: '관리', title: '계정 관리', desc: '계정·권한', icon: <ManageAccountsIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/accounts') },
     { key: 'api', section: '관리', title: 'API 연동', desc: 'EMR 연동 설정', icon: <ApiIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: canManage, run: () => navigate('/integration') },
-    { key: 'stats', section: '관리', title: '통계', desc: '응답 통계 대시보드', icon: <QueryStatsIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: true, run: () => navigate('/stats') },
+    { key: 'stats', section: '관리', title: '통계', desc: '응답 통계 대시보드', icon: <QueryStatsIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: true, userConfigurable: true, run: () => navigate('/stats') },
     { key: 'logs', section: '관리', title: '로그 보기', desc: '화면·서버 로그', icon: <ArticleOutlinedIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/logs') },
   ];
-  const available = actions.filter((a) => a.allowed);
+  // 관리자는 모든 허용 항목을 보고, 일반 사용자는 관리자가 켠(사용) 항목만 본다.
+  const available = actions.filter(
+    (a) => a.allowed && (canManage || !a.userConfigurable || isMenuEnabled(a.key)),
+  );
   // 앞에 고정할 기본 액션(권한 없으면 첫 번째로 폴백)
   const primary =
     available.find((a) => a.key === primaryKey) ?? available.find((a) => a.key === 'new') ?? available[0];
@@ -445,7 +470,13 @@ export default function FormList() {
             }}
           >
             <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, fontSize: 11, color: 'text.secondary' }}>
-              📌 아이콘을 누르면 <b>앞에 고정</b>할 화면을 바꿀 수 있어요.
+              📌 아이콘 = <b>앞에 고정</b>
+              {canManage && (
+                <>
+                  {' '}
+                  · 스위치 = <b>사용자 메뉴 표시 여부</b>
+                </>
+              )}
             </Typography>
             {SECTIONS.map((section) => {
               const items = available.filter((a) => a.section === section);
@@ -464,23 +495,42 @@ export default function FormList() {
                       closeMenu();
                       a.run();
                     }}
+                    dimmed={canManage && a.userConfigurable && !isMenuEnabled(a.key)}
                     trailing={
-                      <Tooltip title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPrimaryAction(a.key);
-                          }}
-                          sx={{ ml: 0.5 }}
-                        >
-                          {a.key === primaryKey ? (
-                            <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                          ) : (
-                            <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-                          )}
-                        </IconButton>
-                      </Tooltip>
+                      <Stack direction="row" alignItems="center" spacing={0.25}>
+                        {canManage && a.userConfigurable && (
+                          <Tooltip
+                            title={
+                              isMenuEnabled(a.key)
+                                ? '사용자에게 표시됨 (끄면 사용자 메뉴에서 숨김)'
+                                : '사용자에게 숨김'
+                            }
+                          >
+                            <Switch
+                              size="small"
+                              checked={isMenuEnabled(a.key)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => toggleMenu(a.key)}
+                            />
+                          </Tooltip>
+                        )}
+                        <Tooltip title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPrimaryAction(a.key);
+                            }}
+                            sx={{ ml: 0.25 }}
+                          >
+                            {a.key === primaryKey ? (
+                              <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                            ) : (
+                              <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     }
                   />
                 )),
