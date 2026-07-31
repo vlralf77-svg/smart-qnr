@@ -17,7 +17,10 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  alpha,
+  useTheme,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
@@ -56,9 +59,12 @@ import ThemeSettingsButton from '@/components/ThemeSettingsButton';
 const ALL = '__all__';
 const NONE = '__none__';
 
-const STATUS_LABEL: Record<string, { label: string; color: 'default' | 'success' | 'warning' }> = {
+const STATUS_LABEL: Record<
+  string,
+  { label: string; color: 'default' | 'primary' | 'success' | 'warning' }
+> = {
   draft: { label: '임시저장', color: 'default' },
-  published: { label: '인증저장', color: 'success' },
+  published: { label: '인증저장', color: 'primary' }, // 테마 강조색을 따름
   archived: { label: '보관됨', color: 'warning' },
 };
 
@@ -70,13 +76,16 @@ const PILL_SX = {
   px: 2,
   height: 40,
 } as const;
-const GRAD_PILL_SX = {
+// 새 문진 등 주요 버튼 — 테마 강조색 그라데이션을 따름
+const GRAD_PILL_SX: SxProps<Theme> = {
   ...PILL_SX,
   color: '#fff',
-  background: 'linear-gradient(135deg,#22a06b,#167c50)',
-  boxShadow: '0 8px 18px -8px rgba(22,124,80,.7)',
-  '&:hover': { background: 'linear-gradient(135deg,#1c9160,#126844)' },
-} as const;
+  background: (t) => `linear-gradient(135deg, ${t.palette.primary.light}, ${t.palette.primary.dark})`,
+  boxShadow: (t) => `0 8px 18px -8px ${alpha(t.palette.primary.dark, 0.7)}`,
+  '&:hover': {
+    background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
+  },
+};
 
 // 드롭다운 섹션 라벨
 function MenuSection({ label }: { label: string }) {
@@ -248,6 +257,7 @@ function ActionItem({
 
 export default function FormList() {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { forms, saveForm, deleteForm, refreshForms } = useFormsStore();
   const logout = useAuthStore((s) => s.logout);
   const permissions = useAuthStore((s) => s.permissions);
@@ -342,7 +352,7 @@ export default function FormList() {
     run: () => void;
   }
   const actions: Action[] = [
-    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: canEdit, run: () => setCreateOpen(true) },
+    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: canEdit, run: () => setCreateOpen(true) },
     { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, run: () => navigate('/upload') },
     { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, run: () => setExcelOpen(true) },
     { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, run: () => setLinkOpen(true) },
@@ -533,7 +543,7 @@ export default function FormList() {
               />
               <SideItem
                 label="인증저장"
-                dot="#22a06b"
+                dot={theme.palette.primary.main}
                 count={counts.published}
                 active={statusFilter === 'published'}
                 onClick={() => setStatusFilter('published')}
