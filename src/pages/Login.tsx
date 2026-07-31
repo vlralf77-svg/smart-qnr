@@ -20,6 +20,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AppIcon from '@/components/AppIcon';
+import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
 import { IS_DEMO } from '@/config';
 import { useAuthStore } from '@/store/useAuthStore';
 import { APP_VERSION } from '@/version';
@@ -232,7 +233,8 @@ export default function Login() {
           </form>
 
           <Box sx={{ flex: 1 }} />
-          <Stack alignItems="center" spacing={0.25} sx={{ mt: 2 }}>
+          <LoginDisplayModeToggle />
+          <Stack alignItems="center" spacing={0.25} sx={{ mt: 1.5 }}>
             {IS_DEMO && (
               <Typography variant="caption" color="text.disabled" textAlign="center">
                 단축키: 아이디 입력 후 Ctrl+Q

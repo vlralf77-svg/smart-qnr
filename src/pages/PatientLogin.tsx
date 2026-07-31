@@ -20,6 +20,7 @@ import { usePatientStore, TEST_PATIENT_NO, PatientIdType } from '@/store/usePati
 import { APP_VERSION } from '@/version';
 import { IS_DEMO } from '@/config';
 import { TOGGLE_SX, LOGIN_CARD_SX, LOGIN_SCREEN_SX, LOGIN_FIELD_SX, LOGIN_BTN_SX } from './Login';
+import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
 
 export default function PatientLogin() {
   const navigate = useNavigate();
@@ -155,7 +156,8 @@ export default function PatientLogin() {
           </form>
 
           <Box sx={{ flex: 1 }} />
-          <Stack alignItems="center" spacing={0.25} sx={{ mt: 2 }}>
+          <LoginDisplayModeToggle />
+          <Stack alignItems="center" spacing={0.25} sx={{ mt: 1.5 }}>
             {IS_DEMO && (
               <Typography variant="caption" color="text.secondary" textAlign="center">
                 테스트: 이름 아무거나 · 번호 {TEST_PATIENT_NO}
