@@ -9,7 +9,7 @@ export interface StatItem {
   id: string;
   title: string;
   formId: string;
-  questionId: string;
+  questionIds: string[]; // 한 기간에 대해 여러 문항을 함께 구성
   from: string; // YYYY-MM-DD ('' = 제한 없음)
   to: string; // YYYY-MM-DD ('' = 제한 없음)
   chart: ChartKind;
@@ -28,7 +28,7 @@ function blank(preset?: Partial<StatItem>): StatItem {
     id: uid('stat'),
     title: '새 통계',
     formId: '',
-    questionId: '',
+    questionIds: [],
     from: '',
     to: '',
     chart: 'bar',
@@ -57,6 +57,20 @@ export const useStatsStore = create<StatsState>()(
           return { items };
         }),
     }),
-    { name: 'smartqnr-stats' },
+    {
+      name: 'smartqnr-stats',
+      version: 1,
+      // 예전 단일 문항(questionId) → 다중 문항(questionIds) 마이그레이션
+      migrate: (persisted: unknown, version: number) => {
+        const state = persisted as { items?: (StatItem & { questionId?: string })[] } | undefined;
+        if (state?.items && version < 1) {
+          state.items = state.items.map((it) => ({
+            ...it,
+            questionIds: it.questionIds ?? (it.questionId ? [it.questionId] : []),
+          }));
+        }
+        return state as unknown as StatsState;
+      },
+    },
   ),
 );

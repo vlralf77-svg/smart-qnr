@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
+  Autocomplete,
   Box,
   Button,
+  Checkbox,
   Chip,
   Container,
   Divider,
@@ -19,6 +21,8 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -28,7 +32,7 @@ import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { FormResponse, QUESTION_TYPE_META } from '@/types/schema';
+import { FormResponse, Question, QUESTION_TYPE_META } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useStatsStore, StatItem } from '@/store/useStatsStore';
@@ -191,16 +195,19 @@ function StatCard({ item }: { item: StatItem }) {
 
   const form = forms.find((f) => f.id === item.formId);
   const questions = form ? inputQuestions(form) : [];
-  const question = questions.find((q) => q.id === item.questionId);
+  // 선택된 문항들(문진에 정의된 순서 유지)
+  const selectedQuestions = questions.filter((q) => item.questionIds.includes(q.id));
 
   const allResponses = useFormResponses(item.formId);
   const filtered = useMemo(
     () => allResponses.filter((r) => withinRange(r.submittedAt, item.from || undefined, item.to || undefined)),
     [allResponses, item.from, item.to],
   );
-  const result = useMemo(
-    () => (question ? aggregateQuestion(question, filtered) : null),
-    [question, filtered],
+  // 선택된 각 문항의 집계 결과
+  const results = useMemo(
+    () => selectedQuestions.map((q) => ({ question: q, result: aggregateQuestion(q, filtered) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [item.questionIds.join(','), filtered, form?.id],
   );
 
   return (
@@ -234,8 +241,8 @@ function StatCard({ item }: { item: StatItem }) {
           size="small"
           label="문진"
           value={item.formId}
-          onChange={(e) => updateItem(item.id, { formId: e.target.value, questionId: '' })}
-          sx={{ minWidth: 200, flex: 1 }}
+          onChange={(e) => updateItem(item.id, { formId: e.target.value, questionIds: [] })}
+          sx={{ minWidth: 180, flex: 1 }}
         >
           {forms.length === 0 && (
             <MenuItem value="" disabled>
@@ -248,26 +255,53 @@ function StatCard({ item }: { item: StatItem }) {
             </MenuItem>
           ))}
         </TextField>
-        <TextField
-          select
+        <Autocomplete
+          multiple
+          disableCloseOnSelect
           size="small"
-          label="문항"
-          value={item.questionId}
-          onChange={(e) => updateItem(item.id, { questionId: e.target.value })}
+          options={questions}
+          value={selectedQuestions}
           disabled={!form}
-          sx={{ minWidth: 200, flex: 1 }}
-        >
-          {questions.length === 0 && (
-            <MenuItem value="" disabled>
-              문항을 선택하세요
-            </MenuItem>
+          getOptionLabel={(q: Question) => q.label || '(제목 없음)'}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
+          onChange={(_e, val) => updateItem(item.id, { questionIds: (val as Question[]).map((q) => q.id) })}
+          renderOption={(props, q, { selected }) => (
+            <li {...props} key={q.id}>
+              <Checkbox
+                icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                checkedIcon={<CheckBoxIcon fontSize="small" />}
+                checked={selected}
+                sx={{ mr: 1, p: 0.5 }}
+              />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" noWrap>
+                  {q.label || '(제목 없음)'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {QUESTION_TYPE_META[q.type]?.label}
+                </Typography>
+              </Box>
+            </li>
           )}
-          {questions.map((q) => (
-            <MenuItem key={q.id} value={q.id}>
-              {q.label || '(제목 없음)'} · {QUESTION_TYPE_META[q.type]?.label}
-            </MenuItem>
-          ))}
-        </TextField>
+          renderTags={(value, getTagProps) =>
+            value.map((q, index) => (
+              <Chip
+                size="small"
+                label={q.label || '(제목 없음)'}
+                {...getTagProps({ index })}
+                key={q.id}
+              />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="문항 (여러 개 선택)"
+              placeholder={selectedQuestions.length ? '' : '문항 선택'}
+            />
+          )}
+          sx={{ minWidth: 240, flex: 2 }}
+        />
         <DatePicker
           label="시작일"
           format="YYYY.MM.DD"
@@ -315,34 +349,46 @@ function StatCard({ item }: { item: StatItem }) {
       <Divider sx={{ mb: 2 }} />
 
       {/* 결과 */}
-      {!form || !question ? (
+      {!form || selectedQuestions.length === 0 ? (
         <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
           <QueryStatsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
-          <Typography variant="body2">문진과 문항을 선택하면 통계가 표시됩니다.</Typography>
+          <Typography variant="body2">문진과 문항(1개 이상)을 선택하면 통계가 표시됩니다.</Typography>
         </Box>
       ) : (
         <>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
-            <Chip
-              size="small"
-              label={`기간 응답 ${filtered.length}건`}
-              sx={{
-                fontWeight: 700,
-                bgcolor: alpha(theme.palette.primary.main, 0.12),
-                color: 'primary.dark',
-              }}
-            />
-            {result && result.kind !== 'empty' && (
-              <Chip size="small" variant="outlined" label={`문항 응답 ${result.answered}건`} />
-            )}
-            {result && result.kind === 'distribution' && result.multi && (
-              <Chip size="small" variant="outlined" color="secondary" label="복수응답" />
-            )}
-            {result && result.kind === 'text' && (
-              <Chip size="small" variant="outlined" label={`서로 다른 답 ${result.distinct}종`} />
-            )}
+          <Chip
+            size="small"
+            label={`기간 응답 ${filtered.length}건`}
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.12),
+              color: 'primary.dark',
+            }}
+          />
+          <Stack spacing={2.5}>
+            {results.map(({ question, result }, i) => (
+              <Box key={question.id}>
+                {i > 0 && <Divider sx={{ mb: 2.5 }} />}
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.25 }}>
+                  <Typography variant="subtitle2" fontWeight={800} sx={{ mr: 0.5 }}>
+                    {question.label || '(제목 없음)'}
+                  </Typography>
+                  <Chip size="small" variant="outlined" label={QUESTION_TYPE_META[question.type]?.label} />
+                  {result.kind !== 'empty' && (
+                    <Chip size="small" variant="outlined" label={`응답 ${result.answered}건`} />
+                  )}
+                  {result.kind === 'distribution' && result.multi && (
+                    <Chip size="small" variant="outlined" color="secondary" label="복수응답" />
+                  )}
+                  {result.kind === 'text' && (
+                    <Chip size="small" variant="outlined" label={`서로 다른 답 ${result.distinct}종`} />
+                  )}
+                </Stack>
+                <ResultView result={result} />
+              </Box>
+            ))}
           </Stack>
-          {result && <ResultView result={result} />}
         </>
       )}
     </Paper>
