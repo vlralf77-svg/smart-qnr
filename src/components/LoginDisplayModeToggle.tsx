@@ -1,6 +1,6 @@
 // 로그인 화면용 화면 크기(PC/모바일) 선택 토글 — 밝은 글래스 카드에 어울리는 알약형.
 //  선택 즉시 Electron 창 크기를 조절(useDisplayMode → IPC). 웹에서는 레이아웃만 바뀜.
-import { Stack, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery } from '@mui/material';
+import { Stack, ToggleButton, ToggleButtonGroup, Typography, alpha, useMediaQuery } from '@mui/material';
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import { useDisplayMode } from '@/store/useDisplayMode';
@@ -38,7 +38,7 @@ export default function LoginDisplayModeToggle() {
             '&.Mui-selected': {
               bgcolor: 'primary.main',
               color: '#fff',
-              boxShadow: '0 6px 14px -6px rgba(34,160,107,0.7)',
+              boxShadow: (t) => `0 6px 14px -6px ${alpha(t.palette.primary.main, 0.7)}`,
               '&:hover': { bgcolor: 'primary.dark' },
             },
           },

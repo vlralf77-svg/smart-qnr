@@ -14,7 +14,9 @@ import {
   IconButton,
   ToggleButton,
   ToggleButtonGroup,
+  alpha,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -107,7 +109,7 @@ export const LOGIN_FIELD_SX = {
 } as const;
 
 // 상단 알약형 토글(문진관리/문진입력) — 선택된 쪽은 브랜드색 채움, 높이 고정(두 화면 동일)
-export const TOGGLE_SX = {
+export const TOGGLE_SX: SxProps<Theme> = {
   mb: 2.5,
   p: '4px',
   bgcolor: 'rgba(15,23,42,0.06)',
@@ -127,11 +129,12 @@ export const TOGGLE_SX = {
     '&.Mui-selected': {
       bgcolor: 'primary.main',
       color: '#fff',
-      boxShadow: '0 6px 14px -6px rgba(34,160,107,0.7)',
+      // 선택 그림자도 테마 강조색을 따름
+      boxShadow: (t: Theme) => `0 6px 14px -6px ${alpha(t.palette.primary.main, 0.7)}`,
       '&:hover': { bgcolor: 'primary.dark' },
     },
   },
-} as const;
+};
 
 // 알약형 기본 버튼(제출)
 export const LOGIN_BTN_SX = {
