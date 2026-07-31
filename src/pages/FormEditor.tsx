@@ -659,7 +659,7 @@ export default function FormEditor() {
                                 ? '보관됨'
                                 : '임시저장'
                           }
-                          color={form.status === 'published' ? 'success' : 'default'}
+                          color={form.status === 'published' ? 'primary' : 'default'}
                           size="small"
                         />
                         <Chip label={`v${form.version}`} size="small" variant="outlined" />

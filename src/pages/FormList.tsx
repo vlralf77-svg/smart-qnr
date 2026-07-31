@@ -148,7 +148,9 @@ function SideItem({
         // 선택 상태를 브랜드색 채움으로 확실히 구분
         bgcolor: active ? 'primary.main' : 'transparent',
         color: active ? 'primary.contrastText' : 'inherit',
-        boxShadow: active ? '0 6px 14px -6px rgba(22,124,80,.55)' : 'none',
+        boxShadow: active
+          ? (t) => `0 6px 14px -6px ${alpha(t.palette.primary.main, 0.55)}`
+          : 'none',
         '&:hover': { bgcolor: active ? 'primary.dark' : 'action.hover' },
       }}
     >
@@ -471,7 +473,7 @@ export default function FormList() {
                           sx={{ ml: 0.5 }}
                         >
                           {a.key === primaryKey ? (
-                            <PushPinIcon fontSize="small" sx={{ color: '#167c50' }} />
+                            <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
                           ) : (
                             <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
                           )}
