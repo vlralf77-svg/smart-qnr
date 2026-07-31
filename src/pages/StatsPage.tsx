@@ -11,8 +11,10 @@ import {
   Container,
   Divider,
   IconButton,
+  InputAdornment,
   MenuItem,
   Paper,
+  Popover,
   Stack,
   TextField,
   Toolbar,
@@ -35,7 +37,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import dayjs, { Dayjs } from 'dayjs';
 import { FormResponse, Question, QUESTION_TYPE_META } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
@@ -294,6 +298,120 @@ function ResultView({ result, chart }: { result: StatResult; chart: ChartKind })
   return <DistributionBars items={result.items} answered={result.answered} />;
 }
 
+// 기간 범위 선택 — 무료 DateCalendar 로 시작~종료를 한 캘린더에서 선택(범위 하이라이트).
+function DateRangeField({
+  from,
+  to,
+  onChange,
+}: {
+  from: string;
+  to: string;
+  onChange: (from: string, to: string) => void;
+}) {
+  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  const [hover, setHover] = useState<Dayjs | null>(null);
+  const fromD = from ? dayjs(from) : null;
+  const toD = to ? dayjs(to) : null;
+
+  const text =
+    fromD && toD
+      ? `${fromD.format('YYYY.MM.DD')} ~ ${toD.format('YYYY.MM.DD')}`
+      : fromD
+        ? `${fromD.format('YYYY.MM.DD')} ~ 종료일 선택`
+        : '전체 기간';
+
+  const pick = (d: Dayjs | null) => {
+    if (!d) return;
+    if (!fromD || (fromD && toD)) {
+      // 새 범위 시작
+      onChange(d.format('YYYY-MM-DD'), '');
+    } else if (d.isBefore(fromD, 'day')) {
+      onChange(d.format('YYYY-MM-DD'), fromD.format('YYYY-MM-DD'));
+      setAnchor(null);
+    } else {
+      onChange(fromD.format('YYYY-MM-DD'), d.format('YYYY-MM-DD'));
+      setAnchor(null);
+    }
+  };
+
+  const RangeDay = (props: PickersDayProps<Dayjs>) => {
+    const { day, ...other } = props;
+    const end = toD ?? (fromD && hover && hover.isAfter(fromD, 'day') ? hover : null);
+    const isStart = !!(fromD && day.isSame(fromD, 'day'));
+    const isEnd = !!(end && day.isSame(end, 'day'));
+    const inRange = !!(fromD && end && day.isAfter(fromD, 'day') && day.isBefore(end, 'day'));
+    return (
+      <PickersDay
+        {...other}
+        day={day}
+        onMouseEnter={() => setHover(day)}
+        selected={isStart || isEnd}
+        sx={{
+          ...(inRange && {
+            bgcolor: (t) => alpha(t.palette.primary.main, 0.16),
+            borderRadius: 0,
+          }),
+          ...(isStart && !isEnd && { borderTopRightRadius: 0, borderBottomRightRadius: 0 }),
+          ...(isEnd && !isStart && { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }),
+        }}
+      />
+    );
+  };
+
+  return (
+    <>
+      <TextField
+        size="small"
+        label="기간"
+        value={text}
+        onClick={(e) => setAnchor(e.currentTarget)}
+        InputProps={{
+          readOnly: true,
+          startAdornment: (
+            <InputAdornment position="start">
+              <CalendarMonthOutlinedIcon fontSize="small" color="action" />
+            </InputAdornment>
+          ),
+          endAdornment:
+            from || to ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange('', '');
+                  }}
+                >
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined,
+        }}
+        sx={{ minWidth: 240, flex: 1, '& .MuiInputBase-root, & input': { cursor: 'pointer' } }}
+      />
+      <Popover
+        open={!!anchor}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 2, pt: 1.5 }}>
+          {fromD && !toD ? '② 종료일을 선택하세요' : '① 시작일을 선택하세요'}
+        </Typography>
+        <DateCalendar value={toD ?? fromD} onChange={pick} slots={{ day: RangeDay }} />
+        <Stack direction="row" justifyContent="flex-end" spacing={0.5} sx={{ px: 1.5, pb: 1.5 }}>
+          <Button size="small" onClick={() => onChange('', '')}>
+            전체 기간
+          </Button>
+          <Button size="small" variant="contained" onClick={() => setAnchor(null)}>
+            닫기
+          </Button>
+        </Stack>
+      </Popover>
+    </>
+  );
+}
+
 function StatCard({ item }: { item: StatItem }) {
   const theme = useTheme();
   const forms = useFormsStore((s) => s.forms);
@@ -408,27 +526,10 @@ function StatCard({ item }: { item: StatItem }) {
           )}
           sx={{ minWidth: 240, flex: 2 }}
         />
-        <DatePicker
-          label="시작일"
-          format="YYYY.MM.DD"
-          value={item.from ? dayjs(item.from) : null}
-          maxDate={item.to ? dayjs(item.to) : undefined}
-          onChange={(v: Dayjs | null) => updateItem(item.id, { from: v ? v.format('YYYY-MM-DD') : '' })}
-          slotProps={{
-            textField: { size: 'small', sx: { width: 190 } },
-            field: { clearable: true },
-          }}
-        />
-        <DatePicker
-          label="종료일"
-          format="YYYY.MM.DD"
-          value={item.to ? dayjs(item.to) : null}
-          minDate={item.from ? dayjs(item.from) : undefined}
-          onChange={(v: Dayjs | null) => updateItem(item.id, { to: v ? v.format('YYYY-MM-DD') : '' })}
-          slotProps={{
-            textField: { size: 'small', sx: { width: 190 } },
-            field: { clearable: true },
-          }}
+        <DateRangeField
+          from={item.from}
+          to={item.to}
+          onChange={(from, to) => updateItem(item.id, { from, to })}
         />
       </Stack>
 
