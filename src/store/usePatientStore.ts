@@ -68,7 +68,8 @@ export const usePatientStore = create<PatientState>((set) => ({
   busy: false,
   login: async ({ name, idType, idValue }) => {
     const n = name.trim();
-    const v = idValue.trim();
+    // 주민등록번호는 화면에만 '-'를 표시하고, 검증·전송·저장은 숫자만으로 처리
+    const v = idType === 'rrn' ? idValue.replace(/\D/g, '') : idValue.trim();
     if (!n) {
       set({ error: '환자 이름을 입력해 주세요.' });
       return false;

@@ -22,6 +22,12 @@ import { IS_DEMO } from '@/config';
 import { TOGGLE_SX, LOGIN_CARD_SX, LOGIN_SCREEN_SX, LOGIN_FIELD_SX, LOGIN_BTN_SX } from './Login';
 import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
 
+// 주민등록번호 입력값을 숫자만 남기고 앞 6자리 뒤에 '-'를 자동 삽입 (예: 900101-1234567)
+function formatRrn(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 13);
+  return d.length > 6 ? `${d.slice(0, 6)}-${d.slice(6)}` : d;
+}
+
 export default function PatientLogin() {
   const navigate = useNavigate();
   const { login, loginByNumber, error, busy } = usePatientStore();
@@ -127,17 +133,17 @@ export default function PatientLogin() {
                 label={idType === 'rrn' ? '주민등록번호' : '환자번호'}
                 value={idValue}
                 onChange={(e) =>
-                  // 주민등록번호는 하이픈(-) 없이 숫자만 받도록 입력값을 정리
-                  setIdValue(idType === 'rrn' ? e.target.value.replace(/\D/g, '') : e.target.value)
+                  // 주민등록번호는 숫자만 받고, 앞 6자리 뒤에 '-'를 자동으로 넣어준다
+                  setIdValue(idType === 'rrn' ? formatRrn(e.target.value) : e.target.value)
                 }
                 fullWidth
                 size="small"
                 inputMode="numeric"
-                inputProps={idType === 'rrn' ? { maxLength: 13 } : undefined}
+                inputProps={idType === 'rrn' ? { maxLength: 14 } : undefined}
                 sx={LOGIN_FIELD_SX}
                 placeholder={
                   idType === 'rrn'
-                    ? "'-' 빼고 숫자만 입력"
+                    ? "'-' 빼고 숫자만 입력 (자동 생성)"
                     : IS_DEMO
                       ? TEST_PATIENT_NO
                       : '환자번호'
