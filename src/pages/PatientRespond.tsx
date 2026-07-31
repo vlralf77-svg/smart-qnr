@@ -21,7 +21,9 @@ import { usePatientStore } from '@/store/usePatientStore';
 import { uid } from '@/utils/id';
 import FormRenderer from '@/components/renderer/FormRenderer';
 import DisplayModeToggle from '@/components/DisplayModeToggle';
+import FontScaleToggle from '@/components/FontScaleToggle';
 import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
+import { useFontScale, FONT_ZOOM } from '@/store/useFontScale';
 
 export default function PatientRespond() {
   const { formId } = useParams();
@@ -37,6 +39,8 @@ export default function PatientRespond() {
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const isMobileLayout = useIsMobileLayout();
+  const fontScale = useFontScale((s) => s.scale);
+  const zoom = FONT_ZOOM[fontScale];
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +110,10 @@ export default function PatientRespond() {
             목록
           </Button>
           <Box sx={{ flex: 1 }} />
-          <DisplayModeToggle />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <FontScaleToggle />
+            <DisplayModeToggle />
+          </Stack>
         </Toolbar>
       </AppBar>
 
@@ -131,7 +138,7 @@ export default function PatientRespond() {
             </Stack>
           </Paper>
         ) : (
-          <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+          <Paper sx={{ p: { xs: 2, sm: 3 } }} style={{ zoom }}>
             <FormRenderer
               schema={form}
               onSubmit={handleSubmit}
