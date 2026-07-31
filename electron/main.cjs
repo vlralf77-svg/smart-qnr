@@ -142,81 +142,28 @@ ipcMain.handle('emr:fetch', async (_event, req) => {
 });
 
 // 표시 모드(PC/모바일)에 따라 창 최소 크기를 조절 — 모바일 모드면 좁게 줄일 수 있게.
-// 창 크기를 목표 값까지 부드럽게(이징) 애니메이션한다. (Windows 는 setSize animate 미지원 → 수동 트윈)
-function animateBounds(win, target, durationMs = 280, done) {
-  if (!win || win.isDestroyed()) return;
-  if (win._resizeTimer) {
-    clearInterval(win._resizeTimer);
-    win._resizeTimer = null;
-  }
-  const from = win.getBounds();
-  const to = {
-    x: Math.round(target.x),
-    y: Math.round(target.y),
-    width: Math.round(target.width),
-    height: Math.round(target.height),
-  };
-  const startT = Date.now();
-  const ease = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
-  win._resizeTimer = setInterval(() => {
-    if (!win || win.isDestroyed()) {
-      clearInterval(win._resizeTimer);
-      return;
-    }
-    const t = Math.min(1, (Date.now() - startT) / durationMs);
-    const k = ease(t);
-    win.setBounds({
-      x: Math.round(from.x + (to.x - from.x) * k),
-      y: Math.round(from.y + (to.y - from.y) * k),
-      width: Math.round(from.width + (to.width - from.width) * k),
-      height: Math.round(from.height + (to.height - from.height) * k),
-    });
-    if (t >= 1) {
-      clearInterval(win._resizeTimer);
-      win._resizeTimer = null;
-      if (typeof done === 'function') done();
-    }
-  }, 16);
-}
-
 ipcMain.on('display:mode', (_event, mode) => {
   const win = BrowserWindow.getAllWindows()[0];
   if (!win || win.isDestroyed()) return;
   const wa = screen.getDisplayMatching(win.getBounds()).workArea;
+  const b = win.getBounds();
 
   if (mode === 'mobile') {
-    // 최대화 상태면 먼저 해제하되, 화면 전체 크기에서 시작하도록 맞춰 애니메이션이 자연스럽게
-    if (win.isMaximized()) {
-      win.unmaximize();
-      win.setBounds(wa);
-    }
-    win.setMinimumSize(360, 600); // 모바일처럼 좁게 축소 허용(애니메이션 전에 최소값 낮추기)
+    win.setMinimumSize(360, 600); // 모바일처럼 좁게 축소 허용
+    if (win.isMaximized()) win.unmaximize(); // 최대화 상태면 먼저 해제해야 축소됨
     const width = 430;
-    const height = Math.min(Math.max(win.getBounds().height, 780), wa.height);
+    const height = Math.min(Math.max(b.height, 780), wa.height);
     const x = Math.round(wa.x + (wa.width - width) / 2);
     const y = Math.round(wa.y + (wa.height - height) / 2);
-    animateBounds(win, { x, y, width, height });
+    // 이동 없이 크기만 즉시 적용 후 중앙 배치(수동 프레임 트윈은 Windows 에서 깜빡임 → 사용 안 함)
+    win.setBounds({ x, y, width, height });
   } else if (mode === 'pc') {
-    // 최소값은 낮게 유지한 채 전체 화면까지 애니메이션 → 끝나면 최소값 복원 + 최대화 상태로 고정
-    animateBounds(win, wa, 300, () => {
-      if (win.isDestroyed()) return;
-      win.setMinimumSize(1024, 700);
-      win.maximize(); // 화면 꽉 차게(최대화 상태 유지)
-    });
+    win.setMinimumSize(1024, 700);
+    win.maximize(); // Windows 기본 최대화 애니메이션으로 부드럽게 화면 꽉 차게
   } else {
     // auto — 최소 크기만 복원, 너무 좁으면 넓혀줌
     win.setMinimumSize(1024, 700);
-    const b = win.getBounds();
-    if (b.width < 1024) {
-      const width = Math.min(1024, wa.width);
-      const height = Math.max(b.height, 700);
-      animateBounds(win, {
-        x: Math.round(wa.x + (wa.width - width) / 2),
-        y: b.y,
-        width,
-        height,
-      });
-    }
+    if (b.width < 1024) win.setSize(Math.min(1024, wa.width), Math.max(b.height, 700));
   }
 });
 
