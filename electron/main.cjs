@@ -150,8 +150,13 @@ ipcMain.on('display:mode', (_event, mode) => {
     win.setMinimumSize(360, 600); // 모바일처럼 좁게 축소 허용
     if (win.isMaximized()) win.unmaximize(); // 최대화 상태면 먼저 해제해야 축소됨
     if (w > 500) win.setSize(430, Math.max(h, 780)); // 선택 즉시 모바일 폭으로
+    win.center();
+  } else if (mode === 'pc') {
+    win.setMinimumSize(1024, 700);
+    win.maximize(); // PC 전환 시 화면을 꽉 차게 최대화
   } else {
-    win.setMinimumSize(1024, 700); // PC/자동은 기존 최소 크기
+    // auto — 최소 크기만 복원, 너무 좁으면 넓혀줌
+    win.setMinimumSize(1024, 700);
     if (w < 1024) win.setSize(1024, Math.max(h, 700));
   }
 });
