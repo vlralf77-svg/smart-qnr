@@ -20,7 +20,11 @@ export default function PreviewWindow({ title = '미리보기 — SmartQnR', onC
   const [cache, setCache] = useState<EmotionCache | null>(null);
   const brand = useThemeSettings((s) => s.brand);
   const mode = useThemeSettings((s) => s.mode);
-  const previewTheme = useMemo(() => buildTheme(brand, mode), [brand, mode]);
+  const customColor = useThemeSettings((s) => s.customColor);
+  const previewTheme = useMemo(
+    () => buildTheme(brand, mode, customColor),
+    [brand, mode, customColor],
+  );
 
   useEffect(() => {
     const win = window.open('', 'smartqnr-preview', 'width=900,height=1040');

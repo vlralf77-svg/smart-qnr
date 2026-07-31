@@ -1,6 +1,6 @@
 // 공용 확인 다이얼로그 — 종료/로그아웃 등 되돌리기 어려운 동작 전 확인.
 import { forwardRef, ReactElement, ReactNode, Ref } from 'react';
-import { Box, Button, Dialog, Fade, Stack, Typography } from '@mui/material';
+import { Box, Button, Dialog, Fade, Stack, Typography, alpha } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
 
 const Transition = forwardRef(function Transition(
@@ -34,10 +34,11 @@ export default function ConfirmDialog({
   icon,
   confirmLabel = '확인',
   cancelLabel = '취소',
-  confirmColor = '#22a06b',
-  confirmHoverColor = '#1c9160',
-  iconBg = '#e2f2ea',
-  iconColor = '#167c50',
+  // 색을 지정하지 않으면 테마 강조색을 따름
+  confirmColor,
+  confirmHoverColor,
+  iconBg,
+  iconColor,
   onConfirm,
   onCancel,
 }: Props) {
@@ -59,7 +60,16 @@ export default function ConfirmDialog({
       }}
     >
       {icon && (
-        <Box sx={{ pt: 4, pb: 2.5, background: 'linear-gradient(180deg, #f4f8f6 0%, #ffffff 100%)' }}>
+        <Box
+          sx={{
+            pt: 4,
+            pb: 2.5,
+            background: (t) =>
+              t.palette.mode === 'dark'
+                ? 'transparent'
+                : 'linear-gradient(180deg, #f4f8f6 0%, #ffffff 100%)',
+          }}
+        >
           <Box
             sx={{
               width: 68,
@@ -69,9 +79,10 @@ export default function ConfirmDialog({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: iconBg,
-              color: iconColor,
-              boxShadow: `0 8px 20px -8px ${iconColor}66`,
+              bgcolor: iconBg ?? ((t) => alpha(t.palette.primary.main, 0.14)),
+              color: iconColor ?? 'primary.dark',
+              boxShadow: (t) =>
+                `0 8px 20px -8px ${alpha(iconColor ?? t.palette.primary.main, 0.4)}`,
             }}
           >
             {icon}
@@ -80,7 +91,7 @@ export default function ConfirmDialog({
       )}
 
       <Box sx={{ px: 3.5, pb: 3, pt: icon ? 0 : 4 }}>
-        <Typography sx={{ fontSize: 19, fontWeight: 800, color: '#12213a', mb: 0.75 }}>
+        <Typography sx={{ fontSize: 19, fontWeight: 800, color: 'text.primary', mb: 0.75 }}>
           {title}
         </Typography>
         {message && (
@@ -116,8 +127,8 @@ export default function ConfirmDialog({
               borderRadius: 2.5,
               py: 1.1,
               fontWeight: 800,
-              bgcolor: confirmColor,
-              '&:hover': { bgcolor: confirmHoverColor },
+              bgcolor: confirmColor ?? 'primary.main',
+              '&:hover': { bgcolor: confirmHoverColor ?? 'primary.dark' },
             }}
           >
             {confirmLabel}

@@ -13,7 +13,7 @@ export type BrandKey =
   | 'slate';
 
 export interface BrandPreset {
-  key: BrandKey;
+  key: BrandKey | 'custom';
   label: string;
   main: string;
   light: string;
@@ -33,6 +33,81 @@ export const BRAND_PRESETS: BrandPreset[] = [
   { key: 'slate', label: '슬레이트', main: '#475569', light: '#64748b', dark: '#334155', secondary: '#334155' },
 ];
 
+// ───────── 색상 유틸(HSL ↔ HEX) — 커스텀 색상 파생에 사용 ─────────
+export function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const h0 = hex.replace('#', '');
+  const r = parseInt(h0.slice(0, 2), 16) / 255;
+  const g = parseInt(h0.slice(2, 4), 16) / 255;
+  const b = parseInt(h0.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      default:
+        h = (r - g) / d + 4;
+    }
+    h *= 60;
+  }
+  return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+export function hslToHex(h: number, s: number, l: number): string {
+  const sN = s / 100;
+  const lN = l / 100;
+  const c = (1 - Math.abs(2 * lN - 1)) * sN;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = lN - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const to = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+// 라이트값을 delta 만큼 조정(클램프)
+function shiftLightness(hex: string, delta: number): string {
+  const { h, s, l } = hexToHsl(hex);
+  return hslToHex(h, s, Math.max(0, Math.min(100, l + delta)));
+}
+
+// 커스텀 메인 색상 하나로 라이트/다크/보조색을 파생
+export function derivePreset(main: string): BrandPreset {
+  return {
+    key: 'custom',
+    label: '커스텀',
+    main,
+    light: shiftLightness(main, 12),
+    dark: shiftLightness(main, -14),
+    secondary: shiftLightness(main, -7),
+  };
+}
+
+// 브랜드 키(또는 커스텀 색)로 실제 색상 프리셋을 해석
+export function resolveBrandPreset(brand: BrandKey | 'custom', customColor?: string): BrandPreset {
+  if (brand === 'custom') return derivePreset(customColor || '#22a06b');
+  return BRAND_PRESETS.find((p) => p.key === brand) ?? BRAND_PRESETS[0];
+}
+
 const FONT_FAMILY = [
   '"Noto Sans KR"',
   'sans-serif',
@@ -47,9 +122,9 @@ const FONT_FAMILY = [
   '"맑은 고딕"',
 ].join(',');
 
-// 브랜드 색상 + 라이트/다크 모드로 테마 생성
-export function buildTheme(brandKey: BrandKey, mode: ThemeMode) {
-  const b = BRAND_PRESETS.find((p) => p.key === brandKey) ?? BRAND_PRESETS[0];
+// 브랜드 색상(프리셋 또는 커스텀) + 라이트/다크 모드로 테마 생성
+export function buildTheme(brandKey: BrandKey | 'custom', mode: ThemeMode, customColor?: string) {
+  const b = resolveBrandPreset(brandKey, customColor);
   const isDark = mode === 'dark';
   return createTheme(
     {

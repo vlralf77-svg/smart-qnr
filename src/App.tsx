@@ -81,7 +81,11 @@ export default function App() {
   // 사용자가 고른 강조 색상·다크모드로 테마 구성
   const brand = useThemeSettings((s) => s.brand);
   const mode = useThemeSettings((s) => s.mode);
-  const activeTheme = useMemo(() => buildTheme(brand, mode), [brand, mode]);
+  const customColor = useThemeSettings((s) => s.customColor);
+  const activeTheme = useMemo(
+    () => buildTheme(brand, mode, customColor),
+    [brand, mode, customColor],
+  );
 
   return (
     <ThemeProvider theme={activeTheme}>

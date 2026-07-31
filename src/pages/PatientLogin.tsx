@@ -33,6 +33,7 @@ export default function PatientLogin() {
   const navigate = useNavigate();
   const { login, loginByNumber, error, busy } = usePatientStore();
   const brand = useThemeSettings((s) => s.brand);
+  const customColor = useThemeSettings((s) => s.customColor);
   const [params] = useSearchParams();
   // 링크에 담긴 토큰(?t=... / ?token=...)을 환자번호로 복원(번호는 URL에 노출 안 됨)
   const token = params.get('t') ?? params.get('token') ?? '';
@@ -56,7 +57,7 @@ export default function PatientLogin() {
   }, []);
 
   return (
-    <Box sx={loginScreenSx(brand)}>
+    <Box sx={loginScreenSx(brand, customColor)}>
       <Container maxWidth="xs">
         <Paper elevation={0} sx={LOGIN_CARD_SX}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>

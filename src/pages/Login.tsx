@@ -23,7 +23,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import AppIcon from '@/components/AppIcon';
 import LoginDisplayModeToggle from '@/components/LoginDisplayModeToggle';
-import { BRAND_PRESETS, BrandKey } from '@/theme';
+import { BrandKey, resolveBrandPreset } from '@/theme';
 import { useThemeSettings } from '@/store/useThemeSettings';
 import { IS_DEMO } from '@/config';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -51,9 +51,9 @@ function darken(hex: string, amount: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-// 몰입형 배경 — 선택한 브랜드 색상의 그라데이션이 물결처럼 흐르는 애니메이션 (두 로그인 화면 공용)
-export function loginScreenSx(brandKey: BrandKey) {
-  const p = BRAND_PRESETS.find((x) => x.key === brandKey) ?? BRAND_PRESETS[0];
+// 몰입형 배경 — 선택한 브랜드/커스텀 색상의 그라데이션이 물결처럼 흐르는 애니메이션 (두 로그인 화면 공용)
+export function loginScreenSx(brandKey: BrandKey | 'custom', customColor?: string) {
+  const p = resolveBrandPreset(brandKey, customColor);
   const baseDark = darken(p.dark, 0.82); // 거의 검정에 가까운 브랜드 톤
   const baseMid = darken(p.dark, 0.62);
   return {
@@ -148,6 +148,7 @@ export default function Login() {
   const location = useLocation();
   const { login, loginByIdOnly, error } = useAuthStore();
   const brand = useThemeSettings((s) => s.brand);
+  const customColor = useThemeSettings((s) => s.customColor);
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -175,7 +176,7 @@ export default function Login() {
   }, [id, from, loginByIdOnly, navigate]);
 
   return (
-    <Box sx={loginScreenSx(brand)}>
+    <Box sx={loginScreenSx(brand, customColor)}>
       <Container maxWidth="xs">
         <Paper elevation={0} sx={LOGIN_CARD_SX}>
           <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
