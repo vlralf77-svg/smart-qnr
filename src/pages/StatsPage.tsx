@@ -23,6 +23,11 @@ import {
 } from '@mui/material';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
+import DonutLargeRoundedIcon from '@mui/icons-material/DonutLargeRounded';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { ChartKind } from '@/store/useStatsStore';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -78,6 +83,102 @@ function useFormResponses(formId: string): FormResponse[] {
     if (isBackendEnabled && remote) return remote;
     return localResponses.filter((r) => r.formId === formId);
   }, [formId, remote, localResponses]);
+}
+
+// 범주형 팔레트(CVD 검증된 8색) — 라이트/다크. 도넛 세그먼트 식별에 사용.
+const CAT_LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+const CAT_DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+
+// 도넛(비율) 그래프 — 부분/전체 비율. 범례에 라벨·%·개수를 함께 표기(색만으로 식별하지 않음).
+function DonutChart({ items, answered }: { items: DistItem[]; answered: number }) {
+  const theme = useTheme();
+  const pal = theme.palette.mode === 'dark' ? CAT_DARK : CAT_LIGHT;
+  const MAX = 8;
+  let segs = items;
+  if (items.length > MAX) {
+    const head = items.slice(0, MAX - 1);
+    const rest = items.slice(MAX - 1);
+    segs = [
+      ...head,
+      {
+        key: '__etc',
+        label: '기타',
+        count: rest.reduce((a, b) => a + b.count, 0),
+        pct: rest.reduce((a, b) => a + b.pct, 0),
+      },
+    ];
+  }
+  const total = segs.reduce((a, b) => a + b.count, 0) || 1;
+  const colorFor = (s: DistItem, i: number) => s.color || pal[i % pal.length];
+  const R = 46;
+  const C = 2 * Math.PI * R;
+  const GAP = 2;
+  let acc = 0;
+
+  return (
+    <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Box sx={{ position: 'relative', width: 140, height: 140, flexShrink: 0 }}>
+        <svg viewBox="0 0 120 120" width={140} height={140}>
+          <g transform="rotate(-90 60 60)">
+            {segs.map((s, i) => {
+              const frac = s.count / total;
+              const len = Math.max(0, frac * C - GAP);
+              const el = (
+                <circle
+                  key={s.key}
+                  cx={60}
+                  cy={60}
+                  r={R}
+                  fill="none"
+                  stroke={colorFor(s, i)}
+                  strokeWidth={20}
+                  strokeDasharray={`${len} ${C - len}`}
+                  strokeDashoffset={-acc}
+                />
+              );
+              acc += frac * C;
+              return el;
+            })}
+          </g>
+        </svg>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Typography variant="h6" fontWeight={800} lineHeight={1}>
+            {answered}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            응답
+          </Typography>
+        </Box>
+      </Box>
+      <Stack spacing={0.75} sx={{ flex: 1, minWidth: 180 }}>
+        {segs.map((s, i) => (
+          <Stack key={s.key} direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: colorFor(s, i), flexShrink: 0 }}
+            />
+            <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }} noWrap title={s.label}>
+              {s.label || '(빈 응답)'}
+            </Typography>
+            <Typography variant="body2" fontWeight={800}>
+              {s.pct.toFixed(1)}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ width: 38, textAlign: 'right' }}>
+              {s.count}
+            </Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
+  );
 }
 
 // 가로 막대 분포 — 개수(magnitude)를 브랜드 단일색으로 표현. 목록 자체가 표(표 뷰) 역할.
@@ -156,7 +257,7 @@ function StatTiles({ result }: { result: Extract<StatResult, { kind: 'numeric' }
   );
 }
 
-function ResultView({ result }: { result: StatResult }) {
+function ResultView({ result, chart }: { result: StatResult; chart: ChartKind }) {
   if (result.kind === 'empty') {
     return (
       <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
@@ -164,6 +265,11 @@ function ResultView({ result }: { result: StatResult }) {
         <Typography variant="body2">해당 기간에 이 문항의 응답이 없습니다.</Typography>
       </Box>
     );
+  }
+  // 비율(도넛) — 단일선택·예/아니오·단답 등 합계 100% 인 분포에 사용.
+  // (복수응답은 합이 100%를 넘어 비율 원형이 오해를 줄 수 있어 막대로 표시)
+  if (chart === 'donut' && (result.kind === 'text' || (result.kind === 'distribution' && !result.multi))) {
+    return <DonutChart items={result.items} answered={result.answered} />;
   }
   if (result.kind === 'numeric') {
     const bins: DistItem[] = result.histogram.map((h) => ({
@@ -356,16 +462,35 @@ function StatCard({ item }: { item: StatItem }) {
         </Box>
       ) : (
         <>
-          <Chip
-            size="small"
-            label={`기간 응답 ${filtered.length}건`}
-            sx={{
-              fontWeight: 700,
-              mb: 2,
-              bgcolor: alpha(theme.palette.primary.main, 0.12),
-              color: 'primary.dark',
-            }}
-          />
+          <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
+            <Chip
+              size="small"
+              label={`기간 응답 ${filtered.length}건`}
+              sx={{
+                fontWeight: 700,
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                color: 'primary.dark',
+              }}
+            />
+            <Box sx={{ flex: 1 }} />
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={item.chart}
+              onChange={(_e, v) => v && updateItem(item.id, { chart: v as ChartKind })}
+            >
+              <ToggleButton value="bar" sx={{ px: 1, py: 0.3 }}>
+                <Tooltip title="막대 (개수)">
+                  <BarChartRoundedIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+              <ToggleButton value="donut" sx={{ px: 1, py: 0.3 }}>
+                <Tooltip title="비율 (도넛)">
+                  <DonutLargeRoundedIcon fontSize="small" />
+                </Tooltip>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
           <Stack spacing={2.5}>
             {results.map(({ question, result }, i) => (
               <Box key={question.id}>
@@ -385,7 +510,7 @@ function StatCard({ item }: { item: StatItem }) {
                     <Chip size="small" variant="outlined" label={`서로 다른 답 ${result.distinct}종`} />
                   )}
                 </Stack>
-                <ResultView result={result} />
+                <ResultView result={result} chart={item.chart} />
               </Box>
             ))}
           </Stack>

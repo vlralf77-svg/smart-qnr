@@ -31,7 +31,7 @@ function blank(preset?: Partial<StatItem>): StatItem {
     questionIds: [],
     from: '',
     to: '',
-    chart: 'bar',
+    chart: 'donut',
     ...preset,
   };
 }
