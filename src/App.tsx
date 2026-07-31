@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Accounts from './pages/Accounts';
 import IntegrationConfig from './pages/IntegrationConfig';
 import LogViewer from './pages/LogViewer';
+import StatsPage from './pages/StatsPage';
 import PatientLogin from './pages/PatientLogin';
 import PatientForms from './pages/PatientForms';
 import PatientRespond from './pages/PatientRespond';
@@ -146,6 +147,14 @@ export default function App() {
                 <RequirePermission perm="manageAccounts">
                   <IntegrationConfig />
                 </RequirePermission>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/stats"
+            element={
+              <RequireAuth>
+                <StatsPage />
               </RequireAuth>
             }
           />
