@@ -126,15 +126,18 @@ export default function PatientLogin() {
               <TextField
                 label={idType === 'rrn' ? '주민등록번호' : '환자번호'}
                 value={idValue}
-                onChange={(e) => setIdValue(e.target.value)}
+                onChange={(e) =>
+                  // 주민등록번호는 하이픈(-) 없이 숫자만 받도록 입력값을 정리
+                  setIdValue(idType === 'rrn' ? e.target.value.replace(/\D/g, '') : e.target.value)
+                }
                 fullWidth
                 size="small"
                 inputMode="numeric"
-                inputProps={idType === 'rrn' ? { maxLength: 14 } : undefined}
+                inputProps={idType === 'rrn' ? { maxLength: 13 } : undefined}
                 sx={LOGIN_FIELD_SX}
                 placeholder={
                   idType === 'rrn'
-                    ? '앞 6자리-뒤 7자리'
+                    ? "'-' 빼고 숫자만 입력"
                     : IS_DEMO
                       ? TEST_PATIENT_NO
                       : '환자번호'
