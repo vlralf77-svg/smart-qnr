@@ -27,6 +27,28 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  // 최신 ECMAScript(ES2024 문법 보존) 출력 + tree-shaking·코드 스플리팅 최적화
+  //  esbuild 는 'es2024' 리터럴 타깃을 아직 받지 않으므로 상위 개념인 'esnext' 사용(다운레벨 없이 최신 문법 유지)
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        // 앱 전역에서 정적으로 쓰는 무거운 벤더를 별도 청크로 분리(초기 로드/캐시 효율)
+        //  pdfjs·mammoth 등은 변환 화면에서 동적 import 되어 자동으로 코드 스플리팅됨
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-mui': [
+            '@mui/material',
+            '@mui/icons-material',
+            '@emotion/react',
+            '@emotion/styled',
+          ],
+          'vendor-datepickers': ['@mui/x-date-pickers', 'dayjs'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

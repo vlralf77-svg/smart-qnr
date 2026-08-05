@@ -2,6 +2,7 @@
 //  · 최대 MAX_LOGS 개 링버퍼(오래된 것부터 제거)
 //  · 각 로그에 사용자 컨텍스트(ctx)를 붙여 중앙 수집(서버 전송)에 대비
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'api';
 
@@ -54,32 +55,37 @@ function deriveActor(ctx?: LogContext): string | undefined {
   return `${who}${dept}${ver}`;
 }
 
-export const useLogStore = create<LogState>((set) => ({
-  entries: [],
-  add: (level, message, detail) =>
-    set((st) => {
-      let ctx: LogContext | undefined;
-      try {
-        ctx = contextResolver?.();
-      } catch {
-        /* 무시 */
-      }
-      const entry: LogEntry = {
-        id: `${Date.now().toString(36)}_${(seq++).toString(36)}`,
-        n: seq,
-        ts: Date.now(),
-        level,
-        message: String(message ?? ''),
-        detail,
-        ctx,
-        actor: deriveActor(ctx),
-      };
-      const next = st.entries.length >= MAX_LOGS ? st.entries.slice(1) : st.entries.slice();
-      next.push(entry);
-      return { entries: next };
+export const useLogStore = create<LogState>()(
+  devtools(
+    (set) => ({
+      entries: [],
+      add: (level, message, detail) =>
+        set((st) => {
+          let ctx: LogContext | undefined;
+          try {
+            ctx = contextResolver?.();
+          } catch {
+            /* 무시 */
+          }
+          const entry: LogEntry = {
+            id: `${Date.now().toString(36)}_${(seq++).toString(36)}`,
+            n: seq,
+            ts: Date.now(),
+            level,
+            message: String(message ?? ''),
+            detail,
+            ctx,
+            actor: deriveActor(ctx),
+          };
+          const next = st.entries.length >= MAX_LOGS ? st.entries.slice(1) : st.entries.slice();
+          next.push(entry);
+          return { entries: next };
+        }),
+      clear: () => set({ entries: [] }),
     }),
-  clear: () => set({ entries: [] }),
-}));
+    { name: 'log' },
+  ),
+);
 
 // 스토어 밖(유틸/콘솔 훅)에서 호출하기 쉬운 헬퍼
 export function pushLog(level: LogLevel, message: string, detail?: string) {

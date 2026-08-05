@@ -1,5 +1,6 @@
 // 문진 에디터 상태관리 (§4.3) — 편집 중인 스키마 + 편집 오퍼레이션
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import {
   FormPage,
   FormSchema,
@@ -207,137 +208,9 @@ function mapQuestionEverywhere(
   };
 }
 
-export const useEditorStore = create<EditorState>((set) => ({
-  form: null,
-  selected: null,
-  selectedIds: [],
-  activeSectionId: null,
-  dirty: false,
-  _past: [],
-  _future: [],
-  _clipboard: [],
-
-  setActiveSection: (id) => set({ activeSectionId: id }),
-
-  undo: () =>
-    set((st) => {
-      if (st._past.length === 0 || !st.form) return st;
-      const prev = st._past[st._past.length - 1];
-      timeTraveling = true;
-      queueMicrotask(() => {
-        timeTraveling = false;
-      });
-      return {
-        form: prev,
-        _past: st._past.slice(0, -1),
-        _future: [st.form, ...st._future].slice(0, HISTORY_LIMIT),
-        selected: null,
-        selectedIds: [],
-        dirty: true,
-      };
-    }),
-
-  redo: () =>
-    set((st) => {
-      if (st._future.length === 0 || !st.form) return st;
-      const next = st._future[0];
-      timeTraveling = true;
-      queueMicrotask(() => {
-        timeTraveling = false;
-      });
-      return {
-        form: next,
-        _past: [...st._past, st.form].slice(-HISTORY_LIMIT),
-        _future: st._future.slice(1),
-        selected: null,
-        selectedIds: [],
-        dirty: true,
-      };
-    }),
-
-  deleteSelected: () =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const ids = new Set(st.selectedIds);
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({ ...s, questions: s.questions.filter((q) => !ids.has(q.id)) })),
-        ),
-        selected: null,
-        selectedIds: [],
-        dirty: true,
-      };
-    }),
-
-  nudgeSelected: (dir, mode) =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const ids = new Set(st.selectedIds);
-      const horiz = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
-      const vert = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
-
-      const transform = (q: Question): Question => {
-        if (!ids.has(q.id)) return q;
-        if (q.overlay) {
-          // PDF 오버레이: % 단위
-          const ov = q.overlay;
-          if (mode === 'resize') {
-            const step = 0.5;
-            const MIN = 1.5;
-            const wPct = Math.max(MIN, Math.min(100 - ov.xPct, ov.wPct + horiz * step));
-            const hPct = Math.max(MIN, Math.min(100 - ov.yPct, ov.hPct + vert * step));
-            return { ...q, overlay: { ...ov, wPct, hPct } };
-          }
-          const step = mode === 'fine' ? 0.1 : 0.5;
-          const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + horiz * step));
-          const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + vert * step));
-          return { ...q, overlay: { ...ov, xPct, yPct } };
-        }
-        // 자유 캔버스: 그리드 칸 단위(정수)
-        const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
-        if (mode === 'resize') {
-          const w = Math.max(1, Math.min(GRID_COLS - layout.x, layout.w + horiz));
-          const h = Math.max(1, layout.h + vert);
-          return { ...q, layout: { ...layout, w, h } };
-        }
-        const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + horiz));
-        const y = Math.max(0, layout.y + vert);
-        return { ...q, layout: { ...layout, x, y } };
-      };
-
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  loadForm: (form) =>
-    set({
-      form,
-      selected: null,
-      selectedIds: [],
-      activeSectionId: form.sections[0]?.id ?? null,
-      dirty: false,
-      _past: [],
-      _future: [],
-    }),
-  newForm: () => {
-    // 엑셀 가져오기와 동일한 섹션형(아웃라인) 편집기로 열림 (빈 캔버스/배치모드 아님)
-    const form = createEmptyForm();
-    set({
-      form,
-      selected: null,
-      selectedIds: [],
-      activeSectionId: form.sections[0]?.id ?? null,
-      dirty: false,
-      _past: [],
-      _future: [],
-    });
-  },
-  reset: () =>
-    set({
+export const useEditorStore = create<EditorState>()(
+  devtools(
+    (set) => ({
       form: null,
       selected: null,
       selectedIds: [],
@@ -345,575 +218,726 @@ export const useEditorStore = create<EditorState>((set) => ({
       dirty: false,
       _past: [],
       _future: [],
-    }),
+      _clipboard: [],
 
-  updateMeta: (patch) =>
-    set((st) => (st.form ? { form: { ...st.form, ...patch }, dirty: true } : st)),
+      setActiveSection: (id) => set({ activeSectionId: id }),
 
-  addSection: () =>
-    set((st) => {
-      if (!st.form) return st;
-      const section = createSection(`섹션 ${st.form.sections.length + 1}`);
-      return {
-        form: mapSections(st.form, (secs) => [...secs, section]),
-        dirty: true,
-      };
-    }),
-
-  updateSection: (sectionId, patch) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({ ...s, ...patch })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  removeSection: (sectionId) =>
-    set((st) => {
-      if (!st.form) return st;
-      const sections = st.form.sections.filter((s) => s.id !== sectionId);
-      return {
-        form: mapSections(st.form, () => sections),
-        selected: st.selected?.sectionId === sectionId ? null : st.selected,
-        activeSectionId:
-          st.activeSectionId === sectionId ? (sections[0]?.id ?? null) : st.activeSectionId,
-        dirty: true,
-      };
-    }),
-
-  reorderSections: (fromIndex, toIndex) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) => moveItem(secs, fromIndex, toIndex)),
-        dirty: true,
-      };
-    }),
-
-  groupSelectedIntoSection: (title) =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const ids = new Set(st.selectedIds);
-      // 선택 문항을 원래 순서(섹션 → 배열 순서)대로 모아 새 섹션에 넣는다.
-      const moved: Question[] = [];
-      const remaining = st.form.sections.map((s) => {
-        const keep: Question[] = [];
-        for (const q of s.questions) (ids.has(q.id) ? moved : keep).push(q);
-        return { ...s, questions: keep };
-      });
-      if (moved.length === 0) return st;
-      const section = createSection(title || `섹션 ${st.form.sections.length + 1}`);
-      section.questions = moved;
-      // 빈 섹션은 정리하되 최소 한 개는 남긴다.
-      const cleaned = remaining.filter((s) => s.questions.length > 0);
-      const nextSections = [...(cleaned.length ? cleaned : [remaining[0]]), section];
-      return {
-        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
-        selected: { sectionId: section.id, questionId: st.selectedIds[st.selectedIds.length - 1] },
-        dirty: true,
-      };
-    }),
-
-  assignSelectedToSection: (sectionId) =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      if (!st.form.sections.some((s) => s.id === sectionId)) return st;
-      const ids = new Set(st.selectedIds);
-      const moved: Question[] = [];
-      const stripped = st.form.sections.map((s) => {
-        const keep: Question[] = [];
-        for (const q of s.questions) {
-          if (ids.has(q.id) && s.id !== sectionId) moved.push(q);
-          else keep.push(q);
-        }
-        return { ...s, questions: keep };
-      });
-      const nextSections = stripped
-        .map((s) => (s.id === sectionId ? { ...s, questions: [...s.questions, ...moved] } : s))
-        .filter((s, i) => s.questions.length > 0 || i === 0);
-      return {
-        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
-        selected: { sectionId, questionId: st.selectedIds[st.selectedIds.length - 1] },
-        dirty: true,
-      };
-    }),
-
-  ungroupSection: (sectionId) =>
-    set((st) => {
-      if (!st.form || st.form.sections.length <= 1) return st;
-      const idx = st.form.sections.findIndex((s) => s.id === sectionId);
-      if (idx < 0) return st;
-      const target = st.form.sections[idx];
-      // 첫 섹션(제거 대상이면 두 번째)으로 합친다.
-      const mergeInto = idx === 0 ? st.form.sections[1] : st.form.sections[0];
-      const nextSections = st.form.sections
-        .filter((s) => s.id !== sectionId)
-        .map((s) =>
-          s.id === mergeInto.id ? { ...s, questions: [...s.questions, ...target.questions] } : s,
-        );
-      return {
-        form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
-        dirty: true,
-      };
-    }),
-
-  addQuestion: (sectionId, type = 'text') =>
-    set((st) => {
-      if (!st.form) return st;
-      let newQuestionId = '';
-      const form = mapSections(st.form, (secs) =>
-        mapSection(secs, sectionId, (s) => {
-          const question = createQuestion(type);
-          question.layout = createDefaultLayout(s.questions, type, question.options?.length ?? 0);
-          newQuestionId = question.id;
-          return { ...s, questions: [...s.questions, question] };
-        }),
-      );
-      return {
-        form,
-        selected: { sectionId, questionId: newQuestionId },
-        selectedIds: [newQuestionId],
-        activeSectionId: sectionId,
-        dirty: true,
-      };
-    }),
-
-  addQuestionsBulk: (sectionId, items) =>
-    set((st) => {
-      if (!st.form || items.length === 0) return st;
-      let lastId = '';
-      const form = mapSections(st.form, (secs) =>
-        mapSection(secs, sectionId, (s) => {
-          const questions = s.questions.slice();
-          for (const item of items) {
-            const question = createQuestion(item.type);
-            question.label = item.label;
-            if (item.optionLabels && item.optionLabels.length) {
-              question.options = item.optionLabels.map((l) => createOption(l));
-            }
-            question.layout = createDefaultLayout(
-              questions,
-              item.type,
-              question.options?.length ?? 0,
-            );
-            questions.push(question);
-            lastId = question.id;
-          }
-          return { ...s, questions };
-        }),
-      );
-      return {
-        form,
-        selected: lastId ? { sectionId, questionId: lastId } : st.selected,
-        selectedIds: lastId ? [lastId] : st.selectedIds,
-        activeSectionId: sectionId,
-        dirty: true,
-      };
-    }),
-
-  // 섹션 이동을 지원하므로 문항 조작은 섹션 id 에 의존하지 않고 폼 전체에서 찾는다.
-  updateQuestion: (_sectionId, questionId, patch) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, ...patch })),
+      undo: () =>
+        set((st) => {
+          if (st._past.length === 0 || !st.form) return st;
+          const prev = st._past[st._past.length - 1];
+          timeTraveling = true;
+          queueMicrotask(() => {
+            timeTraveling = false;
+          });
+          return {
+            form: prev,
+            _past: st._past.slice(0, -1),
+            _future: [st.form, ...st._future].slice(0, HISTORY_LIMIT),
+            selected: null,
+            selectedIds: [],
             dirty: true,
-          }
-        : st,
-    ),
-
-  changeQuestionType: (_sectionId, questionId, type) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => coerceQuestionForType(q, type)),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  removeQuestion: (_sectionId, questionId) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({ ...s, questions: s.questions.filter((q) => q.id !== questionId) })),
-        ),
-        selected: st.selected?.questionId === questionId ? null : st.selected,
-        selectedIds: st.selectedIds.filter((id) => id !== questionId),
-        dirty: true,
-      };
-    }),
-
-  duplicateQuestion: (_sectionId, questionId) =>
-    set((st) => {
-      if (!st.form) return st;
-      let newId = '';
-      let ownerSectionId = '';
-      const form = mapSections(st.form, (secs) =>
-        secs.map((s) => {
-          const idx = s.questions.findIndex((q) => q.id === questionId);
-          if (idx < 0) return s;
-          ownerSectionId = s.id;
-          const src = s.questions[idx];
-          const copy = createQuestion(src.type);
-          const cloned: Question = {
-            ...src,
-            id: copy.id,
-            label: `${src.label} (복사)`,
-            options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
-            layout: createDuplicateLayout(src, s.questions),
           };
-          newId = cloned.id;
-          const questions = s.questions.slice();
-          questions.splice(idx + 1, 0, cloned);
-          return { ...s, questions };
         }),
-      );
-      return {
-        form,
-        selected: newId ? { sectionId: ownerSectionId, questionId: newId } : st.selected,
-        selectedIds: newId ? [newId] : st.selectedIds,
-        dirty: true,
-      };
-    }),
 
-  reorderQuestions: (sectionId, fromIndex, toIndex) =>
-    set((st) => {
-      if (!st.form) return st;
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, sectionId, (s) => ({
-            ...s,
-            questions: moveItem(s.questions, fromIndex, toIndex),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  moveQuestion: (questionId, toSectionId, toIndex) =>
-    set((st) => {
-      if (!st.form) return st;
-      let moved: Question | null = null;
-      const stripped = st.form.sections.map((s) => {
-        const idx = s.questions.findIndex((q) => q.id === questionId);
-        if (idx < 0) return s;
-        moved = s.questions[idx];
-        return { ...s, questions: s.questions.filter((q) => q.id !== questionId) };
-      });
-      if (!moved) return st;
-      const sections = stripped.map((s) => {
-        if (s.id !== toSectionId) return s;
-        const questions = s.questions.slice();
-        const clamped = Math.max(0, Math.min(toIndex, questions.length));
-        questions.splice(clamped, 0, moved as Question);
-        return { ...s, questions };
-      });
-      return {
-        form: { ...st.form, sections, updatedAt: new Date().toISOString() },
-        selected: { sectionId: toSectionId, questionId },
-        dirty: true,
-      };
-    }),
-
-  updateQuestionLayout: (_sectionId, questionId, layout) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, layout })),
+      redo: () =>
+        set((st) => {
+          if (st._future.length === 0 || !st.form) return st;
+          const next = st._future[0];
+          timeTraveling = true;
+          queueMicrotask(() => {
+            timeTraveling = false;
+          });
+          return {
+            form: next,
+            _past: [...st._past, st.form].slice(-HISTORY_LIMIT),
+            _future: st._future.slice(1),
+            selected: null,
+            selectedIds: [],
             dirty: true,
-          }
-        : st,
-    ),
-
-  updateQuestionOverlay: (_sectionId, questionId, overlay) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, overlay })),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  addOverlayQuestion: (sectionId, type, overlay) =>
-    set((st) => {
-      if (!st.form) return st;
-      let newId = '';
-      const form = mapSections(st.form, (secs) =>
-        mapSection(secs, sectionId, (s) => {
-          const q = createQuestion(type);
-          q.overlay = overlay;
-          delete q.layout;
-          newId = q.id;
-          return { ...s, questions: [...s.questions, q] };
+          };
         }),
-      );
-      return {
-        form,
-        selected: newId ? { sectionId, questionId: newId } : st.selected,
-        selectedIds: newId ? [newId] : st.selectedIds,
-        dirty: true,
-      };
-    }),
 
-  addOption: (_sectionId, questionId) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
-              ...q,
-              options: [
-                ...(q.options ?? []),
-                createOption(`선택지 ${(q.options?.length ?? 0) + 1}`),
-              ],
-            })),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  updateOption: (_sectionId, questionId, optionId, patch) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
-              ...q,
-              options: q.options?.map((o) => (o.id === optionId ? { ...o, ...patch } : o)),
-            })),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  removeOption: (_sectionId, questionId, optionId) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
-              ...q,
-              options: q.options?.filter((o) => o.id !== optionId),
-            })),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  reorderOptions: (_sectionId, questionId, fromIndex, toIndex) =>
-    set((st) =>
-      st.form
-        ? {
-            form: mapQuestionEverywhere(st.form, questionId, (q) => ({
-              ...q,
-              options: q.options ? moveItem(q.options, fromIndex, toIndex) : q.options,
-            })),
-            dirty: true,
-          }
-        : st,
-    ),
-
-  select: (sel) =>
-    set((st) => ({
-      selected: sel,
-      selectedIds: sel ? [sel.questionId] : [],
-      // 문항을 고르면 그 섹션이 활성 섹션이 되도록(단축키 추가 대상)
-      activeSectionId: sel ? sel.sectionId : st.activeSectionId,
-    })),
-
-  toggleSelect: (sectionId, questionId) =>
-    set((st) => {
-      const has = st.selectedIds.includes(questionId);
-      const selectedIds = has
-        ? st.selectedIds.filter((id) => id !== questionId)
-        : [...st.selectedIds, questionId];
-      const selected: Selection | null = selectedIds.length
-        ? has && st.selected?.questionId === questionId
-          ? { sectionId, questionId: selectedIds[selectedIds.length - 1] }
-          : { sectionId, questionId }
-        : null;
-      return { selectedIds, selected };
-    }),
-
-  setSelection: (sectionId, questionIds) =>
-    set(() => ({
-      selectedIds: questionIds,
-      selected: questionIds.length
-        ? { sectionId, questionId: questionIds[questionIds.length - 1] }
-        : null,
-    })),
-
-  setFontSizeForSelected: (fontSize) =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const ids = new Set(st.selectedIds);
-      const clamped = Math.max(6, Math.min(72, Math.round(fontSize)));
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({
-            ...s,
-            questions: s.questions.map((q) => (ids.has(q.id) ? { ...q, fontSize: clamped } : q)),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  alignSelected: (mode) =>
-    set((st) => {
-      if (!st.form || !st.selected || st.selectedIds.length < 2) return st;
-      const ids = new Set(st.selectedIds);
-      // 기준 = 마지막 선택(primary)
-      let ref: QuestionOverlay | undefined;
-      for (const s of st.form.sections)
-        for (const q of s.questions)
-          if (q.id === st.selected.questionId && q.overlay) ref = q.overlay;
-      if (!ref) return st;
-      const R = ref;
-
-      const transform = (q: Question): Question => {
-        if (!ids.has(q.id) || !q.overlay) return q;
-        let { xPct, yPct, wPct, hPct } = q.overlay;
-        switch (mode) {
-          case 'left':
-            xPct = R.xPct;
-            break;
-          case 'right':
-            xPct = R.xPct + R.wPct - wPct;
-            break;
-          case 'centerX':
-            xPct = R.xPct + R.wPct / 2 - wPct / 2;
-            break;
-          case 'top':
-            yPct = R.yPct;
-            break;
-          case 'bottom':
-            yPct = R.yPct + R.hPct - hPct;
-            break;
-          case 'centerY':
-            yPct = R.yPct + R.hPct / 2 - hPct / 2;
-            break;
-          case 'matchW':
-            wPct = R.wPct;
-            break;
-          case 'matchH':
-            hPct = R.hPct;
-            break;
-          case 'matchSize':
-            wPct = R.wPct;
-            hPct = R.hPct;
-            break;
-        }
-        // 경계 보정
-        wPct = Math.max(1, Math.min(100, wPct));
-        hPct = Math.max(1, Math.min(100, hPct));
-        xPct = Math.max(0, Math.min(100 - wPct, xPct));
-        yPct = Math.max(0, Math.min(100 - hPct, yPct));
-        return { ...q, overlay: { ...q.overlay, xPct, yPct, wPct, hPct } };
-      };
-
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  addBlankPage: () =>
-    set((st) => {
-      if (!st.form) return st;
-      const page: FormPage = {
-        image: blankPageDataUrl(BLANK_PAGE_W, BLANK_PAGE_H),
-        width: BLANK_PAGE_W,
-        height: BLANK_PAGE_H,
-      };
-      return {
-        form: {
-          ...st.form,
-          pages: [...(st.form.pages ?? []), page],
-          updatedAt: new Date().toISOString(),
-        },
-        dirty: true,
-      };
-    }),
-
-  moveSelectedToPage: (pageIndex) =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const pages = st.form.pages ?? [];
-      if (pageIndex < 0 || pageIndex >= pages.length) return st;
-      const ids = new Set(st.selectedIds);
-      return {
-        form: mapSections(st.form, (secs) =>
-          secs.map((s) => ({
-            ...s,
-            questions: s.questions.map((q) =>
-              ids.has(q.id) && q.overlay ? { ...q, overlay: { ...q.overlay, page: pageIndex } } : q,
+      deleteSelected: () =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const ids = new Set(st.selectedIds);
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({ ...s, questions: s.questions.filter((q) => !ids.has(q.id)) })),
             ),
-          })),
-        ),
-        dirty: true,
-      };
-    }),
-
-  copySelected: () =>
-    set((st) => {
-      if (!st.form || st.selectedIds.length === 0) return st;
-      const ids = new Set(st.selectedIds);
-      const items: Question[] = [];
-      for (const s of st.form.sections)
-        for (const q of s.questions)
-          if (ids.has(q.id)) items.push(JSON.parse(JSON.stringify(q)) as Question);
-      return { _clipboard: items };
-    }),
-
-  paste: () =>
-    set((st) => {
-      if (!st.form || st._clipboard.length === 0) return st;
-      const targetSectionId = st.selected?.sectionId ?? st.form.sections[0]?.id;
-      if (!targetSectionId) return st;
-      const newIds: string[] = [];
-      const clones = st._clipboard.map((src) => {
-        const fresh = createQuestion(src.type);
-        const cloned: Question = {
-          ...(JSON.parse(JSON.stringify(src)) as Question),
-          id: fresh.id,
-          options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
-        };
-        // 살짝 옮겨 원본과 겹치지 않게
-        if (cloned.overlay) {
-          cloned.overlay = {
-            ...cloned.overlay,
-            xPct: Math.min(100 - cloned.overlay.wPct, cloned.overlay.xPct + 2),
-            yPct: Math.min(100 - cloned.overlay.hPct, cloned.overlay.yPct + 2),
+            selected: null,
+            selectedIds: [],
+            dirty: true,
           };
-        } else if (cloned.layout) {
-          cloned.layout = {
-            ...cloned.layout,
-            x: Math.min(GRID_COLS - cloned.layout.w, cloned.layout.x + 1),
-            y: cloned.layout.y + 1,
+        }),
+
+      nudgeSelected: (dir, mode) =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const ids = new Set(st.selectedIds);
+          const horiz = dir === 'left' ? -1 : dir === 'right' ? 1 : 0;
+          const vert = dir === 'up' ? -1 : dir === 'down' ? 1 : 0;
+
+          const transform = (q: Question): Question => {
+            if (!ids.has(q.id)) return q;
+            if (q.overlay) {
+              // PDF 오버레이: % 단위
+              const ov = q.overlay;
+              if (mode === 'resize') {
+                const step = 0.5;
+                const MIN = 1.5;
+                const wPct = Math.max(MIN, Math.min(100 - ov.xPct, ov.wPct + horiz * step));
+                const hPct = Math.max(MIN, Math.min(100 - ov.yPct, ov.hPct + vert * step));
+                return { ...q, overlay: { ...ov, wPct, hPct } };
+              }
+              const step = mode === 'fine' ? 0.1 : 0.5;
+              const xPct = Math.min(100 - ov.wPct, Math.max(0, ov.xPct + horiz * step));
+              const yPct = Math.min(100 - ov.hPct, Math.max(0, ov.yPct + vert * step));
+              return { ...q, overlay: { ...ov, xPct, yPct } };
+            }
+            // 자유 캔버스: 그리드 칸 단위(정수)
+            const layout = q.layout ?? { x: 0, y: 0, w: DEFAULT_QUESTION_W, h: DEFAULT_QUESTION_H };
+            if (mode === 'resize') {
+              const w = Math.max(1, Math.min(GRID_COLS - layout.x, layout.w + horiz));
+              const h = Math.max(1, layout.h + vert);
+              return { ...q, layout: { ...layout, w, h } };
+            }
+            const x = Math.min(GRID_COLS - layout.w, Math.max(0, layout.x + horiz));
+            const y = Math.max(0, layout.y + vert);
+            return { ...q, layout: { ...layout, x, y } };
           };
-        }
-        newIds.push(cloned.id);
-        return cloned;
-      });
-      return {
-        form: mapSections(st.form, (secs) =>
-          mapSection(secs, targetSectionId, (s) => ({
-            ...s,
-            questions: [...s.questions, ...clones],
-          })),
+
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      loadForm: (form) =>
+        set({
+          form,
+          selected: null,
+          selectedIds: [],
+          activeSectionId: form.sections[0]?.id ?? null,
+          dirty: false,
+          _past: [],
+          _future: [],
+        }),
+      newForm: () => {
+        // 엑셀 가져오기와 동일한 섹션형(아웃라인) 편집기로 열림 (빈 캔버스/배치모드 아님)
+        const form = createEmptyForm();
+        set({
+          form,
+          selected: null,
+          selectedIds: [],
+          activeSectionId: form.sections[0]?.id ?? null,
+          dirty: false,
+          _past: [],
+          _future: [],
+        });
+      },
+      reset: () =>
+        set({
+          form: null,
+          selected: null,
+          selectedIds: [],
+          activeSectionId: null,
+          dirty: false,
+          _past: [],
+          _future: [],
+        }),
+
+      updateMeta: (patch) =>
+        set((st) => (st.form ? { form: { ...st.form, ...patch }, dirty: true } : st)),
+
+      addSection: () =>
+        set((st) => {
+          if (!st.form) return st;
+          const section = createSection(`섹션 ${st.form.sections.length + 1}`);
+          return {
+            form: mapSections(st.form, (secs) => [...secs, section]),
+            dirty: true,
+          };
+        }),
+
+      updateSection: (sectionId, patch) =>
+        set((st) => {
+          if (!st.form) return st;
+          return {
+            form: mapSections(st.form, (secs) =>
+              mapSection(secs, sectionId, (s) => ({ ...s, ...patch })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      removeSection: (sectionId) =>
+        set((st) => {
+          if (!st.form) return st;
+          const sections = st.form.sections.filter((s) => s.id !== sectionId);
+          return {
+            form: mapSections(st.form, () => sections),
+            selected: st.selected?.sectionId === sectionId ? null : st.selected,
+            activeSectionId:
+              st.activeSectionId === sectionId ? (sections[0]?.id ?? null) : st.activeSectionId,
+            dirty: true,
+          };
+        }),
+
+      reorderSections: (fromIndex, toIndex) =>
+        set((st) => {
+          if (!st.form) return st;
+          return {
+            form: mapSections(st.form, (secs) => moveItem(secs, fromIndex, toIndex)),
+            dirty: true,
+          };
+        }),
+
+      groupSelectedIntoSection: (title) =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const ids = new Set(st.selectedIds);
+          // 선택 문항을 원래 순서(섹션 → 배열 순서)대로 모아 새 섹션에 넣는다.
+          const moved: Question[] = [];
+          const remaining = st.form.sections.map((s) => {
+            const keep: Question[] = [];
+            for (const q of s.questions) (ids.has(q.id) ? moved : keep).push(q);
+            return { ...s, questions: keep };
+          });
+          if (moved.length === 0) return st;
+          const section = createSection(title || `섹션 ${st.form.sections.length + 1}`);
+          section.questions = moved;
+          // 빈 섹션은 정리하되 최소 한 개는 남긴다.
+          const cleaned = remaining.filter((s) => s.questions.length > 0);
+          const nextSections = [...(cleaned.length ? cleaned : [remaining[0]]), section];
+          return {
+            form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+            selected: {
+              sectionId: section.id,
+              questionId: st.selectedIds[st.selectedIds.length - 1],
+            },
+            dirty: true,
+          };
+        }),
+
+      assignSelectedToSection: (sectionId) =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          if (!st.form.sections.some((s) => s.id === sectionId)) return st;
+          const ids = new Set(st.selectedIds);
+          const moved: Question[] = [];
+          const stripped = st.form.sections.map((s) => {
+            const keep: Question[] = [];
+            for (const q of s.questions) {
+              if (ids.has(q.id) && s.id !== sectionId) moved.push(q);
+              else keep.push(q);
+            }
+            return { ...s, questions: keep };
+          });
+          const nextSections = stripped
+            .map((s) => (s.id === sectionId ? { ...s, questions: [...s.questions, ...moved] } : s))
+            .filter((s, i) => s.questions.length > 0 || i === 0);
+          return {
+            form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+            selected: { sectionId, questionId: st.selectedIds[st.selectedIds.length - 1] },
+            dirty: true,
+          };
+        }),
+
+      ungroupSection: (sectionId) =>
+        set((st) => {
+          if (!st.form || st.form.sections.length <= 1) return st;
+          const idx = st.form.sections.findIndex((s) => s.id === sectionId);
+          if (idx < 0) return st;
+          const target = st.form.sections[idx];
+          // 첫 섹션(제거 대상이면 두 번째)으로 합친다.
+          const mergeInto = idx === 0 ? st.form.sections[1] : st.form.sections[0];
+          const nextSections = st.form.sections
+            .filter((s) => s.id !== sectionId)
+            .map((s) =>
+              s.id === mergeInto.id
+                ? { ...s, questions: [...s.questions, ...target.questions] }
+                : s,
+            );
+          return {
+            form: { ...st.form, sections: nextSections, updatedAt: new Date().toISOString() },
+            dirty: true,
+          };
+        }),
+
+      addQuestion: (sectionId, type = 'text') =>
+        set((st) => {
+          if (!st.form) return st;
+          let newQuestionId = '';
+          const form = mapSections(st.form, (secs) =>
+            mapSection(secs, sectionId, (s) => {
+              const question = createQuestion(type);
+              question.layout = createDefaultLayout(
+                s.questions,
+                type,
+                question.options?.length ?? 0,
+              );
+              newQuestionId = question.id;
+              return { ...s, questions: [...s.questions, question] };
+            }),
+          );
+          return {
+            form,
+            selected: { sectionId, questionId: newQuestionId },
+            selectedIds: [newQuestionId],
+            activeSectionId: sectionId,
+            dirty: true,
+          };
+        }),
+
+      addQuestionsBulk: (sectionId, items) =>
+        set((st) => {
+          if (!st.form || items.length === 0) return st;
+          let lastId = '';
+          const form = mapSections(st.form, (secs) =>
+            mapSection(secs, sectionId, (s) => {
+              const questions = s.questions.slice();
+              for (const item of items) {
+                const question = createQuestion(item.type);
+                question.label = item.label;
+                if (item.optionLabels && item.optionLabels.length) {
+                  question.options = item.optionLabels.map((l) => createOption(l));
+                }
+                question.layout = createDefaultLayout(
+                  questions,
+                  item.type,
+                  question.options?.length ?? 0,
+                );
+                questions.push(question);
+                lastId = question.id;
+              }
+              return { ...s, questions };
+            }),
+          );
+          return {
+            form,
+            selected: lastId ? { sectionId, questionId: lastId } : st.selected,
+            selectedIds: lastId ? [lastId] : st.selectedIds,
+            activeSectionId: sectionId,
+            dirty: true,
+          };
+        }),
+
+      // 섹션 이동을 지원하므로 문항 조작은 섹션 id 에 의존하지 않고 폼 전체에서 찾는다.
+      updateQuestion: (_sectionId, questionId, patch) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, ...patch })),
+                dirty: true,
+              }
+            : st,
         ),
-        selected: { sectionId: targetSectionId, questionId: newIds[newIds.length - 1] },
-        selectedIds: newIds,
-        dirty: true,
-      };
+
+      changeQuestionType: (_sectionId, questionId, type) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) =>
+                  coerceQuestionForType(q, type),
+                ),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      removeQuestion: (_sectionId, questionId) =>
+        set((st) => {
+          if (!st.form) return st;
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({
+                ...s,
+                questions: s.questions.filter((q) => q.id !== questionId),
+              })),
+            ),
+            selected: st.selected?.questionId === questionId ? null : st.selected,
+            selectedIds: st.selectedIds.filter((id) => id !== questionId),
+            dirty: true,
+          };
+        }),
+
+      duplicateQuestion: (_sectionId, questionId) =>
+        set((st) => {
+          if (!st.form) return st;
+          let newId = '';
+          let ownerSectionId = '';
+          const form = mapSections(st.form, (secs) =>
+            secs.map((s) => {
+              const idx = s.questions.findIndex((q) => q.id === questionId);
+              if (idx < 0) return s;
+              ownerSectionId = s.id;
+              const src = s.questions[idx];
+              const copy = createQuestion(src.type);
+              const cloned: Question = {
+                ...src,
+                id: copy.id,
+                label: `${src.label} (복사)`,
+                options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
+                layout: createDuplicateLayout(src, s.questions),
+              };
+              newId = cloned.id;
+              const questions = s.questions.slice();
+              questions.splice(idx + 1, 0, cloned);
+              return { ...s, questions };
+            }),
+          );
+          return {
+            form,
+            selected: newId ? { sectionId: ownerSectionId, questionId: newId } : st.selected,
+            selectedIds: newId ? [newId] : st.selectedIds,
+            dirty: true,
+          };
+        }),
+
+      reorderQuestions: (sectionId, fromIndex, toIndex) =>
+        set((st) => {
+          if (!st.form) return st;
+          return {
+            form: mapSections(st.form, (secs) =>
+              mapSection(secs, sectionId, (s) => ({
+                ...s,
+                questions: moveItem(s.questions, fromIndex, toIndex),
+              })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      moveQuestion: (questionId, toSectionId, toIndex) =>
+        set((st) => {
+          if (!st.form) return st;
+          let moved: Question | null = null;
+          const stripped = st.form.sections.map((s) => {
+            const idx = s.questions.findIndex((q) => q.id === questionId);
+            if (idx < 0) return s;
+            moved = s.questions[idx];
+            return { ...s, questions: s.questions.filter((q) => q.id !== questionId) };
+          });
+          if (!moved) return st;
+          const sections = stripped.map((s) => {
+            if (s.id !== toSectionId) return s;
+            const questions = s.questions.slice();
+            const clamped = Math.max(0, Math.min(toIndex, questions.length));
+            questions.splice(clamped, 0, moved as Question);
+            return { ...s, questions };
+          });
+          return {
+            form: { ...st.form, sections, updatedAt: new Date().toISOString() },
+            selected: { sectionId: toSectionId, questionId },
+            dirty: true,
+          };
+        }),
+
+      updateQuestionLayout: (_sectionId, questionId, layout) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, layout })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      updateQuestionOverlay: (_sectionId, questionId, overlay) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, overlay })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      addOverlayQuestion: (sectionId, type, overlay) =>
+        set((st) => {
+          if (!st.form) return st;
+          let newId = '';
+          const form = mapSections(st.form, (secs) =>
+            mapSection(secs, sectionId, (s) => {
+              const q = createQuestion(type);
+              q.overlay = overlay;
+              delete q.layout;
+              newId = q.id;
+              return { ...s, questions: [...s.questions, q] };
+            }),
+          );
+          return {
+            form,
+            selected: newId ? { sectionId, questionId: newId } : st.selected,
+            selectedIds: newId ? [newId] : st.selectedIds,
+            dirty: true,
+          };
+        }),
+
+      addOption: (_sectionId, questionId) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({
+                  ...q,
+                  options: [
+                    ...(q.options ?? []),
+                    createOption(`선택지 ${(q.options?.length ?? 0) + 1}`),
+                  ],
+                })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      updateOption: (_sectionId, questionId, optionId, patch) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({
+                  ...q,
+                  options: q.options?.map((o) => (o.id === optionId ? { ...o, ...patch } : o)),
+                })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      removeOption: (_sectionId, questionId, optionId) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({
+                  ...q,
+                  options: q.options?.filter((o) => o.id !== optionId),
+                })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      reorderOptions: (_sectionId, questionId, fromIndex, toIndex) =>
+        set((st) =>
+          st.form
+            ? {
+                form: mapQuestionEverywhere(st.form, questionId, (q) => ({
+                  ...q,
+                  options: q.options ? moveItem(q.options, fromIndex, toIndex) : q.options,
+                })),
+                dirty: true,
+              }
+            : st,
+        ),
+
+      select: (sel) =>
+        set((st) => ({
+          selected: sel,
+          selectedIds: sel ? [sel.questionId] : [],
+          // 문항을 고르면 그 섹션이 활성 섹션이 되도록(단축키 추가 대상)
+          activeSectionId: sel ? sel.sectionId : st.activeSectionId,
+        })),
+
+      toggleSelect: (sectionId, questionId) =>
+        set((st) => {
+          const has = st.selectedIds.includes(questionId);
+          const selectedIds = has
+            ? st.selectedIds.filter((id) => id !== questionId)
+            : [...st.selectedIds, questionId];
+          const selected: Selection | null = selectedIds.length
+            ? has && st.selected?.questionId === questionId
+              ? { sectionId, questionId: selectedIds[selectedIds.length - 1] }
+              : { sectionId, questionId }
+            : null;
+          return { selectedIds, selected };
+        }),
+
+      setSelection: (sectionId, questionIds) =>
+        set(() => ({
+          selectedIds: questionIds,
+          selected: questionIds.length
+            ? { sectionId, questionId: questionIds[questionIds.length - 1] }
+            : null,
+        })),
+
+      setFontSizeForSelected: (fontSize) =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const ids = new Set(st.selectedIds);
+          const clamped = Math.max(6, Math.min(72, Math.round(fontSize)));
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({
+                ...s,
+                questions: s.questions.map((q) =>
+                  ids.has(q.id) ? { ...q, fontSize: clamped } : q,
+                ),
+              })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      alignSelected: (mode) =>
+        set((st) => {
+          if (!st.form || !st.selected || st.selectedIds.length < 2) return st;
+          const ids = new Set(st.selectedIds);
+          // 기준 = 마지막 선택(primary)
+          let ref: QuestionOverlay | undefined;
+          for (const s of st.form.sections)
+            for (const q of s.questions)
+              if (q.id === st.selected.questionId && q.overlay) ref = q.overlay;
+          if (!ref) return st;
+          const R = ref;
+
+          const transform = (q: Question): Question => {
+            if (!ids.has(q.id) || !q.overlay) return q;
+            let { xPct, yPct, wPct, hPct } = q.overlay;
+            switch (mode) {
+              case 'left':
+                xPct = R.xPct;
+                break;
+              case 'right':
+                xPct = R.xPct + R.wPct - wPct;
+                break;
+              case 'centerX':
+                xPct = R.xPct + R.wPct / 2 - wPct / 2;
+                break;
+              case 'top':
+                yPct = R.yPct;
+                break;
+              case 'bottom':
+                yPct = R.yPct + R.hPct - hPct;
+                break;
+              case 'centerY':
+                yPct = R.yPct + R.hPct / 2 - hPct / 2;
+                break;
+              case 'matchW':
+                wPct = R.wPct;
+                break;
+              case 'matchH':
+                hPct = R.hPct;
+                break;
+              case 'matchSize':
+                wPct = R.wPct;
+                hPct = R.hPct;
+                break;
+            }
+            // 경계 보정
+            wPct = Math.max(1, Math.min(100, wPct));
+            hPct = Math.max(1, Math.min(100, hPct));
+            xPct = Math.max(0, Math.min(100 - wPct, xPct));
+            yPct = Math.max(0, Math.min(100 - hPct, yPct));
+            return { ...q, overlay: { ...q.overlay, xPct, yPct, wPct, hPct } };
+          };
+
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({ ...s, questions: s.questions.map(transform) })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      addBlankPage: () =>
+        set((st) => {
+          if (!st.form) return st;
+          const page: FormPage = {
+            image: blankPageDataUrl(BLANK_PAGE_W, BLANK_PAGE_H),
+            width: BLANK_PAGE_W,
+            height: BLANK_PAGE_H,
+          };
+          return {
+            form: {
+              ...st.form,
+              pages: [...(st.form.pages ?? []), page],
+              updatedAt: new Date().toISOString(),
+            },
+            dirty: true,
+          };
+        }),
+
+      moveSelectedToPage: (pageIndex) =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const pages = st.form.pages ?? [];
+          if (pageIndex < 0 || pageIndex >= pages.length) return st;
+          const ids = new Set(st.selectedIds);
+          return {
+            form: mapSections(st.form, (secs) =>
+              secs.map((s) => ({
+                ...s,
+                questions: s.questions.map((q) =>
+                  ids.has(q.id) && q.overlay
+                    ? { ...q, overlay: { ...q.overlay, page: pageIndex } }
+                    : q,
+                ),
+              })),
+            ),
+            dirty: true,
+          };
+        }),
+
+      copySelected: () =>
+        set((st) => {
+          if (!st.form || st.selectedIds.length === 0) return st;
+          const ids = new Set(st.selectedIds);
+          const items: Question[] = [];
+          for (const s of st.form.sections)
+            for (const q of s.questions)
+              if (ids.has(q.id)) items.push(JSON.parse(JSON.stringify(q)) as Question);
+          return { _clipboard: items };
+        }),
+
+      paste: () =>
+        set((st) => {
+          if (!st.form || st._clipboard.length === 0) return st;
+          const targetSectionId = st.selected?.sectionId ?? st.form.sections[0]?.id;
+          if (!targetSectionId) return st;
+          const newIds: string[] = [];
+          const clones = st._clipboard.map((src) => {
+            const fresh = createQuestion(src.type);
+            const cloned: Question = {
+              ...(JSON.parse(JSON.stringify(src)) as Question),
+              id: fresh.id,
+              options: src.options?.map((o) => ({ ...o, id: createOption(o.label).id })),
+            };
+            // 살짝 옮겨 원본과 겹치지 않게
+            if (cloned.overlay) {
+              cloned.overlay = {
+                ...cloned.overlay,
+                xPct: Math.min(100 - cloned.overlay.wPct, cloned.overlay.xPct + 2),
+                yPct: Math.min(100 - cloned.overlay.hPct, cloned.overlay.yPct + 2),
+              };
+            } else if (cloned.layout) {
+              cloned.layout = {
+                ...cloned.layout,
+                x: Math.min(GRID_COLS - cloned.layout.w, cloned.layout.x + 1),
+                y: cloned.layout.y + 1,
+              };
+            }
+            newIds.push(cloned.id);
+            return cloned;
+          });
+          return {
+            form: mapSections(st.form, (secs) =>
+              mapSection(secs, targetSectionId, (s) => ({
+                ...s,
+                questions: [...s.questions, ...clones],
+              })),
+            ),
+            selected: { sectionId: targetSectionId, questionId: newIds[newIds.length - 1] },
+            selectedIds: newIds,
+            dirty: true,
+          };
+        }),
     }),
-}));
+    { name: 'editor' },
+  ),
+);
 
 // form 이 바뀔 때마다 직전 스냅샷을 이력에 기록(undo/redo 중이면 건너뜀).
 useEditorStore.subscribe((state, prev) => {
