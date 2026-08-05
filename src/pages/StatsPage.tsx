@@ -384,7 +384,7 @@ function DateRangeField({
     }
   };
 
-  const RangeDay = (props: PickersDayProps<Dayjs>) => {
+  const RangeDay = (props: PickersDayProps) => {
     const { day, ...other } = props;
     const end = toD ?? (fromD && hover && hover.isAfter(fromD, 'day') ? hover : null);
     const isStart = !!(fromD && day.isSame(fromD, 'day'));
