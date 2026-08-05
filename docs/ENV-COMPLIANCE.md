@@ -4,17 +4,17 @@
 
 ## 1. 프론트엔드 (Front-End)
 
-| 요구사항      | 요구값                              | 현재                                                                  | 판정 |
-| ------------- | ----------------------------------- | --------------------------------------------------------------------- | ---- |
-| 런타임        | Node.js v22 LTS↑                    | CI/빌드 Node 22, `engines: node>=22`, web Dockerfile `node:22-alpine` | ✅   |
-| 개발 언어     | TypeScript ES2024                   | TS 5.9, tsconfig `target/lib ES2024`, Vite `esnext`                   | ✅   |
-| 프레임워크    | React v19↑                          | React 19 (함수형 컴포넌트)                                            | ✅   |
-| 상태관리      | Zustand + 미들웨어                  | Zustand 4.5, `persist` + `devtools`                                   | ✅   |
-| 불변성·최적화 | 유지                                | 불변 업데이트 헬퍼                                                    | ✅   |
-| 빌드          | Vite HMR·tree-shaking·코드 스플리팅 | Vite 5, React.lazy + manualChunks                                     | ✅   |
-| IDE           | VSCode + 확장 + 포맷/린트 자동화    | `.vscode`(권장 확장·저장 시 포맷·ESLint)                              | ✅   |
-| 디버깅        | Redux DevTools                      | zustand `devtools` 미들웨어                                           | ✅   |
-| REST-API      | OpenAPI 3.0 + JSON                  | springdoc(백엔드) + 표준 JSON                                         | ✅   |
+| 요구사항      | 요구값                              | 현재                                                                                                            | 판정 |
+| ------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---- |
+| 런타임        | Node.js v22 LTS↑                    | CI/빌드 Node 22, `engines: node>=22`, web Dockerfile `node:22-alpine`                                           | ✅   |
+| 개발 언어     | TypeScript ES2024                   | TS 5.9, tsconfig `target/lib ES2024`, Vite `esnext`                                                             | ✅   |
+| 프레임워크    | React v19↑                          | React 19 (함수형 컴포넌트)                                                                                      | ✅   |
+| 상태관리      | Zustand + 미들웨어                  | Zustand 4.5, `persist` + `devtools`                                                                             | ✅   |
+| 불변성·최적화 | 유지                                | 불변 업데이트 헬퍼                                                                                              | ✅   |
+| 빌드          | Vite HMR·tree-shaking·코드 스플리팅 | Vite 5, React.lazy + manualChunks                                                                               | ✅   |
+| IDE           | VSCode + 확장 + 포맷/린트 자동화    | `.vscode`(권장 확장·저장 시 포맷·ESLint)                                                                        | ✅   |
+| 디버깅        | Redux DevTools                      | zustand `devtools` 미들웨어 **전 스토어(15개) 적용** → 웹 빌드(브라우저 Redux DevTools 확장)에서 상태·액션 추적 | ✅   |
+| REST-API      | OpenAPI 3.0 + JSON                  | springdoc(백엔드) + 표준 JSON                                                                                   | ✅   |
 
 ## 2. 백엔드 (Back-End)
 

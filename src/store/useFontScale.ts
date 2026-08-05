@@ -1,7 +1,7 @@
 // 환자 문진 작성 화면 글자 크기 — 작게/중간/크게 중 선택(기본 중간). 브라우저에 기억.
 //  Chromium(Electron) 기준 CSS zoom 으로 문항 영역 전체를 비율 확대/축소.
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 export type FontScale = 'sm' | 'md' | 'lg';
 
@@ -14,11 +14,14 @@ interface FontScaleState {
 }
 
 export const useFontScale = create<FontScaleState>()(
-  persist(
-    (set) => ({
-      scale: 'md',
-      setScale: (scale) => set({ scale }),
-    }),
-    { name: 'smartqnr-fontscale' },
+  devtools(
+    persist(
+      (set) => ({
+        scale: 'md',
+        setScale: (scale) => set({ scale }),
+      }),
+      { name: 'smartqnr-fontscale' },
+    ),
+    { name: 'fontScale' },
   ),
 );

@@ -2,7 +2,7 @@
 //  2뎁스 지원: 하위 분류는 "대분류 > 소분류" 경로 문자열로 저장한다(구분자 CATEGORY_SEP).
 //  문진(FormSchema.category)은 여기의 경로 문자열을 그대로 참조한다(하위 호환).
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 // 대분류/소분류 구분자
 export const CATEGORY_SEP = ' > ';
@@ -36,46 +36,49 @@ function uniq(arr: string[]): string[] {
 }
 
 export const useCategoriesStore = create<CategoriesState>()(
-  persist(
-    (set) => ({
-      categories: ['건강검진', '수술', '예방접종', '일반'],
-      addCategory: (name) =>
-        set((s) => {
-          const v = name.trim();
-          return !v || s.categories.includes(v) ? s : { categories: [...s.categories, v] };
-        }),
-      addSubCategory: (parent, child) =>
-        set((s) => {
-          const p = parent.trim();
-          const c = child.trim();
-          if (!p || !c) return s;
-          const path = makeCategoryPath(p, c);
-          if (s.categories.includes(path)) return s;
-          // 대분류가 목록에 없으면 함께 등록
-          return { categories: uniq([...s.categories, p, path]) };
-        }),
-      renameCategory: (oldPath, newPath) =>
-        set((s) => {
-          const from = oldPath.trim();
-          const to = newPath.trim();
-          if (!from || !to || from === to) return s;
-          const prefix = from + CATEGORY_SEP;
-          const mapped = s.categories.map((c) => {
-            if (c === from) return to;
-            if (c.startsWith(prefix)) return to + CATEGORY_SEP + c.slice(prefix.length);
-            return c;
-          });
-          return { categories: uniq(mapped) };
-        }),
-      removeCategory: (path) =>
-        set((s) => {
-          const target = path.trim();
-          const prefix = target + CATEGORY_SEP;
-          return {
-            categories: s.categories.filter((c) => c !== target && !c.startsWith(prefix)),
-          };
-        }),
-    }),
-    { name: 'smartqnr-categories' },
+  devtools(
+    persist(
+      (set) => ({
+        categories: ['건강검진', '수술', '예방접종', '일반'],
+        addCategory: (name) =>
+          set((s) => {
+            const v = name.trim();
+            return !v || s.categories.includes(v) ? s : { categories: [...s.categories, v] };
+          }),
+        addSubCategory: (parent, child) =>
+          set((s) => {
+            const p = parent.trim();
+            const c = child.trim();
+            if (!p || !c) return s;
+            const path = makeCategoryPath(p, c);
+            if (s.categories.includes(path)) return s;
+            // 대분류가 목록에 없으면 함께 등록
+            return { categories: uniq([...s.categories, p, path]) };
+          }),
+        renameCategory: (oldPath, newPath) =>
+          set((s) => {
+            const from = oldPath.trim();
+            const to = newPath.trim();
+            if (!from || !to || from === to) return s;
+            const prefix = from + CATEGORY_SEP;
+            const mapped = s.categories.map((c) => {
+              if (c === from) return to;
+              if (c.startsWith(prefix)) return to + CATEGORY_SEP + c.slice(prefix.length);
+              return c;
+            });
+            return { categories: uniq(mapped) };
+          }),
+        removeCategory: (path) =>
+          set((s) => {
+            const target = path.trim();
+            const prefix = target + CATEGORY_SEP;
+            return {
+              categories: s.categories.filter((c) => c !== target && !c.startsWith(prefix)),
+            };
+          }),
+      }),
+      { name: 'smartqnr-categories' },
+    ),
+    { name: 'categories' },
   ),
 );

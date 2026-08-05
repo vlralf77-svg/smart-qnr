@@ -1,7 +1,7 @@
 // EMR/외부 API 연동 설정 — 엔드포인트(URL·헤더)와 응답 컬럼 매핑을 저장.
 //  관리 화면에서 API를 등록하고, 응답의 어떤 필드를 앱의 어떤 값으로 쓸지 매핑한다.
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 export interface HeaderPair {
   key: string;
@@ -74,33 +74,36 @@ function defaultMappings(purpose: ApiPurpose): FieldMapping[] {
 }
 
 export const useApiConfigStore = create<ApiConfigState>()(
-  persist(
-    (set) => ({
-      endpoints: [],
-      addEndpoint: (purpose = 'patientForms') => {
-        const id = uid();
-        const ep: ApiEndpoint = {
-          id,
-          name: purpose === 'custom' ? '새 연동' : PURPOSE_LABELS[purpose],
-          purpose,
-          method: 'GET',
-          url: '',
-          variables: [],
-          headers: [{ key: 'Content-Type', value: 'application/json' }],
-          body: '',
-          rootPath: '',
-          mappings: defaultMappings(purpose),
-          enabled: true,
-        };
-        set((s) => ({ endpoints: [...s.endpoints, ep] }));
-        return id;
-      },
-      updateEndpoint: (id, patch) =>
-        set((s) => ({
-          endpoints: s.endpoints.map((e) => (e.id === id ? { ...e, ...patch } : e)),
-        })),
-      removeEndpoint: (id) => set((s) => ({ endpoints: s.endpoints.filter((e) => e.id !== id) })),
-    }),
-    { name: 'smartqnr-api-config' },
+  devtools(
+    persist(
+      (set) => ({
+        endpoints: [],
+        addEndpoint: (purpose = 'patientForms') => {
+          const id = uid();
+          const ep: ApiEndpoint = {
+            id,
+            name: purpose === 'custom' ? '새 연동' : PURPOSE_LABELS[purpose],
+            purpose,
+            method: 'GET',
+            url: '',
+            variables: [],
+            headers: [{ key: 'Content-Type', value: 'application/json' }],
+            body: '',
+            rootPath: '',
+            mappings: defaultMappings(purpose),
+            enabled: true,
+          };
+          set((s) => ({ endpoints: [...s.endpoints, ep] }));
+          return id;
+        },
+        updateEndpoint: (id, patch) =>
+          set((s) => ({
+            endpoints: s.endpoints.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+          })),
+        removeEndpoint: (id) => set((s) => ({ endpoints: s.endpoints.filter((e) => e.id !== id) })),
+      }),
+      { name: 'smartqnr-api-config' },
+    ),
+    { name: 'apiConfig' },
   ),
 );

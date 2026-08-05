@@ -4,7 +4,7 @@
 // getForm/responsesByForm 은 캐시(state)에서 동기 반환하므로, 백엔드 모드에서는
 // 화면 진입 시 refreshForms()/fetchForm() 으로 캐시를 채운다.
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { FormSchema, FormResponse } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 
@@ -34,81 +34,84 @@ function upsert(forms: FormSchema[], form: FormSchema): FormSchema[] {
 }
 
 export const useFormsStore = create<FormsState>()(
-  persist(
-    (set, get) => ({
-      forms: [],
-      responses: [],
-      loading: false,
+  devtools(
+    persist(
+      (set, get) => ({
+        forms: [],
+        responses: [],
+        loading: false,
 
-      refreshForms: async () => {
-        if (!isBackendEnabled) return;
-        set({ loading: true });
-        try {
-          const forms = await api.listForms();
-          set({ forms, loading: false });
-        } catch {
-          set({ loading: false });
-        }
-      },
+        refreshForms: async () => {
+          if (!isBackendEnabled) return;
+          set({ loading: true });
+          try {
+            const forms = await api.listForms();
+            set({ forms, loading: false });
+          } catch {
+            set({ loading: false });
+          }
+        },
 
-      fetchForm: async (formId) => {
-        if (!isBackendEnabled) return get().forms.find((f) => f.id === formId);
-        try {
-          const form = await api.getForm(formId);
-          set((st) => ({ forms: upsert(st.forms, form) }));
-          return form;
-        } catch {
-          return get().forms.find((f) => f.id === formId);
-        }
-      },
+        fetchForm: async (formId) => {
+          if (!isBackendEnabled) return get().forms.find((f) => f.id === formId);
+          try {
+            const form = await api.getForm(formId);
+            set((st) => ({ forms: upsert(st.forms, form) }));
+            return form;
+          } catch {
+            return get().forms.find((f) => f.id === formId);
+          }
+        },
 
-      saveForm: async (form) => {
-        if (isBackendEnabled) {
-          const saved = await api.saveForm(form);
-          set((st) => ({ forms: upsert(st.forms, saved) }));
-          return;
-        }
-        const now = new Date().toISOString();
-        // 최초등록일(createdAt)은 첫 저장 때 기록하고 이후 유지
-        const stamped = { ...form, createdAt: form.createdAt ?? now, updatedAt: now };
-        set((st) => ({ forms: upsert(st.forms, stamped) }));
-      },
+        saveForm: async (form) => {
+          if (isBackendEnabled) {
+            const saved = await api.saveForm(form);
+            set((st) => ({ forms: upsert(st.forms, saved) }));
+            return;
+          }
+          const now = new Date().toISOString();
+          // 최초등록일(createdAt)은 첫 저장 때 기록하고 이후 유지
+          const stamped = { ...form, createdAt: form.createdAt ?? now, updatedAt: now };
+          set((st) => ({ forms: upsert(st.forms, stamped) }));
+        },
 
-      deleteForm: async (formId) => {
-        if (isBackendEnabled) {
-          await api.deleteForm(formId);
-        }
-        set((st) => ({ forms: st.forms.filter((f) => f.id !== formId) }));
-      },
+        deleteForm: async (formId) => {
+          if (isBackendEnabled) {
+            await api.deleteForm(formId);
+          }
+          set((st) => ({ forms: st.forms.filter((f) => f.id !== formId) }));
+        },
 
-      getForm: (formId) => get().forms.find((f) => f.id === formId),
+        getForm: (formId) => get().forms.find((f) => f.id === formId),
 
-      publishForm: async (formId) => {
-        if (isBackendEnabled) {
-          const saved = await api.publishForm(formId);
-          set((st) => ({ forms: upsert(st.forms, saved) }));
-          return;
-        }
-        set((st) => ({
-          forms: st.forms.map((f) =>
-            f.id === formId
-              ? { ...f, status: 'published' as const, updatedAt: new Date().toISOString() }
-              : f,
-          ),
-        }));
-      },
+        publishForm: async (formId) => {
+          if (isBackendEnabled) {
+            const saved = await api.publishForm(formId);
+            set((st) => ({ forms: upsert(st.forms, saved) }));
+            return;
+          }
+          set((st) => ({
+            forms: st.forms.map((f) =>
+              f.id === formId
+                ? { ...f, status: 'published' as const, updatedAt: new Date().toISOString() }
+                : f,
+            ),
+          }));
+        },
 
-      addResponse: async (response) => {
-        if (isBackendEnabled) {
-          const saved = await api.submitResponse(response);
-          set((st) => ({ responses: [saved, ...st.responses] }));
-          return;
-        }
-        set((st) => ({ responses: [response, ...st.responses] }));
-      },
+        addResponse: async (response) => {
+          if (isBackendEnabled) {
+            const saved = await api.submitResponse(response);
+            set((st) => ({ responses: [saved, ...st.responses] }));
+            return;
+          }
+          set((st) => ({ responses: [response, ...st.responses] }));
+        },
 
-      responsesByForm: (formId) => get().responses.filter((r) => r.formId === formId),
-    }),
-    { name: 'smartqnr-forms' },
+        responsesByForm: (formId) => get().responses.filter((r) => r.formId === formId),
+      }),
+      { name: 'smartqnr-forms' },
+    ),
+    { name: 'forms' },
   ),
 );

@@ -5,7 +5,7 @@
 //  LogPayload = { ts(ISO8601), level, message, detail?, sessionId,
 //                 userId?, userName?, department?, role?, appVersion?, platform?, route? }
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 interface LogConfigState {
   enabled: boolean; // 중앙 전송 사용 여부
@@ -19,21 +19,24 @@ interface LogConfigState {
 }
 
 export const useLogConfig = create<LogConfigState>()(
-  persist(
-    (set) => ({
-      enabled: false,
-      url: '',
-      lastError: '',
-      lastSentAt: null,
-      setEnabled: (v) => set({ enabled: v }),
-      setUrl: (v) => set({ url: v }),
-      setLastError: (v) => set({ lastError: v }),
-      setLastSentAt: (v) => set({ lastSentAt: v }),
-    }),
-    {
-      name: 'smartqnr-log-config',
-      // 오류/시각 같은 휘발성 값은 저장하지 않음
-      partialize: (s) => ({ enabled: s.enabled, url: s.url }),
-    },
+  devtools(
+    persist(
+      (set) => ({
+        enabled: false,
+        url: '',
+        lastError: '',
+        lastSentAt: null,
+        setEnabled: (v) => set({ enabled: v }),
+        setUrl: (v) => set({ url: v }),
+        setLastError: (v) => set({ lastError: v }),
+        setLastSentAt: (v) => set({ lastSentAt: v }),
+      }),
+      {
+        name: 'smartqnr-log-config',
+        // 오류/시각 같은 휘발성 값은 저장하지 않음
+        partialize: (s) => ({ enabled: s.enabled, url: s.url }),
+      },
+    ),
+    { name: 'logConfig' },
   ),
 );
