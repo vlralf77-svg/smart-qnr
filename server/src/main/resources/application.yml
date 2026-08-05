@@ -1,5 +1,16 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+  # 서버 간 통신 HTTPS(내부 구간: nginx → backend)
+  #  - 운영/검증에서 SERVER_SSL_ENABLED=true 로 켜고 내부 사설 인증서(PKCS12)를 주입한다.
+  #  - 개발(로컬)은 기본 false 로 평문 HTTP 유지(편의). scripts/gen-internal-certs.sh 로 인증서 생성.
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:false}
+    key-store: ${SERVER_SSL_KEY_STORE:}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE:PKCS12}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD:}
+    key-alias: ${SERVER_SSL_KEY_ALIAS:smartqnr-backend}
+    protocol: TLS
+    enabled-protocols: TLSv1.2,TLSv1.3
 
 spring:
   application:

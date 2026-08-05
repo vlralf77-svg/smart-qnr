@@ -27,6 +27,16 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS 를 설정하세요}
       LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
       LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-10}
+      # 서버 간 통신 HTTPS — nginx → backend 구간을 TLS 로 암호화(내부 사설 인증서)
+      #   인증서 생성: scripts/gen-internal-certs.sh (backend-keystore.p12, internal-ca.pem 을 ./certs 에 생성)
+      SERVER_SSL_ENABLED: 'true'
+      SERVER_SSL_KEY_STORE: /etc/smartqnr/certs/backend-keystore.p12
+      SERVER_SSL_KEY_STORE_TYPE: PKCS12
+      SERVER_SSL_KEY_STORE_PASSWORD: ${SERVER_SSL_KEY_STORE_PASSWORD:?SERVER_SSL_KEY_STORE_PASSWORD(키스토어 비밀번호) 를 설정하세요}
+      SERVER_SSL_KEY_ALIAS: ${SERVER_SSL_KEY_ALIAS:-smartqnr-backend}
+    volumes:
+      # 백엔드 TLS 키스토어 마운트(호스트 ./certs 에 gen-internal-certs.sh 산출물 배치)
+      - ./certs/backend-keystore.p12:/etc/smartqnr/certs/backend-keystore.p12:ro
 
   web:
     ports:
