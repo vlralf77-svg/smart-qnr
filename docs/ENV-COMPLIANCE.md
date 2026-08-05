@@ -40,11 +40,11 @@
 
 ## 3-1. 서버 간 통신(HTTPS)
 
-| 구간                      | 요구값     | 현재                                                                                          | 판정 |
-| ------------------------- | ---------- | --------------------------------------------------------------------------------------------- | ---- |
-| 클라이언트 → web(nginx)   | HTTPS 필수 | 443 TLS1.2/1.3, HTTP→HTTPS 301, HSTS (`nginx.https.conf`)                                     | ✅   |
+| 구간                      | 요구값     | 현재                                                                                         | 판정 |
+| ------------------------- | ---------- | -------------------------------------------------------------------------------------------- | ---- |
+| 클라이언트 → web(nginx)   | HTTPS 필수 | 443 TLS1.2/1.3, HTTP→HTTPS 301, HSTS (`nginx.https.conf`)                                    | ✅   |
 | web(nginx) → backend(WAS) | HTTPS 필수 | `proxy_pass https://backend:8080` + `proxy_ssl_verify on`(내부 CA), backend `server.ssl` TLS | ✅   |
-| backend → DB              | (범위 외)  | 내부 네트워크 평문(요청 범위: nginx→backend 구간만 적용)                                       | ➖   |
+| backend → DB              | (범위 외)  | 내부 네트워크 평문(요청 범위: nginx→backend 구간만 적용)                                     | ➖   |
 
 - 내부 사설 인증서 생성: `scripts/gen-internal-certs.sh` → `certs/backend-keystore.p12`(백엔드 키스토어) · `certs/internal-ca.pem`(nginx 신뢰 CA)
 - backend TLS 는 env 로 제어(`SERVER_SSL_ENABLED`); 개발은 기본 off(평문), 운영은 on
