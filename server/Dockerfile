@@ -10,6 +10,22 @@ RUN mvn -q -B -DskipTests package
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
+
+# --- OCI 표준 이미지 메타데이터(org.opencontainers.image.*) ---
+#   빌드 시 --build-arg 로 주입(compose 에서 전달). 미주입 시 기본값 사용.
+ARG APP_VERSION=0.0.0
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
+LABEL org.opencontainers.image.title="SmartQnR Server" \
+      org.opencontainers.image.description="SmartQnR 병원 문진 백엔드(WAS) — Spring Boot" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/vlralf77-svg/smart-qnr" \
+      org.opencontainers.image.vendor="L Hospital" \
+      org.opencontainers.image.licenses="Proprietary" \
+      org.opencontainers.image.base.name="docker.io/library/eclipse-temurin:25-jre"
+
 # 최소 권한 원칙(Non-root user) — 컨테이너 프로세스가 루트로 실행되지 않도록 전용 사용자 생성
 RUN groupadd -r app && useradd -r -g app -u 10001 app
 # 빌드 산출물 jar 복사(소유권을 비루트 사용자로)

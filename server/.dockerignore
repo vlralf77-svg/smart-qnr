@@ -1,0 +1,14 @@
+# 백엔드 이미지 빌드 컨텍스트 최소화 (build.context = ./server)
+# 빌드 산출물/IDE/로그/버전관리 메타는 이미지 빌드에 불필요하므로 제외한다.
+target/
+*.log
+.git
+.gitignore
+.idea/
+*.iml
+.vscode/
+.DS_Store
+# 내부 인증서/키가 server/ 하위에 생겨도 이미지에 포함되지 않도록 방지
+*.p12
+*.pem
+*.key

@@ -29,6 +29,11 @@ services:
   backend:
     build:
       context: ./server
+      # OCI 표준 이미지 라벨(org.opencontainers.image.*) 값 주입
+      args:
+        APP_VERSION: ${APP_VERSION:-0.9.13}
+        VCS_REF: ${VCS_REF:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
     container_name: smartqnr-backend
     restart: unless-stopped
     depends_on:

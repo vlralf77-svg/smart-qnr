@@ -18,19 +18,19 @@
 
 ## 2. 백엔드 (Back-End)
 
-| 요구사항              | 요구값                          | 현재                                                                                              | 판정 |
-| --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
-| 런타임                | Node22 또는 Temurin JDK 25      | Temurin JDK 25 (pom·Docker)                                                                       | ✅   |
-| 개발 언어             | TS(ES2024) 또는 Java 25         | Java 25                                                                                           | ✅   |
-| 프레임워크            | nest10+ 또는 Spring Boot v4     | Spring Boot 4.0.0                                                                                 | ✅   |
-| 템플릿 엔진(JAVA)     | Thymeleaf 필수                  | Thymeleaf + `ConsoleViewController(/console)`                                                     | ✅   |
-| OpenAPI               | 모든 REST-API + View Controller | springdoc `GroupedOpenApi`(rest-api·view 그룹) + `@Operation`                                     | ✅   |
-| 컨테이너              | OCI·경량·멀티스테이지           | 멀티스테이지 + `eclipse-temurin:25-jre`                                                           | ✅   |
-| Non-root              | 최소 권한                       | 백엔드 Dockerfile `USER 10001`                                                                    | ✅   |
-| 환경별 매니페스트     | 개발/검증/운영                  | `docker-compose.yml`(개발) · `docker-compose.staging.yml`(검증) · `docker-compose.prod.yml`(운영) | ✅   |
-| Private Registry 저장 | 병원 제공 레지스트리            | 이미지 빌드 준비 완료 / 실제 push 는 배포 파이프라인                                              | ➖   |
-| IDE(JAVA)             | IntelliJ IDEA Ultimate          | 개발자 로컬 도구                                                                                  | ➖   |
-| Git 서버              | BitBucket                       | 현재 GitHub / 병원 BitBucket 이관                                                                 | ➖   |
+| 요구사항              | 요구값                          | 현재                                                                                               | 판정 |
+| --------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- | ---- |
+| 런타임                | Node22 또는 Temurin JDK 25      | Temurin JDK 25 (pom·Docker)                                                                        | ✅   |
+| 개발 언어             | TS(ES2024) 또는 Java 25         | Java 25                                                                                            | ✅   |
+| 프레임워크            | nest10+ 또는 Spring Boot v4     | Spring Boot 4.0.0                                                                                  | ✅   |
+| 템플릿 엔진(JAVA)     | Thymeleaf 필수                  | Thymeleaf + `ConsoleViewController(/console)`                                                      | ✅   |
+| OpenAPI               | 모든 REST-API + View Controller | springdoc `GroupedOpenApi`(rest-api·view 그룹) + `@Operation`                                      | ✅   |
+| 컨테이너              | OCI·경량·멀티스테이지           | 멀티스테이지 + `eclipse-temurin:25-jre`(JRE) + `org.opencontainers.image.*` 라벨 + `.dockerignore` | ✅   |
+| Non-root              | 최소 권한                       | 백엔드 Dockerfile `USER 10001`                                                                     | ✅   |
+| 환경별 매니페스트     | 개발/검증/운영                  | `docker-compose.yml`(개발) · `docker-compose.staging.yml`(검증) · `docker-compose.prod.yml`(운영)  | ✅   |
+| Private Registry 저장 | 병원 제공 레지스트리            | 이미지 빌드 준비 완료 / 실제 push 는 배포 파이프라인                                               | ➖   |
+| IDE(JAVA)             | IntelliJ IDEA Ultimate          | 개발자 로컬 도구                                                                                   | ➖   |
+| Git 서버              | BitBucket                       | 현재 GitHub / 병원 BitBucket 이관                                                                  | ➖   |
 
 ## 3. 웹서버
 
