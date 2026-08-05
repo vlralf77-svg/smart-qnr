@@ -1,4 +1,5 @@
 // 새 문진 만들기 — 생성(편집) 방식 선택. 현재 편집기 / 표형 / 집중 편집.
+import type { JSX } from 'react';
 import { Box, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 import ViewSidebarRoundedIcon from '@mui/icons-material/ViewSidebarRounded';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';

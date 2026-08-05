@@ -1,5 +1,5 @@
 // QNR001 문진 목록
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,

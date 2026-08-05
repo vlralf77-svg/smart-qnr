@@ -1,4 +1,5 @@
 // 상단 컴포넌트 팔레트 — 아이콘만 표시(툴팁으로 한글명), 클릭 시 대상 섹션에 문항 삽입
+import type { JSX } from 'react';
 import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
