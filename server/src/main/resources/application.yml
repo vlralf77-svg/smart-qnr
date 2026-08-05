@@ -1,5 +1,12 @@
 server:
   port: ${SERVER_PORT:8080}
+  # 요청 처리 스레드/커넥션 — 동시 접속 100명 기준(여유 있게 기본 200 스레드) 대응
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:200}
+      min-spare: ${TOMCAT_MIN_SPARE_THREADS:20}
+    accept-count: ${TOMCAT_ACCEPT_COUNT:100}
+    max-connections: ${TOMCAT_MAX_CONNECTIONS:10000}
   # 서버 간 통신 HTTPS(내부 구간: nginx → backend)
   #  - 운영/검증에서 SERVER_SSL_ENABLED=true 로 켜고 내부 사설 인증서(PKCS12)를 주입한다.
   #  - 개발(로컬)은 기본 false 로 평문 HTTP 유지(편의). scripts/gen-internal-certs.sh 로 인증서 생성.
@@ -15,6 +22,25 @@ server:
 spring:
   application:
     name: smartqnr-server
+  datasource:
+    # 환경변수로 덮어쓸 수 있음(운영). 기본값은 로컬 개발용.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartqnr}
+    username: ${DB_USER:smartqnr}
+    password: ${DB_PASSWORD:smartqnr}
+    hikari:
+      # 커넥션 풀 — 동시 접속 100명(경량 CRUD) 대응. PostgreSQL 기본 max_connections=100 이내로 안전하게.
+      maximum-pool-size: ${DB_POOL_MAX:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_POOL_CONN_TIMEOUT_MS:30000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+  jpa:
+    hibernate:
+      # 개발: 스키마 자동 생성/갱신. 운영에서는 validate + 마이그레이션 도구(Flyway) 권장.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
 
 # OpenAPI 3.0 / Swagger UI (springdoc) — 모든 REST 컨트롤러 자동 문서화
 springdoc:
@@ -24,19 +50,6 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
-  datasource:
-    # 환경변수로 덮어쓸 수 있음(운영). 기본값은 로컬 개발용.
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartqnr}
-    username: ${DB_USER:smartqnr}
-    password: ${DB_PASSWORD:smartqnr}
-  jpa:
-    hibernate:
-      # 개발: 스키마 자동 생성/갱신. 운영에서는 validate + 마이그레이션 도구(Flyway) 권장.
-      ddl-auto: ${JPA_DDL_AUTO:update}
-    properties:
-      hibernate:
-        format_sql: false
-    open-in-view: false
 
 # 로그인/토큰/보안 설정 — 운영에서는 반드시 환경변수로 덮어쓸 것
 app:
