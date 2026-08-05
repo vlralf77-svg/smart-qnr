@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2024",
+    // target: ESNext(=ES2024 이상 최신, 다운레벨 없이 문법 보존). esbuild 가 'ES2024' 리터럴을
+    //         인식하지 못해 빌드 경고가 나므로 상위 개념 ESNext 사용. API 기준선은 lib 로 ES2024 고정.
+    "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "module": "ESNext",
