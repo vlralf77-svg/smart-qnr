@@ -67,7 +67,7 @@ const STATUS_LABEL: Record<
   { label: string; color: 'default' | 'primary' | 'success' | 'warning' }
 > = {
   draft: { label: '임시저장', color: 'default' },
-  published: { label: '인증저장', color: 'primary' }, // 테마 강조색을 따름
+  published: { label: '확정', color: 'primary' }, // 테마 강조색을 따름
   archived: { label: '보관됨', color: 'warning' },
 };
 
@@ -707,7 +707,7 @@ export default function FormList() {
                 onClick={() => setStatusFilter('all')}
               />
               <SideItem
-                label="인증저장"
+                label="확정"
                 dot={theme.palette.primary.main}
                 count={counts.published}
                 active={statusFilter === 'published'}
@@ -910,9 +910,7 @@ export default function FormList() {
                           </Tooltip>
                         )}
                         <Tooltip
-                          title={
-                            f.status === 'published' ? '응답 화면 열기' : '인증저장 후 응답 가능'
-                          }
+                          title={f.status === 'published' ? '응답 화면 열기' : '확정 후 응답 가능'}
                         >
                           <span>
                             <IconButton

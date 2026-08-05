@@ -37,7 +37,7 @@ export default function ResponseForm() {
     return (
       <Container maxWidth="sm" sx={{ py: 6 }}>
         <Alert severity="warning">
-          아직 인증저장되지 않은 문진입니다. 에디터에서 인증저장 후 응답할 수 있습니다.
+          아직 확정되지 않은 문진입니다. 에디터에서 확정 후 응답할 수 있습니다.
         </Alert>
         <Button sx={{ mt: 2 }} onClick={() => navigate('/')}>
           목록으로

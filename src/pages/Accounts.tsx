@@ -34,7 +34,7 @@ import { hashPassword } from '@/utils/hash';
 
 const PERM_LABELS: { key: keyof Permissions; label: string; hint: string }[] = [
   { key: 'view', label: '조회', hint: '목록·응답 보기' },
-  { key: 'edit', label: '수정', hint: '문진 생성·편집·인증저장' },
+  { key: 'edit', label: '수정', hint: '문진 생성·편집·확정' },
   { key: 'delete', label: '삭제', hint: '문진 삭제' },
   { key: 'manageAccounts', label: '계정관리', hint: '계정 생성·권한 부여' },
 ];
@@ -290,8 +290,8 @@ export default function Accounts() {
         </Paper>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-          권한 체크박스는 즉시 저장됩니다. 조회=목록·응답 보기, 수정=문진 생성·편집·인증저장,
-          삭제=문진 삭제, 계정관리=이 화면 접근.
+          권한 체크박스는 즉시 저장됩니다. 조회=목록·응답 보기, 수정=문진 생성·편집·확정, 삭제=문진
+          삭제, 계정관리=이 화면 접근.
         </Typography>
       </Container>
 

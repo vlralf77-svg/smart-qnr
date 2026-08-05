@@ -355,9 +355,9 @@ export default function FormEditor() {
       if (form.category) addCategory(form.category);
       await saveForm(form);
       await publishForm(form.id);
-      setToast('인증저장되었습니다 (응답 화면에서 확인 가능)');
+      setToast('확정되었습니다 (응답 화면에서 확인 가능)');
     } catch (e) {
-      setToast('인증저장 실패: ' + (e as Error).message);
+      setToast('확정 실패: ' + (e as Error).message);
     }
   };
 
@@ -479,7 +479,7 @@ export default function FormEditor() {
               startIcon={<PublishIcon />}
               onClick={handlePublish}
             >
-              인증저장
+              확정
             </Button>
           </Stack>
         </Toolbar>
@@ -669,7 +669,7 @@ export default function FormEditor() {
                           <Chip
                             label={
                               form.status === 'published'
-                                ? '인증저장'
+                                ? '확정'
                                 : form.status === 'archived'
                                   ? '보관됨'
                                   : '임시저장'
