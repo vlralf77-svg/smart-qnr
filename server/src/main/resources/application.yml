@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: smartqnr-server
+
+# OpenAPI 3.0 / Swagger UI (springdoc) — 모든 REST 컨트롤러 자동 문서화
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
   datasource:
     # 환경변수로 덮어쓸 수 있음(운영). 기본값은 로컬 개발용.
     url: ${DB_URL:jdbc:postgresql://localhost:5432/smartqnr}
@@ -20,6 +29,7 @@ spring:
 
 # 로그인/토큰/보안 설정 — 운영에서는 반드시 환경변수로 덮어쓸 것
 app:
+  version: ${APP_VERSION:0.1.0}
   auth:
     username: ${AUTH_USER:admin}
     # 개발용 평문(폴백). 운영에서는 password-hash 를 쓰고 이 값은 비워 둘 것.
