@@ -14,15 +14,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  Box,
-  Button,
-  Chip,
-  Divider,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Chip, Divider, Paper, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { FormSchema, QUESTION_TYPE_META } from '@/types/schema';
@@ -46,15 +38,10 @@ export default function FocusEditor({ form }: Props) {
   const flat = form.sections.flatMap((s) =>
     s.questions.map((q) => ({ sectionId: s.id, sectionTitle: s.title, question: q })),
   );
-  const selEntry = selected
-    ? flat.find((e) => e.question.id === selected.questionId)
-    : undefined;
+  const selEntry = selected ? flat.find((e) => e.question.id === selected.questionId) : undefined;
 
   const addTarget =
-    activeSectionId ||
-    selEntry?.sectionId ||
-    form.sections[form.sections.length - 1]?.id ||
-    '';
+    activeSectionId || selEntry?.sectionId || form.sections[form.sections.length - 1]?.id || '';
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -62,7 +49,9 @@ export default function FocusEditor({ form }: Props) {
   );
 
   const localIndex = (sectionId: string, questionId: string) =>
-    form.sections.find((s) => s.id === sectionId)?.questions.findIndex((q) => q.id === questionId) ?? -1;
+    form.sections
+      .find((s) => s.id === sectionId)
+      ?.questions.findIndex((q) => q.id === questionId) ?? -1;
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
@@ -120,7 +109,9 @@ export default function FocusEditor({ form }: Props) {
                   <SortableRow key={e.question.id} id={e.question.id}>
                     {(handle) => (
                       <Box
-                        onClick={() => select({ sectionId: e.sectionId, questionId: e.question.id })}
+                        onClick={() =>
+                          select({ sectionId: e.sectionId, questionId: e.question.id })
+                        }
                         sx={{
                           display: 'flex',
                           alignItems: 'center',

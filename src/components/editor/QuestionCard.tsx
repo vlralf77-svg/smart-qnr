@@ -97,7 +97,11 @@ export default function QuestionCard({ question, selected, onDuplicate, onDelete
         </IconButton>
       </Stack>
       <Box sx={{ p: 1, overflow: 'auto', flex: 1, minHeight: 0 }}>
-        <Typography variant="body2" fontWeight={selected ? 700 : 400} sx={{ wordBreak: 'break-word' }}>
+        <Typography
+          variant="body2"
+          fontWeight={selected ? 700 : 400}
+          sx={{ wordBreak: 'break-word' }}
+        >
           {question.label || '(제목 없음)'}
         </Typography>
       </Box>

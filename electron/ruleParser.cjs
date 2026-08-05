@@ -25,8 +25,16 @@ function isOptionLine(line) {
 
 function splitOptionLine(line) {
   const stripped = line.replace(OPTION_MARKER_RE, '').trim();
-  if (SLASH_LIST_RE.test(line)) return line.split('/').map((s) => s.trim()).filter(Boolean);
-  if (COMMA_LIST_RE.test(line)) return line.split(',').map((s) => s.trim()).filter(Boolean);
+  if (SLASH_LIST_RE.test(line))
+    return line
+      .split('/')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  if (COMMA_LIST_RE.test(line))
+    return line
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   return [stripped].filter(Boolean);
 }
 
@@ -34,9 +42,26 @@ function splitOptionLine(line) {
 // 선택지 마커(□○●①…)와 겹치지 않는 마커만 사용: 로마숫자/장·부·편/◆▶►※ 등.
 const SECTION_NUM_RE = /^[\[【<［]?\s*(제\s*\d+\s*(장|부|편)|[IVXLC]+[.)]|[◆▶►※])\s*/;
 const SECTION_KEYWORDS = [
-  '기본정보', '개인정보', '인적사항', '병력', '과거병력', '현재증상', '복용약물', '약물정보',
-  '알레르기', '수술이력', '가족력', '생활습관', '검사항목', '통증평가', '동의사항', '서명',
-  '보호자정보', '연락처', '보험정보', '진료정보',
+  '기본정보',
+  '개인정보',
+  '인적사항',
+  '병력',
+  '과거병력',
+  '현재증상',
+  '복용약물',
+  '약물정보',
+  '알레르기',
+  '수술이력',
+  '가족력',
+  '생활습관',
+  '검사항목',
+  '통증평가',
+  '동의사항',
+  '서명',
+  '보호자정보',
+  '연락처',
+  '보험정보',
+  '진료정보',
 ];
 
 function isSectionHeader(line) {
@@ -54,7 +79,12 @@ function isSectionHeader(line) {
 }
 
 function stripSectionMarker(line) {
-  return line.replace(SECTION_NUM_RE, '').replace(/[:：]\s*$/, '').trim() || line;
+  return (
+    line
+      .replace(SECTION_NUM_RE, '')
+      .replace(/[:：]\s*$/, '')
+      .trim() || line
+  );
 }
 
 // ── 문항 라벨 정리 ──────────────────────────────────────────────
@@ -63,7 +93,10 @@ const LABEL_NUM_RE = /^(Q\s*\d+[.)]|문\s*\d+[.)]|제?\s*\d+\s*항[.)]?|\d+[.)])
 function cleanLabel(label) {
   let l = label.replace(LABEL_NUM_RE, '').trim();
   const required = /[*＊]\s*$/.test(l) || /\(필수\)/.test(l);
-  l = l.replace(/[*＊]\s*$/, '').replace(/\(필수\)/, '').trim();
+  l = l
+    .replace(/[*＊]\s*$/, '')
+    .replace(/\(필수\)/, '')
+    .trim();
   return { label: l, required };
 }
 
@@ -119,7 +152,8 @@ function buildQuestion(rawLabel, optionLines) {
   const q = { id: uid('q'), type, label, required: !!required };
 
   if (type === 'radio' || type === 'checkbox' || type === 'select') {
-    q.options = optionLabels.length > 0 ? optionLabels.map(createOption) : [createOption('선택지 1')];
+    q.options =
+      optionLabels.length > 0 ? optionLabels.map(createOption) : [createOption('선택지 1')];
     if (allowEtc) q.allowEtc = true;
   }
   if (type === 'scale') {
@@ -140,7 +174,9 @@ function buildQuestion(rawLabel, optionLines) {
  */
 function parseDocumentText({ rawText, title }) {
   if (!rawText || rawText.trim().length < 5) {
-    throw new Error('추출된 텍스트가 너무 짧습니다. 문서를 확인하거나 빈 문진에서 직접 작성하세요.');
+    throw new Error(
+      '추출된 텍스트가 너무 짧습니다. 문서를 확인하거나 빈 문진에서 직접 작성하세요.',
+    );
   }
 
   let lines = rawText
@@ -200,7 +236,9 @@ function parseDocumentText({ rawText, title }) {
         {
           id: uid('q'),
           type: 'info',
-          label: '자동 변환에서 문항을 인식하지 못했습니다. 아래 원문을 참고해 문항을 직접 구성하세요.\n\n' + rawText.slice(0, 4000),
+          label:
+            '자동 변환에서 문항을 인식하지 못했습니다. 아래 원문을 참고해 문항을 직접 구성하세요.\n\n' +
+            rawText.slice(0, 4000),
         },
       ],
     });
@@ -210,7 +248,8 @@ function parseDocumentText({ rawText, title }) {
   return {
     id: `FORM_${now.slice(0, 10).replace(/-/g, '')}_${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
     title: detectedTitle || '변환된 문진(검수 필요)',
-    description: '문서에서 자동 변환된 초안입니다(로컬 규칙 기반 변환). 문항 유형·선택지를 반드시 확인·수정하세요.',
+    description:
+      '문서에서 자동 변환된 초안입니다(로컬 규칙 기반 변환). 문항 유형·선택지를 반드시 확인·수정하세요.',
     version: 1,
     status: 'draft',
     sections,

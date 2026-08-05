@@ -25,7 +25,12 @@ interface SmartQnrBridge {
   /** 업데이트 준비 모달에서 '지금 재시작' 선택 시 설치·재시작. */
   restartForUpdate?: () => void;
   /** 문진 엑셀 템플릿을 네이티브 저장창으로 저장. */
-  saveTemplate?: () => Promise<{ ok: boolean; canceled?: boolean; filePath?: string; error?: string }>;
+  saveTemplate?: () => Promise<{
+    ok: boolean;
+    canceled?: boolean;
+    filePath?: string;
+    error?: string;
+  }>;
   /** 표시 모드(pc/mobile/auto) 알림 → 창 최소 크기 조절. */
   setDisplayWindow?: (mode: 'pc' | 'mobile' | 'auto') => void;
   /** EMR/외부 API 호출(메인 프로세스 경유, CORS 없음). */

@@ -184,9 +184,7 @@ export default function ThemeSettingsButton() {
             min={0}
             max={100}
             onChange={(_e, v) => update({ l: v as number })}
-            sx={sliderSx(
-              `linear-gradient(to right, #000, ${hslToHex(hsl.h, hsl.s, 50)}, #fff)`,
-            )}
+            sx={sliderSx(`linear-gradient(to right, #000, ${hslToHex(hsl.h, hsl.s, 50)}, #fff)`)}
           />
         </Box>
       </Menu>

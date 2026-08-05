@@ -1,10 +1,14 @@
 // 조건부 표시(분기) 편집 (§3.3) — 앞선 문항의 응답에 따라 표시
-import { Box, MenuItem, Stack, Switch, TextField, Typography, FormControlLabel } from '@mui/material';
 import {
-  ConditionOperator,
-  Question,
-  QuestionCondition,
-} from '@/types/schema';
+  Box,
+  MenuItem,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+  FormControlLabel,
+} from '@mui/material';
+import { ConditionOperator, Question, QuestionCondition } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 
 interface Props {
@@ -69,7 +73,10 @@ export default function ConditionEditor({ sectionId, question }: Props) {
       )}
 
       {enabled && question.condition && (
-        <Stack spacing={1.5} sx={{ mt: 1, pl: 1, borderLeft: '3px solid', borderColor: 'primary.light' }}>
+        <Stack
+          spacing={1.5}
+          sx={{ mt: 1, pl: 1, borderLeft: '3px solid', borderColor: 'primary.light' }}
+        >
           <TextField
             select
             label="기준 문항"

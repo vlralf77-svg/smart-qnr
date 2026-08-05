@@ -34,7 +34,9 @@ export default class PreviewErrorBoundary extends Component<Props, State> {
       return (
         <Box sx={{ p: 3, textAlign: 'center', color: 'text.disabled' }}>
           <Typography variant="body2">미리보기를 표시할 수 없습니다.</Typography>
-          <Typography variant="caption">입력값을 확인해 주세요. (예: 척도 최소·최대·간격)</Typography>
+          <Typography variant="caption">
+            입력값을 확인해 주세요. (예: 척도 최소·최대·간격)
+          </Typography>
         </Box>
       );
     }

@@ -33,9 +33,10 @@ export default function PatientRespond() {
   const localResponses = useFormsStore((s) => s.responses);
   const [form, setForm] = useState<FormSchema | undefined>();
   // 기존 응답(있으면 수정 모드)
-  const [prev, setPrev] = useState<{ responseId: string; answers: Record<string, AnswerValue> } | null>(
-    null,
-  );
+  const [prev, setPrev] = useState<{
+    responseId: string;
+    answers: Record<string, AnswerValue>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const isMobileLayout = useIsMobileLayout();

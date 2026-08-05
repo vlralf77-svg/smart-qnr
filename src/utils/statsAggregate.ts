@@ -203,8 +203,9 @@ export function aggregateQuestion(question: Question, responses: FormResponse[])
       for (let i = 0; i < bins; i++) {
         const lo = min + width * i;
         const hi = i === bins - 1 ? max : min + width * (i + 1);
-        const count = nums.filter((n) => (i === bins - 1 ? n >= lo && n <= hi : n >= lo && n < hi))
-          .length;
+        const count = nums.filter((n) =>
+          i === bins - 1 ? n >= lo && n <= hi : n >= lo && n < hi,
+        ).length;
         histogram.push({
           label: `${round(lo)}~${round(hi)}`,
           count,

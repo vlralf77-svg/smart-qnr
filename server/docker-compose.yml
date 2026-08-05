@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: smartqnr
       POSTGRES_PASSWORD: smartqnr
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - smartqnr-pgdata:/var/lib/postgresql/data
 

@@ -21,7 +21,8 @@ interface Props {
 }
 
 export default function LayoutCanvas({ sectionId, questions }: Props) {
-  const { selected, select, updateQuestionLayout, duplicateQuestion, removeQuestion } = useEditorStore();
+  const { selected, select, updateQuestionLayout, duplicateQuestion, removeQuestion } =
+    useEditorStore();
 
   if (questions.length === 0) {
     return null;
@@ -65,7 +66,15 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
   };
 
   return (
-    <Box sx={{ '& .react-grid-item.react-grid-placeholder': { bgcolor: 'primary.light', opacity: 0.3, borderRadius: 1.5 } }}>
+    <Box
+      sx={{
+        '& .react-grid-item.react-grid-placeholder': {
+          bgcolor: 'primary.light',
+          opacity: 0.3,
+          borderRadius: 1.5,
+        },
+      }}
+    >
       <GridLayout
         layout={layout}
         cols={GRID_COLS}

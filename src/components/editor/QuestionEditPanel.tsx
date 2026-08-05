@@ -66,11 +66,7 @@ function NumberCombo({
       }}
       sx={{ width }}
       renderInput={(p) => (
-        <TextField
-          {...p}
-          label={label}
-          inputProps={{ ...p.inputProps, inputMode: 'numeric' }}
-        />
+        <TextField {...p} label={label} inputProps={{ ...p.inputProps, inputMode: 'numeric' }} />
       )}
     />
   );
@@ -221,7 +217,9 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
             label="보조 설명 (선택)"
             size="small"
             value={question.description ?? ''}
-            onChange={(e) => updateQuestion(sectionId, question.id, { description: e.target.value })}
+            onChange={(e) =>
+              updateQuestion(sectionId, question.id, { description: e.target.value })
+            }
             sx={{ flex: '1 1 200px' }}
           />
         )}
@@ -297,7 +295,9 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
 
       {!isInfo && (
         <>
-          {(question.type === 'text' || question.type === 'textarea' || question.type === 'number') && (
+          {(question.type === 'text' ||
+            question.type === 'textarea' ||
+            question.type === 'number') && (
             <TextField
               label="플레이스홀더 (선택)"
               size="small"

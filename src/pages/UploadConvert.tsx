@@ -97,7 +97,9 @@ export default function UploadConvert() {
         fb.sections[0].questions.push({
           id: uid('q'),
           type: 'info',
-          label: '자동 변환에 실패하여 원문을 그대로 담았습니다. 아래 내용을 참고해 문항을 직접 구성하세요.\n\n' + rawText.slice(0, 4000),
+          label:
+            '자동 변환에 실패하여 원문을 그대로 담았습니다. 아래 내용을 참고해 문항을 직접 구성하세요.\n\n' +
+            rawText.slice(0, 4000),
         });
         await openInEditor(fb, ['변환 결과 파싱 실패 → 원문 기반 빈 문진으로 폴백']);
       }
@@ -140,9 +142,9 @@ export default function UploadConvert() {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          자동 변환 결과는 항상 <b>임시저장</b> 상태입니다. 반드시 에디터에서 검수·수정하세요. 모든 변환은{' '}
-          <b>로컬(오픈소스)</b>에서 처리되며 외부 API를 호출하지 않습니다. <b>HWP/HWPX</b>는 후속
-          단계에서 추가됩니다.
+          자동 변환 결과는 항상 <b>임시저장</b> 상태입니다. 반드시 에디터에서 검수·수정하세요. 모든
+          변환은 <b>로컬(오픈소스)</b>에서 처리되며 외부 API를 호출하지 않습니다. <b>HWP/HWPX</b>는
+          후속 단계에서 추가됩니다.
         </Alert>
 
         {/* 1-A. PDF → 원본 배경 + 입력필드 오버레이 (웹/데스크톱 공통) */}
@@ -155,9 +157,9 @@ export default function UploadConvert() {
             <Chip size="small" label="권장" color="success" />
           </Stack>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            원본 PDF를 <b>그대로 배경으로</b> 보여주고, 체크박스(□○)·빈칸을 감지해 그 위에 입력필드를
-            자동으로 얹습니다. 결과가 원본 PDF와 시각적으로 동일하며, 표·레이아웃이 그대로 유지됩니다.
-            자동 배치가 완벽하지 않으면 에디터에서 필드를 드래그해 조정하세요.
+            원본 PDF를 <b>그대로 배경으로</b> 보여주고, 체크박스(□○)·빈칸을 감지해 그 위에
+            입력필드를 자동으로 얹습니다. 결과가 원본 PDF와 시각적으로 동일하며, 표·레이아웃이
+            그대로 유지됩니다. 자동 배치가 완벽하지 않으면 에디터에서 필드를 드래그해 조정하세요.
           </Typography>
           <Button
             component="label"
@@ -196,13 +198,14 @@ export default function UploadConvert() {
           </Stack>
           {!isElectron ? (
             <Alert severity="warning" sx={{ mt: 1 }}>
-              DOCX 변환은 <b>SmartQnR 데스크톱(.exe) 앱</b>에서만 동작합니다. (PDF 변환은 웹에서도 가능)
+              DOCX 변환은 <b>SmartQnR 데스크톱(.exe) 앱</b>에서만 동작합니다. (PDF 변환은 웹에서도
+              가능)
             </Alert>
           ) : (
             <>
               <Typography variant="body2" color="text.secondary" mb={2}>
-                DOCX의 텍스트를 규칙 기반으로 문항·선택지로 추론합니다. 표 중심 양식은 정확도가 낮을 수
-                있어, 복잡한 양식은 PDF로 저장 후 위의 PDF 변환을 권장합니다.
+                DOCX의 텍스트를 규칙 기반으로 문항·선택지로 추론합니다. 표 중심 양식은 정확도가 낮을
+                수 있어, 복잡한 양식은 PDF로 저장 후 위의 PDF 변환을 권장합니다.
               </Typography>
               <Button
                 component="label"
@@ -239,10 +242,15 @@ export default function UploadConvert() {
             변환 결과(JSON) 직접 임포트
           </Typography>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            §3.1 문진 스키마 형식의 JSON을 붙여넣거나 파일로 업로드하세요. 알 수 없는 필드는 안전하게
-            보정합니다.
+            §3.1 문진 스키마 형식의 JSON을 붙여넣거나 파일로 업로드하세요. 알 수 없는 필드는
+            안전하게 보정합니다.
           </Typography>
-          <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} sx={{ mb: 2 }}>
+          <Button
+            component="label"
+            variant="outlined"
+            startIcon={<UploadFileIcon />}
+            sx={{ mb: 2 }}
+          >
             JSON 파일 선택
             <input
               hidden

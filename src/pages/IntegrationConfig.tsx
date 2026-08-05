@@ -71,7 +71,10 @@ export default function IntegrationConfig() {
       <Container maxWidth="lg" sx={{ py: 3 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="flex-start">
           {/* 좌: 연동 목록 */}
-          <Paper variant="outlined" sx={{ width: { xs: '100%', md: 280 }, flexShrink: 0, borderRadius: 3 }}>
+          <Paper
+            variant="outlined"
+            sx={{ width: { xs: '100%', md: 280 }, flexShrink: 0, borderRadius: 3 }}
+          >
             <Stack direction="row" alignItems="center" sx={{ px: 2, py: 1.5 }}>
               <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
                 연동 API
@@ -151,7 +154,9 @@ export default function IntegrationConfig() {
               />
             ) : (
               <Paper variant="outlined" sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
-                <Typography color="text.secondary">왼쪽에서 연동을 선택하거나 추가하세요.</Typography>
+                <Typography color="text.secondary">
+                  왼쪽에서 연동을 선택하거나 추가하세요.
+                </Typography>
               </Paper>
             )}
           </Box>
@@ -224,7 +229,10 @@ function EndpointEditor({
             sx={{ flex: 1 }}
           />
           <Stack direction="row" alignItems="center">
-            <Switch checked={ep.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} />
+            <Switch
+              checked={ep.enabled}
+              onChange={(e) => onChange({ enabled: e.target.checked })}
+            />
             <Typography variant="caption">사용</Typography>
           </Stack>
           <Tooltip title="연동 삭제">
@@ -246,7 +254,10 @@ function EndpointEditor({
               const fields = APP_FIELDS[purpose];
               if (fields.length) {
                 const bySource = new Map(ep.mappings.map((m) => [m.target, m.source]));
-                const merged = fields.map((f) => ({ target: f.key, source: bySource.get(f.key) ?? '' }));
+                const merged = fields.map((f) => ({
+                  target: f.key,
+                  source: bySource.get(f.key) ?? '',
+                }));
                 const extra = ep.mappings.filter((m) => !fields.some((f) => f.key === m.target));
                 onChange({ purpose, mappings: [...merged, ...extra] });
               } else {
@@ -307,15 +318,17 @@ function EndpointEditor({
             <Button
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => onChange({ variables: [...(ep.variables ?? []), { key: '', value: '' }] })}
+              onClick={() =>
+                onChange({ variables: [...(ep.variables ?? []), { key: '', value: '' }] })
+              }
             >
               변수 추가
             </Button>
           </Stack>
           <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-            URL에 <code>{'{변수명}'}</code>이 있으면 그 값으로 치환되고, 없으면 <b>쿼리 파라미터
-            (변수명=값)로 자동으로 붙습니다.</b> 예: URL이 <code>…/.live?</code> 이고 변수 3개면 →
-            <code>…/.live?submit_id=…&business_id=…&instcd=…</code>
+            URL에 <code>{'{변수명}'}</code>이 있으면 그 값으로 치환되고, 없으면{' '}
+            <b>쿼리 파라미터 (변수명=값)로 자동으로 붙습니다.</b> 예: URL이 <code>…/.live?</code>{' '}
+            이고 변수 3개면 →<code>…/.live?submit_id=…&business_id=…&instcd=…</code>
           </Typography>
           <Stack spacing={1}>
             {(ep.variables ?? []).map((v, i) => (
@@ -569,7 +582,14 @@ function EndpointEditor({
                   매핑 결과 ({rows.length}건)
                 </Typography>
                 {rows.length > 0 ? (
-                  <Box sx={{ overflowX: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Box
+                    sx={{
+                      overflowX: 'auto',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                    }}
+                  >
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -597,7 +617,12 @@ function EndpointEditor({
                   </Typography>
                 )}
 
-                <Typography variant="caption" fontWeight={700} display="block" sx={{ mt: 1.5, mb: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  fontWeight={700}
+                  display="block"
+                  sx={{ mt: 1.5, mb: 0.5 }}
+                >
                   원본 응답(일부)
                 </Typography>
                 <Box

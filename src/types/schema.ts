@@ -158,13 +158,31 @@ export const QUESTION_TYPE_META: Record<QuestionType, QuestionTypeMeta> = {
   select: { type: 'select', label: '드롭다운', hasOptions: true, isInput: true },
   text: { type: 'text', label: '단답형', hasOptions: false, isInput: true },
   textarea: { type: 'textarea', label: '장문형', hasOptions: false, isInput: true },
-  number: { type: 'number', label: '숫자', hasOptions: false, isInput: true, hint: '최소/최대 지정 가능' },
+  number: {
+    type: 'number',
+    label: '숫자',
+    hasOptions: false,
+    isInput: true,
+    hint: '최소/최대 지정 가능',
+  },
   date: { type: 'date', label: '날짜', hasOptions: false, isInput: true },
   boolean: { type: 'boolean', label: '예/아니오', hasOptions: false, isInput: true },
-  scale: { type: 'scale', label: '척도(0~10)', hasOptions: false, isInput: true, hint: '통증 점수 등' },
+  scale: {
+    type: 'scale',
+    label: '척도(0~10)',
+    hasOptions: false,
+    isInput: true,
+    hint: '통증 점수 등',
+  },
   signature: { type: 'signature', label: '서명', hasOptions: false, isInput: true, hint: 'Phase3' },
   info: { type: 'info', label: '안내문', hasOptions: false, isInput: false, hint: '입력 없음' },
-  image: { type: 'image', label: '참고 이미지', hasOptions: false, isInput: false, hint: '범례·설명 그림' },
+  image: {
+    type: 'image',
+    label: '참고 이미지',
+    hasOptions: false,
+    isInput: false,
+    hint: '범례·설명 그림',
+  },
 };
 
 export const QUESTION_TYPE_ORDER: QuestionType[] = [

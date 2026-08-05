@@ -62,9 +62,10 @@ export default function PatientForms() {
   const [responses, setResponses] = useState<Record<string, FormResponse>>({});
   const [loading, setLoading] = useState(true);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [emrNote, setEmrNote] = useState<{ severity: 'info' | 'warning' | 'error'; text: string } | null>(
-    null,
-  );
+  const [emrNote, setEmrNote] = useState<{
+    severity: 'info' | 'warning' | 'error';
+    text: string;
+  } | null>(null);
   // 사용 설정된 '환자 문진 대상 목록' 연동(있으면 EMR에서 대상 목록을 가져온다)
   const emrEndpoint = useApiConfigStore((s) =>
     s.endpoints.find((e) => e.enabled && e.purpose === 'patientForms' && e.url.trim()),
@@ -124,7 +125,8 @@ export default function PatientForms() {
             }
           }
           fList = matched;
-          if (rows.length === 0) note = { severity: 'info', text: 'EMR에서 받은 문진 대상이 없습니다.' };
+          if (rows.length === 0)
+            note = { severity: 'info', text: 'EMR에서 받은 문진 대상이 없습니다.' };
           else if (missing > 0)
             note = {
               severity: 'warning',
@@ -174,7 +176,10 @@ export default function PatientForms() {
           <Box sx={{ mr: 1.5 }}>
             <DisplayModeToggle />
           </Box>
-          <Typography variant="caption" sx={{ opacity: 0.9, mr: 1, display: { xs: 'none', sm: 'block' } }}>
+          <Typography
+            variant="caption"
+            sx={{ opacity: 0.9, mr: 1, display: { xs: 'none', sm: 'block' } }}
+          >
             {/* 주민등록번호는 표시하지 않음(이름만). 환자번호는 함께 표시 */}
             {idType === 'rrn'
               ? (patientName ?? '환자')
@@ -230,12 +235,16 @@ export default function PatientForms() {
                   <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.2 }}>
                     {f.label}
                   </Typography>
-                  <Typography sx={{ fontWeight: 700, color: '#12213a', fontSize: 13, lineHeight: 1.2 }}>
+                  <Typography
+                    sx={{ fontWeight: 700, color: '#12213a', fontSize: 13, lineHeight: 1.2 }}
+                  >
                     {f.value || '-'}
                   </Typography>
                 </Box>
                 {i < arr.length - 1 && (
-                  <Box sx={{ width: '1px', alignSelf: 'stretch', bgcolor: 'rgba(15,23,42,0.12)' }} />
+                  <Box
+                    sx={{ width: '1px', alignSelf: 'stretch', bgcolor: 'rgba(15,23,42,0.12)' }}
+                  />
                 )}
               </Box>
             ))}
@@ -245,16 +254,19 @@ export default function PatientForms() {
         {/* 헤더 */}
         <Box sx={{ mb: { xs: 2.5, sm: 3.5 } }}>
           <Typography
-            sx={{ fontSize: { xs: 22, sm: 27 }, fontWeight: 800, letterSpacing: -0.4, color: '#12213a' }}
+            sx={{
+              fontSize: { xs: 22, sm: 27 },
+              fontWeight: 800,
+              letterSpacing: -0.4,
+              color: '#12213a',
+            }}
           >
             문진 목록
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
-            작성할 문진을 선택하세요.
-            완료한 문진은 눌러서 내용을 확인할 수 있습니다.
+            작성할 문진을 선택하세요. 완료한 문진은 눌러서 내용을 확인할 수 있습니다.
             {forms.length > 0 && ` · 전체 ${forms.length}개 중 ${doneCount}개 완료`}
           </Typography>
-         
         </Box>
 
         {emrNote && (
@@ -291,11 +303,17 @@ export default function PatientForms() {
                   sx={{
                     borderRadius: 3.5,
                     border: '1px solid rgba(15,23,42,0.06)',
-                    boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.16)',
+                    boxShadow:
+                      '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.16)',
                   }}
                 >
                   <CardActionArea onClick={() => goto(f)} sx={{ p: 2.25 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mb={1.5}
+                    >
                       <Box
                         sx={{
                           width: 40,
@@ -311,7 +329,12 @@ export default function PatientForms() {
                         {done ? <CheckCircleIcon /> : <AssignmentIcon />}
                       </Box>
                       {done ? (
-                        <Chip size="small" label="작성완료" color="success" sx={{ fontWeight: 700 }} />
+                        <Chip
+                          size="small"
+                          label="작성완료"
+                          color="success"
+                          sx={{ fontWeight: 700 }}
+                        />
                       ) : (
                         <Chip
                           size="small"
@@ -322,7 +345,9 @@ export default function PatientForms() {
                       )}
                     </Stack>
 
-                    <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#12213a', lineHeight: 1.35 }}>
+                    <Typography
+                      sx={{ fontSize: 16, fontWeight: 700, color: '#12213a', lineHeight: 1.35 }}
+                    >
                       {f.title}
                     </Typography>
                     {!done && f.description && (
@@ -439,7 +464,12 @@ export default function PatientForms() {
                       </TableCell>
                       <TableCell align="center">
                         {done ? (
-                          <Chip size="small" label="작성완료" color="success" sx={{ fontWeight: 700 }} />
+                          <Chip
+                            size="small"
+                            label="작성완료"
+                            color="success"
+                            sx={{ fontWeight: 700 }}
+                          />
                         ) : (
                           <Chip
                             size="small"

@@ -65,7 +65,7 @@ function parseSheet(xml: string, shared: string[]): Grid {
       let val = '';
       if (t === 's') {
         const v = /<v>([\s\S]*?)<\/v>/.exec(inner)?.[1];
-        val = v != null ? shared[+v] ?? '' : '';
+        val = v != null ? (shared[+v] ?? '') : '';
       } else if (t === 'inlineStr') {
         const is = /<is>([\s\S]*?)<\/is>/.exec(inner)?.[1] ?? '';
         const parts = [...is.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((x) => x[1]);
@@ -113,10 +113,26 @@ function normalizeType(raw: string): QuestionType | null {
   return TYPE_MAP[(raw || '').toUpperCase().replace(/\s+/g, '')] ?? null;
 }
 
-const HEADER_KEYS = ['질문ID', '섹션', '순서', '질문', '응답유형', '선택지', '필수', '표시조건', '기타입력허용', '비고'];
+const HEADER_KEYS = [
+  '질문ID',
+  '섹션',
+  '순서',
+  '질문',
+  '응답유형',
+  '선택지',
+  '필수',
+  '표시조건',
+  '기타입력허용',
+  '비고',
+];
 
 function slug(s: string): string {
-  return (s || '').toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+  return (
+    (s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'x'
+  );
 }
 
 function parseCondition(raw: string): QuestionCondition | undefined {
@@ -127,7 +143,13 @@ function parseCondition(raw: string): QuestionCondition | undefined {
   if (!m) return undefined;
   const op = m[2];
   const operator: QuestionCondition['operator'] =
-    op === '!=' ? 'notEquals' : op === '>' || op === '>=' ? 'greaterThan' : op === '<' || op === '<=' ? 'lessThan' : 'equals';
+    op === '!='
+      ? 'notEquals'
+      : op === '>' || op === '>='
+        ? 'greaterThan'
+        : op === '<' || op === '<='
+          ? 'lessThan'
+          : 'equals';
   return { questionId: m[1], operator, value: m[3].trim() };
 }
 
@@ -149,7 +171,9 @@ export function parseExcelTemplate(buffer: ArrayBuffer, fileName = '문진'): Pa
   const files = unzipSync(new Uint8Array(buffer));
   const get = (path: string) => (files[path] ? strFromU8(files[path]) : '');
 
-  const shared = files['xl/sharedStrings.xml'] ? parseSharedStrings(get('xl/sharedStrings.xml')) : [];
+  const shared = files['xl/sharedStrings.xml']
+    ? parseSharedStrings(get('xl/sharedStrings.xml'))
+    : [];
 
   // 워크북에서 '문진질문' 시트 찾기 → 없으면 헤더로 자동 탐지
   const workbook = get('xl/workbook.xml');
@@ -224,7 +248,7 @@ export function parseExcelTemplate(buffer: ArrayBuffer, fileName = '문진'): Pa
   }
   const rows: Row[] = [];
   const cell = (cols: Map<number, string>, key: string) =>
-    colIdx[key] != null ? cols.get(colIdx[key]) ?? '' : '';
+    colIdx[key] != null ? (cols.get(colIdx[key]) ?? '') : '';
 
   for (const [rowIdx, cols] of [...grid.entries()].sort((a, b) => a[0] - b[0])) {
     if (rowIdx <= headerRow) continue;
@@ -300,7 +324,7 @@ export function parseExcelTemplate(buffer: ArrayBuffer, fileName = '문진'): Pa
   const sections: Section[] = sectionOrder.map((title, si) => ({
     id: `s${si + 1}-${slug(title)}`,
     title,
-    questions: bySection.get(title)!.sort((a, b) => (orderOf.get(a.id)! - orderOf.get(b.id)!)),
+    questions: bySection.get(title)!.sort((a, b) => orderOf.get(a.id)! - orderOf.get(b.id)!),
   }));
 
   const schema: FormSchema = {

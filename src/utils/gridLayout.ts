@@ -31,7 +31,11 @@ function bottomOf(questions: Question[]): number {
 }
 
 /** 새 문항을 섹션 맨 아래에 전체 너비로 배치(유형별 기본 높이 적용) */
-export function createDefaultLayout(existing: Question[], type?: QuestionType, optionCount = 0): QuestionLayout {
+export function createDefaultLayout(
+  existing: Question[],
+  type?: QuestionType,
+  optionCount = 0,
+): QuestionLayout {
   const h = type ? defaultHeightForType(type, optionCount) : DEFAULT_QUESTION_H;
   return { x: 0, y: bottomOf(existing), w: DEFAULT_QUESTION_W, h };
 }

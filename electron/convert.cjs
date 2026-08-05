@@ -37,10 +37,14 @@ async function extractText(buffer, fileName) {
   }
 
   if (ext === '.doc') {
-    throw new Error('구(舊) .doc 형식은 지원하지 않습니다. .docx 또는 PDF 로 저장 후 업로드하세요.');
+    throw new Error(
+      '구(舊) .doc 형식은 지원하지 않습니다. .docx 또는 PDF 로 저장 후 업로드하세요.',
+    );
   }
   if (ext === '.hwp' || ext === '.hwpx') {
-    throw new Error('HWP/HWPX 자동 변환은 후속 단계에서 지원 예정입니다. PDF 로 저장 후 업로드하세요.');
+    throw new Error(
+      'HWP/HWPX 자동 변환은 후속 단계에서 지원 예정입니다. PDF 로 저장 후 업로드하세요.',
+    );
   }
 
   // 그 외: 평문 텍스트로 시도

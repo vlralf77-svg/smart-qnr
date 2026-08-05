@@ -138,7 +138,12 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             render={({ field }) => (
               <RadioGroup {...field}>
                 {options.map((o) => (
-                  <FormControlLabel key={o.id} value={o.value} control={<Radio />} label={o.label} />
+                  <FormControlLabel
+                    key={o.id}
+                    value={o.value}
+                    control={<Radio />}
+                    label={o.label}
+                  />
                 ))}
               </RadioGroup>
             )}

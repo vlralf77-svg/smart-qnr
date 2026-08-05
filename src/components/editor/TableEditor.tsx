@@ -45,17 +45,33 @@ const TYPES = QUESTION_TYPE_ORDER.filter((t) => t !== 'signature');
 
 // 붙여넣은 유형 텍스트 → 문항 유형. 유형 키·한글 라벨·흔한 동의어를 모두 허용.
 const TYPE_SYNONYMS: Record<string, QuestionType> = {
-  단일: 'radio', 단일선택: 'radio', 라디오: 'radio',
-  복수: 'checkbox', 복수선택: 'checkbox', 체크박스: 'checkbox', 다중: 'checkbox',
-  드롭다운: 'select', 콤보: 'select', 셀렉트: 'select',
-  단답: 'text', 단답형: 'text', 텍스트: 'text',
-  장문: 'textarea', 장문형: 'textarea', 서술: 'textarea',
-  숫자: 'number', 넘버: 'number',
+  단일: 'radio',
+  단일선택: 'radio',
+  라디오: 'radio',
+  복수: 'checkbox',
+  복수선택: 'checkbox',
+  체크박스: 'checkbox',
+  다중: 'checkbox',
+  드롭다운: 'select',
+  콤보: 'select',
+  셀렉트: 'select',
+  단답: 'text',
+  단답형: 'text',
+  텍스트: 'text',
+  장문: 'textarea',
+  장문형: 'textarea',
+  서술: 'textarea',
+  숫자: 'number',
+  넘버: 'number',
   날짜: 'date',
-  예아니오: 'boolean', 불린: 'boolean',
-  척도: 'scale', 스케일: 'scale',
-  안내: 'info', 안내문: 'info',
-  이미지: 'image', 그림: 'image',
+  예아니오: 'boolean',
+  불린: 'boolean',
+  척도: 'scale',
+  스케일: 'scale',
+  안내: 'info',
+  안내문: 'info',
+  이미지: 'image',
+  그림: 'image',
 };
 
 function parseType(raw: string | undefined): QuestionType {
@@ -160,7 +176,14 @@ export default function TableEditor({ form }: Props) {
   return (
     <Box sx={{ p: 2.5, height: '100%', overflowY: 'auto' }}>
       {/* 상단 도구 */}
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ mb: 1.5 }}
+      >
         <TextField
           select
           size="small"
@@ -229,7 +252,9 @@ export default function TableEditor({ form }: Props) {
                       variant="standard"
                       fullWidth
                       value={q.type}
-                      onChange={(e) => changeQuestionType(sectionId, q.id, e.target.value as QuestionType)}
+                      onChange={(e) =>
+                        changeQuestionType(sectionId, q.id, e.target.value as QuestionType)
+                      }
                       InputProps={{ disableUnderline: true }}
                     >
                       {TYPES.map((t) => (
@@ -259,7 +284,9 @@ export default function TableEditor({ form }: Props) {
                       <Switch
                         size="small"
                         checked={!!q.required}
-                        onChange={(e) => updateQuestion(sectionId, q.id, { required: e.target.checked })}
+                        onChange={(e) =>
+                          updateQuestion(sectionId, q.id, { required: e.target.checked })
+                        }
                       />
                     )}
                   </TableCell>
@@ -286,7 +313,9 @@ export default function TableEditor({ form }: Props) {
                     )}
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title={q.condition ? '조건부 표시 설정됨 · 편집' : '조건부 표시(분기) 설정'}>
+                    <Tooltip
+                      title={q.condition ? '조건부 표시 설정됨 · 편집' : '조건부 표시(분기) 설정'}
+                    >
                       <IconButton
                         size="small"
                         onClick={(e) => setCondAnchor({ el: e.currentTarget, qid: q.id })}
@@ -303,7 +332,11 @@ export default function TableEditor({ form }: Props) {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="삭제">
-                      <IconButton size="small" color="error" onClick={() => removeQuestion(sectionId, q.id)}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => removeQuestion(sectionId, q.id)}
+                      >
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -314,7 +347,11 @@ export default function TableEditor({ form }: Props) {
             {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7}>
-                  <Typography variant="body2" color="text.disabled" sx={{ py: 2, textAlign: 'center' }}>
+                  <Typography
+                    variant="body2"
+                    color="text.disabled"
+                    sx={{ py: 2, textAlign: 'center' }}
+                  >
                     아래 ‘문항 추가’로 첫 문항을 만드세요.
                   </Typography>
                 </TableCell>
@@ -355,7 +392,8 @@ export default function TableEditor({ form }: Props) {
           <Alert severity="info" sx={{ mb: 1.5 }}>
             엑셀·시트에서 복사한 여러 줄을 붙여넣으세요. 한 줄이 한 문항이 됩니다.
             <br />
-            열은 <b>탭</b>으로 구분: <b>질문 [탭] 유형 [탭] 선택지(쉼표)</b> — 유형·선택지는 생략 가능(기본 단일 선택).
+            열은 <b>탭</b>으로 구분: <b>질문 [탭] 유형 [탭] 선택지(쉼표)</b> — 유형·선택지는 생략
+            가능(기본 단일 선택).
           </Alert>
           <TextField
             multiline

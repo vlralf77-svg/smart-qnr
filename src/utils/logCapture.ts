@@ -36,12 +36,20 @@ export function installLogCapture() {
 
   // 처리되지 않은 예외/프라미스 거부
   window.addEventListener('error', (e) => {
-    pushLog('error', `Uncaught: ${e.message}`, e.error?.stack ?? `${e.filename}:${e.lineno}:${e.colno}`);
+    pushLog(
+      'error',
+      `Uncaught: ${e.message}`,
+      e.error?.stack ?? `${e.filename}:${e.lineno}:${e.colno}`,
+    );
   });
   window.addEventListener('unhandledrejection', (e) => {
     const reason = e.reason;
     const msg = reason instanceof Error ? reason.message : String(reason);
-    pushLog('error', `Unhandled promise rejection: ${msg}`, reason instanceof Error ? reason.stack : undefined);
+    pushLog(
+      'error',
+      `Unhandled promise rejection: ${msg}`,
+      reason instanceof Error ? reason.stack : undefined,
+    );
   });
 
   pushLog('info', '로그 캡처 시작');

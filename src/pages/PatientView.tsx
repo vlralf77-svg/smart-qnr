@@ -47,9 +47,7 @@ function formatAnswer(q: Question, v: AnswerValue): string {
   }
   if (q.type === 'checkbox') {
     const arr = Array.isArray(v) ? v : [v];
-    return arr
-      .map((x) => q.options?.find((o) => o.value === x)?.label ?? String(x))
-      .join(', ');
+    return arr.map((x) => q.options?.find((o) => o.value === x)?.label ?? String(x)).join(', ');
   }
   return String(v);
 }
@@ -265,7 +263,9 @@ export default function PatientView() {
               /* ───────── 모바일: 카드 리스트(라벨 위 / 값 아래) ───────── */
               <Stack spacing={2.5}>
                 {form.sections.map((section, si) => {
-                  const qs = orderedQuestions(section).filter((q) => !NON_INPUT_TYPES.includes(q.type));
+                  const qs = orderedQuestions(section).filter(
+                    (q) => !NON_INPUT_TYPES.includes(q.type),
+                  );
                   if (qs.length === 0) return null;
                   const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
                   return (
@@ -349,7 +349,9 @@ export default function PatientView() {
               /* ───────── PC: 리포트 테이블(항목 | 응답), 2단 배치 ───────── */
               <Box sx={{ columnCount: 2, columnGap: 3 }}>
                 {form.sections.map((section, si) => {
-                  const qs = orderedQuestions(section).filter((q) => !NON_INPUT_TYPES.includes(q.type));
+                  const qs = orderedQuestions(section).filter(
+                    (q) => !NON_INPUT_TYPES.includes(q.type),
+                  );
                   if (qs.length === 0) return null;
                   const pal = SECTION_PALETTE[si % SECTION_PALETTE.length];
                   return (
@@ -395,7 +397,12 @@ export default function PatientView() {
                                       {pad2(qNo[q.id])}
                                     </Typography>
                                     <Typography
-                                      sx={{ fontSize: 13, fontWeight: 700, color: pal.text, lineHeight: 1.4 }}
+                                      sx={{
+                                        fontSize: 13,
+                                        fontWeight: 700,
+                                        color: pal.text,
+                                        lineHeight: 1.4,
+                                      }}
                                     >
                                       {q.label}
                                     </Typography>

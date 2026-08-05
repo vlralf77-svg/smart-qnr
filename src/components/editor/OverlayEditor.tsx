@@ -62,7 +62,11 @@ const PALETTE: { type: QuestionType; label: string; icon: React.ReactNode }[] = 
   { type: 'boolean', label: '체크박스', icon: <CheckBoxOutlinedIcon sx={{ fontSize: 16 }} /> },
   { type: 'radio', label: '단일 선택', icon: <RadioButtonCheckedIcon sx={{ fontSize: 16 }} /> },
   { type: 'checkbox', label: '복수 선택', icon: <ChecklistIcon sx={{ fontSize: 16 }} /> },
-  { type: 'select', label: '드롭다운', icon: <ArrowDropDownCircleOutlinedIcon sx={{ fontSize: 16 }} /> },
+  {
+    type: 'select',
+    label: '드롭다운',
+    icon: <ArrowDropDownCircleOutlinedIcon sx={{ fontSize: 16 }} />,
+  },
   { type: 'info', label: '안내문', icon: <InfoOutlinedIcon sx={{ fontSize: 16 }} /> },
 ];
 
@@ -177,7 +181,10 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
                 bgcolor: 'rgba(255,255,255,0.92)',
               }}
             />
-            <Typography sx={{ fontSize: Math.min(fs, 13), color: labelColor, lineHeight: 1.1 }} noWrap>
+            <Typography
+              sx={{ fontSize: Math.min(fs, 13), color: labelColor, lineHeight: 1.1 }}
+              noWrap
+            >
               {o.label}
             </Typography>
           </Box>
@@ -192,7 +199,8 @@ function FieldPreview({ q, showLabel }: { q: Question; showLabel?: boolean }) {
       </Box>
     );
   } else {
-    const ph = q.type === 'date' ? 'YYYY-MM-DD' : q.type === 'number' ? '0' : q.placeholder || '입력';
+    const ph =
+      q.type === 'date' ? 'YYYY-MM-DD' : q.type === 'number' ? '0' : q.placeholder || '입력';
     control = (
       <Box
         sx={{
@@ -246,7 +254,11 @@ interface PageProps {
   colorMap: Record<string, string>;
 }
 
-function findCell(cells: CellRegion[] | undefined, xPct: number, yPct: number): CellRegion | undefined {
+function findCell(
+  cells: CellRegion[] | undefined,
+  xPct: number,
+  yPct: number,
+): CellRegion | undefined {
   if (!cells) return undefined;
   let best: CellRegion | undefined;
   for (const c of cells) {
@@ -558,7 +570,9 @@ function PageOverlay({
                     height: '100%',
                     boxSizing: 'border-box',
                     outline: isSel ? '2px solid' : '1.5px solid',
-                    outlineColor: isSel ? 'primary.main' : colorMap[q.id] ?? 'rgba(74,144,217,0.5)',
+                    outlineColor: isSel
+                      ? 'primary.main'
+                      : (colorMap[q.id] ?? 'rgba(74,144,217,0.5)'),
                     cursor: placeType ? 'crosshair' : 'move',
                   }}
                 >
@@ -684,7 +698,9 @@ export default function OverlayEditor({ form }: Props) {
             size="small"
             exclusive
             value={placeType ?? 'cursor'}
-            onChange={(_e, v) => setPlaceType(v === 'cursor' || v == null ? null : (v as QuestionType))}
+            onChange={(_e, v) =>
+              setPlaceType(v === 'cursor' || v == null ? null : (v as QuestionType))
+            }
           >
             <ToggleButton value="cursor" sx={{ px: 1 }}>
               <NearMeOutlinedIcon sx={{ fontSize: 16, mr: 0.5 }} /> 선택
@@ -750,7 +766,13 @@ export default function OverlayEditor({ form }: Props) {
           alignItems="center"
           flexWrap="wrap"
           useFlexGap
-          sx={{ mt: 0.75, pt: 0.75, borderTop: '1px dashed', borderColor: 'divider', opacity: multi ? 1 : 0.55 }}
+          sx={{
+            mt: 0.75,
+            pt: 0.75,
+            borderTop: '1px dashed',
+            borderColor: 'divider',
+            opacity: multi ? 1 : 0.55,
+          }}
         >
           <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
             정렬 {multi ? <b>(기준: 마지막 선택)</b> : '(2개 이상 선택 시)'}
@@ -801,21 +823,39 @@ export default function OverlayEditor({ form }: Props) {
           <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
           <Tooltip title="너비 맞춤">
             <span>
-              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchW')}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!multi}
+                sx={{ minWidth: 0, px: 1 }}
+                onClick={() => alignSelected('matchW')}
+              >
                 너비
               </Button>
             </span>
           </Tooltip>
           <Tooltip title="높이 맞춤">
             <span>
-              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchH')}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!multi}
+                sx={{ minWidth: 0, px: 1 }}
+                onClick={() => alignSelected('matchH')}
+              >
                 높이
               </Button>
             </span>
           </Tooltip>
           <Tooltip title="크기(너비+높이) 맞춤">
             <span>
-              <Button size="small" variant="outlined" disabled={!multi} sx={{ minWidth: 0, px: 1 }} onClick={() => alignSelected('matchSize')}>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!multi}
+                sx={{ minWidth: 0, px: 1 }}
+                onClick={() => alignSelected('matchSize')}
+              >
                 크기
               </Button>
             </span>
@@ -845,7 +885,10 @@ export default function OverlayEditor({ form }: Props) {
                 onClick={() => renameSection(s.id, s.title)}
                 onDelete={multiSection ? () => ungroupSection(s.id) : undefined}
                 label={
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box
+                    component="span"
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
+                  >
                     <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: color }} />
                     {s.title} · {count}
                   </Box>
@@ -886,12 +929,13 @@ export default function OverlayEditor({ form }: Props) {
         </Stack>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-          위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b> 모드에서
-          박스를 드래그해 이동, 모서리로 크기 조절, 빈 곳 드래그로 영역 선택, <b>Ctrl+클릭</b> 다중 선택,
-          여러 개 선택 시 <b>정렬·크기 맞춤</b>(기준=마지막 선택), <b>방향키</b> 이동, <b>Delete</b> 삭제,
-          <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소. 각 필드의 <b>번호=답변 순서</b>이며,
-          여러 개를 선택해 <b>새 섹션으로 묶으면</b> 모바일에서 섹션(단계)별로 나뉘어 표시됩니다.
-          선택 후 상단 <b>페이지 이동</b>으로 다른 페이지로 옮길 수 있습니다.
+          위에서 유형을 고른 뒤 캔버스에 <b>드래그해 그리거나 클릭</b>하면 배치됩니다. <b>선택</b>{' '}
+          모드에서 박스를 드래그해 이동, 모서리로 크기 조절, 빈 곳 드래그로 영역 선택,{' '}
+          <b>Ctrl+클릭</b> 다중 선택, 여러 개 선택 시 <b>정렬·크기 맞춤</b>(기준=마지막 선택),{' '}
+          <b>방향키</b> 이동, <b>Delete</b> 삭제,
+          <b>Ctrl+C/V</b> 복사·붙여넣기, <b>Ctrl+Z</b> 실행 취소. 각 필드의 <b>번호=답변 순서</b>
+          이며, 여러 개를 선택해 <b>새 섹션으로 묶으면</b> 모바일에서 섹션(단계)별로 나뉘어
+          표시됩니다. 선택 후 상단 <b>페이지 이동</b>으로 다른 페이지로 옮길 수 있습니다.
         </Typography>
       </Paper>
 

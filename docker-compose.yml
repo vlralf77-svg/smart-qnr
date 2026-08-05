@@ -18,13 +18,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-smartqnr} -d ${DB_NAME:-smartqnr}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-smartqnr} -d ${DB_NAME:-smartqnr}']
       interval: 5s
       timeout: 5s
       retries: 10
     # 필요 시에만 외부 노출(기본은 내부 네트워크만)
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
 
   backend:
     build:
@@ -44,7 +44,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-smartqnr-secret}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-12}
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      - '${BACKEND_PORT:-8080}:8080'
 
   web:
     build:
@@ -57,7 +57,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "${WEB_PORT:-8081}:80"
+      - '${WEB_PORT:-8081}:80'
 
 volumes:
   pgdata:

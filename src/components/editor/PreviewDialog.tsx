@@ -44,7 +44,10 @@ export default function PreviewDialog({ open, schema, onClose }: Props) {
         </Toolbar>
       </AppBar>
       <Box sx={{ bgcolor: 'background.default', minHeight: '100%', py: wide ? 2 : 4 }}>
-        <Container maxWidth={wide ? false : 'sm'} sx={{ px: wide ? { xs: 1.5, sm: 3 } : undefined }}>
+        <Container
+          maxWidth={wide ? false : 'sm'}
+          sx={{ px: wide ? { xs: 1.5, sm: 3 } : undefined }}
+        >
           <FormRenderer schema={schema} preview overlayFit={wide} />
         </Container>
       </Box>

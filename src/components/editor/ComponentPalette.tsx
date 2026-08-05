@@ -49,7 +49,9 @@ export default function ComponentPalette({ onAdd }: Props) {
         {PALETTE_ITEMS.map(({ type, icon }, i) => {
           const meta = QUESTION_TYPE_META[type];
           const fkey = `F${i + 1}`;
-          const title = meta.hint ? `${fkey} · ${meta.label} · ${meta.hint}` : `${fkey} · ${meta.label}`;
+          const title = meta.hint
+            ? `${fkey} · ${meta.label} · ${meta.hint}`
+            : `${fkey} · ${meta.label}`;
           return (
             <Tooltip key={type} title={title} arrow>
               <IconButton

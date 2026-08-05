@@ -73,14 +73,13 @@ export const useStatsStore = create<StatsState>()(
       version: 2,
       // v1: 단일 문항(questionId) → 다중(questionIds), v2: AND 조건(filters) 추가
       migrate: (persisted: unknown, version: number) => {
-        const state = persisted as
-          | { items?: (StatItem & { questionId?: string })[] }
-          | undefined;
+        const state = persisted as { items?: (StatItem & { questionId?: string })[] } | undefined;
         if (state?.items) {
           state.items = state.items.map((it) => ({
             ...it,
             questionIds:
-              it.questionIds ?? (version < 1 && it.questionId ? [it.questionId] : it.questionIds ?? []),
+              it.questionIds ??
+              (version < 1 && it.questionId ? [it.questionId] : (it.questionIds ?? [])),
             filters: it.filters ?? [],
           }));
         }

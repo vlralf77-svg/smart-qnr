@@ -31,7 +31,10 @@ export default function SectionBlock({ section, sectionDragHandle, canDeleteSect
       }}
     >
       <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
-        <Box {...sectionDragHandle} sx={{ cursor: 'grab', display: 'flex', color: 'text.disabled' }}>
+        <Box
+          {...sectionDragHandle}
+          sx={{ cursor: 'grab', display: 'flex', color: 'text.disabled' }}
+        >
           <DragIndicatorIcon fontSize="small" />
         </Box>
         <TextField

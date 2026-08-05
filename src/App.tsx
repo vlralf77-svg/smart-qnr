@@ -67,8 +67,7 @@ export default function App() {
       const a = useAuthStore.getState();
       const p = usePatientStore.getState();
       const userId = a.currentUser ?? (p.patientNo ? `patient:${p.patientNo}` : undefined);
-      const userName =
-        a.displayName ?? a.currentUser ?? (p.name ? `환자:${p.name}` : undefined);
+      const userName = a.displayName ?? a.currentUser ?? (p.name ? `환자:${p.name}` : undefined);
       return {
         userId,
         userName,
@@ -95,120 +94,120 @@ export default function App() {
     <ThemeProvider theme={activeTheme}>
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
-      <HashRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+        <HashRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          {/* 환자(실사용자) 플로우 — 관리자 로그인과 별개 */}
-          <Route path="/patient/login" element={<PatientLogin />} />
-          <Route
-            path="/patient/forms"
-            element={
-              <RequirePatient>
-                <PatientForms />
-              </RequirePatient>
-            }
-          />
-          <Route
-            path="/patient/respond/:formId"
-            element={
-              <RequirePatient>
-                <PatientRespond />
-              </RequirePatient>
-            }
-          />
-          <Route
-            path="/patient/view/:formId"
-            element={
-              <RequirePatient>
-                <PatientView />
-              </RequirePatient>
-            }
-          />
+            {/* 환자(실사용자) 플로우 — 관리자 로그인과 별개 */}
+            <Route path="/patient/login" element={<PatientLogin />} />
+            <Route
+              path="/patient/forms"
+              element={
+                <RequirePatient>
+                  <PatientForms />
+                </RequirePatient>
+              }
+            />
+            <Route
+              path="/patient/respond/:formId"
+              element={
+                <RequirePatient>
+                  <PatientRespond />
+                </RequirePatient>
+              }
+            />
+            <Route
+              path="/patient/view/:formId"
+              element={
+                <RequirePatient>
+                  <PatientView />
+                </RequirePatient>
+              }
+            />
 
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <FormList />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/accounts"
-            element={
-              <RequireAuth>
-                <RequirePermission perm="manageAccounts">
-                  <Accounts />
-                </RequirePermission>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/integration"
-            element={
-              <RequireAuth>
-                <RequirePermission perm="manageAccounts">
-                  <IntegrationConfig />
-                </RequirePermission>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/stats"
-            element={
-              <RequireAuth>
-                <StatsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/logs"
-            element={
-              <RequireAuth>
-                <RequirePermission perm="manageAccounts">
-                  <LogViewer />
-                </RequirePermission>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/upload"
-            element={
-              <RequireAuth>
-                <RequirePermission perm="edit">
-                  <UploadConvert />
-                </RequirePermission>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/editor/:formId"
-            element={
-              <RequireAuth>
-                <RequirePermission perm="edit">
-                  <FormEditor />
-                </RequirePermission>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/respond/:formId"
-            element={
-              <RequireAuth>
-                <ResponseForm />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </HashRouter>
-      {/* 자동 업데이트 진행 표시(Electron 전용) */}
-      <UpdateStatus />
-      {/* 종료 확인 모달(Electron 전용) */}
-      <QuitConfirm />
-      {/* 업데이트 준비 완료 모달(Electron 전용) */}
-      <UpdateReady />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <FormList />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <RequireAuth>
+                  <RequirePermission perm="manageAccounts">
+                    <Accounts />
+                  </RequirePermission>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/integration"
+              element={
+                <RequireAuth>
+                  <RequirePermission perm="manageAccounts">
+                    <IntegrationConfig />
+                  </RequirePermission>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/stats"
+              element={
+                <RequireAuth>
+                  <StatsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <RequireAuth>
+                  <RequirePermission perm="manageAccounts">
+                    <LogViewer />
+                  </RequirePermission>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/upload"
+              element={
+                <RequireAuth>
+                  <RequirePermission perm="edit">
+                    <UploadConvert />
+                  </RequirePermission>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/editor/:formId"
+              element={
+                <RequireAuth>
+                  <RequirePermission perm="edit">
+                    <FormEditor />
+                  </RequirePermission>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/respond/:formId"
+              element={
+                <RequireAuth>
+                  <ResponseForm />
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </HashRouter>
+        {/* 자동 업데이트 진행 표시(Electron 전용) */}
+        <UpdateStatus />
+        {/* 종료 확인 모달(Electron 전용) */}
+        <QuitConfirm />
+        {/* 업데이트 준비 완료 모달(Electron 전용) */}
+        <UpdateReady />
       </LocalizationProvider>
     </ThemeProvider>
   );

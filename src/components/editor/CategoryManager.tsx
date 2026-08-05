@@ -174,7 +174,13 @@ export default function CategoryManager({ open, onClose }: Props) {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleAddParent}
-            sx={{ flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'keep-all', minWidth: 116, px: 2 }}
+            sx={{
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              wordBreak: 'keep-all',
+              minWidth: 116,
+              px: 2,
+            }}
           >
             대분류
           </Button>
@@ -217,7 +223,11 @@ export default function CategoryManager({ open, onClose }: Props) {
                     sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.75 } }}
                   />
                   <Tooltip title="대분류 이름 변경">
-                    <IconButton size="small" sx={{ p: 0.5 }} onClick={() => handleRenameParent(parent)}>
+                    <IconButton
+                      size="small"
+                      sx={{ p: 0.5 }}
+                      onClick={() => handleRenameParent(parent)}
+                    >
                       <EditIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
@@ -236,10 +246,11 @@ export default function CategoryManager({ open, onClose }: Props) {
                 {/* 하위 분류 목록 */}
                 <Stack spacing={0.25} sx={{ px: 1.5, py: 0.75 }}>
                   {children.map((path) => (
-                    <Box key={path} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 0.5 }}>
-                      <SubdirectoryArrowRightIcon
-                        sx={{ color: 'text.disabled', fontSize: 16 }}
-                      />
+                    <Box
+                      key={path}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 0.5 }}
+                    >
+                      <SubdirectoryArrowRightIcon sx={{ color: 'text.disabled', fontSize: 16 }} />
                       <Typography sx={{ flex: 1, fontSize: 13 }} noWrap>
                         {splitCategory(path).child}
                       </Typography>
@@ -250,7 +261,11 @@ export default function CategoryManager({ open, onClose }: Props) {
                         sx={{ height: 18, fontSize: 11, '& .MuiChip-label': { px: 0.75 } }}
                       />
                       <Tooltip title="하위 이름 변경">
-                        <IconButton size="small" sx={{ p: 0.5 }} onClick={() => handleRenameChild(path)}>
+                        <IconButton
+                          size="small"
+                          sx={{ p: 0.5 }}
+                          onClick={() => handleRenameChild(path)}
+                        >
                           <EditIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
@@ -268,7 +283,13 @@ export default function CategoryManager({ open, onClose }: Props) {
                   ))}
 
                   {/* 하위 추가 입력 */}
-                  <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="nowrap" sx={{ pl: 0.5, mt: 0.25 }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    alignItems="center"
+                    flexWrap="nowrap"
+                    sx={{ pl: 0.5, mt: 0.25 }}
+                  >
                     <TextField
                       size="small"
                       placeholder="하위 분류 추가"
@@ -287,7 +308,12 @@ export default function CategoryManager({ open, onClose }: Props) {
                       variant="outlined"
                       startIcon={<AddIcon />}
                       onClick={() => handleAddSub(parent)}
-                      sx={{ flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'keep-all', minWidth: 76 }}
+                      sx={{
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
+                        wordBreak: 'keep-all',
+                        minWidth: 76,
+                      }}
                     >
                       추가
                     </Button>

@@ -83,10 +83,12 @@ const PILL_SX = {
 const GRAD_PILL_SX: SxProps<Theme> = {
   ...PILL_SX,
   color: '#fff',
-  background: (t) => `linear-gradient(135deg, ${t.palette.primary.light}, ${t.palette.primary.dark})`,
+  background: (t) =>
+    `linear-gradient(135deg, ${t.palette.primary.light}, ${t.palette.primary.dark})`,
   boxShadow: (t) => `0 8px 18px -8px ${alpha(t.palette.primary.dark, 0.7)}`,
   '&:hover': {
-    background: (t) => `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
+    background: (t) =>
+      `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
   },
 };
 
@@ -143,11 +145,7 @@ function SideItem({
         cursor: 'pointer',
         // 하위는 좌측 연결선으로 뎁스 표시(선택 시 브랜드색)
         borderLeft: isChild ? '2px solid' : '2px solid transparent',
-        borderLeftColor: isChild
-          ? active
-            ? 'primary.dark'
-            : 'divider'
-          : 'transparent',
+        borderLeftColor: isChild ? (active ? 'primary.dark' : 'divider') : 'transparent',
         // 선택 상태를 브랜드색 채움으로 확실히 구분
         bgcolor: active ? 'primary.main' : 'transparent',
         color: active ? 'primary.contrastText' : 'inherit',
@@ -377,15 +375,111 @@ export default function FormList() {
     run: () => void;
   }
   const actions: Action[] = [
-    { key: 'new', section: '만들기', title: '새 문진', desc: '빈 문진 새로 작성', icon: <AddIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: canEdit, userConfigurable: true, run: () => setCreateOpen(true) },
-    { key: 'convert', section: '만들기', title: '문서로 변환', desc: 'PDF·워드 불러오기', icon: <UploadFileIcon fontSize="small" />, chipColor: '#d98324', chipBg: '#fdf0e3', allowed: canEdit, userConfigurable: true, run: () => navigate('/upload') },
-    { key: 'excel', section: '만들기', title: '엑셀로 만들기', desc: '템플릿 업로드', icon: <TableChartOutlinedIcon fontSize="small" />, chipColor: '#1f9d57', chipBg: '#e6f6ec', allowed: canEdit, userConfigurable: true, run: () => setExcelOpen(true) },
-    { key: 'link', section: '환자', title: '환자 링크', desc: '문진 링크 생성', icon: <LinkIcon fontSize="small" />, chipColor: '#167c50', chipBg: '#e2f2ea', allowed: true, userConfigurable: true, run: () => setLinkOpen(true) },
-    { key: 'patient', section: '환자', title: '환자 화면', desc: '문진 입력 화면 열기', icon: <AssignmentIndIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: true, userConfigurable: true, run: () => window.open('#/patient/login', '_blank') },
-    { key: 'accounts', section: '관리', title: '계정 관리', desc: '계정·권한', icon: <ManageAccountsIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/accounts') },
-    { key: 'api', section: '관리', title: 'API 연동', desc: 'EMR 연동 설정', icon: <ApiIcon fontSize="small" />, chipColor: '#3f76d0', chipBg: '#e8f0fe', allowed: canManage, run: () => navigate('/integration') },
-    { key: 'stats', section: '관리', title: '통계', desc: '응답 통계 대시보드', icon: <QueryStatsIcon fontSize="small" />, chipColor: theme.palette.primary.dark, chipBg: alpha(theme.palette.primary.main, 0.14), allowed: true, userConfigurable: true, run: () => navigate('/stats') },
-    { key: 'logs', section: '관리', title: '로그 보기', desc: '화면·서버 로그', icon: <ArticleOutlinedIcon fontSize="small" />, chipColor: '#5b6b7d', chipBg: '#eef1f5', allowed: canManage, run: () => navigate('/logs') },
+    {
+      key: 'new',
+      section: '만들기',
+      title: '새 문진',
+      desc: '빈 문진 새로 작성',
+      icon: <AddIcon fontSize="small" />,
+      chipColor: theme.palette.primary.dark,
+      chipBg: alpha(theme.palette.primary.main, 0.14),
+      allowed: canEdit,
+      userConfigurable: true,
+      run: () => setCreateOpen(true),
+    },
+    {
+      key: 'convert',
+      section: '만들기',
+      title: '문서로 변환',
+      desc: 'PDF·워드 불러오기',
+      icon: <UploadFileIcon fontSize="small" />,
+      chipColor: '#d98324',
+      chipBg: '#fdf0e3',
+      allowed: canEdit,
+      userConfigurable: true,
+      run: () => navigate('/upload'),
+    },
+    {
+      key: 'excel',
+      section: '만들기',
+      title: '엑셀로 만들기',
+      desc: '템플릿 업로드',
+      icon: <TableChartOutlinedIcon fontSize="small" />,
+      chipColor: '#1f9d57',
+      chipBg: '#e6f6ec',
+      allowed: canEdit,
+      userConfigurable: true,
+      run: () => setExcelOpen(true),
+    },
+    {
+      key: 'link',
+      section: '환자',
+      title: '환자 링크',
+      desc: '문진 링크 생성',
+      icon: <LinkIcon fontSize="small" />,
+      chipColor: '#167c50',
+      chipBg: '#e2f2ea',
+      allowed: true,
+      userConfigurable: true,
+      run: () => setLinkOpen(true),
+    },
+    {
+      key: 'patient',
+      section: '환자',
+      title: '환자 화면',
+      desc: '문진 입력 화면 열기',
+      icon: <AssignmentIndIcon fontSize="small" />,
+      chipColor: '#3f76d0',
+      chipBg: '#e8f0fe',
+      allowed: true,
+      userConfigurable: true,
+      run: () => window.open('#/patient/login', '_blank'),
+    },
+    {
+      key: 'accounts',
+      section: '관리',
+      title: '계정 관리',
+      desc: '계정·권한',
+      icon: <ManageAccountsIcon fontSize="small" />,
+      chipColor: '#5b6b7d',
+      chipBg: '#eef1f5',
+      allowed: canManage,
+      run: () => navigate('/accounts'),
+    },
+    {
+      key: 'api',
+      section: '관리',
+      title: 'API 연동',
+      desc: 'EMR 연동 설정',
+      icon: <ApiIcon fontSize="small" />,
+      chipColor: '#3f76d0',
+      chipBg: '#e8f0fe',
+      allowed: canManage,
+      run: () => navigate('/integration'),
+    },
+    {
+      key: 'stats',
+      section: '관리',
+      title: '통계',
+      desc: '응답 통계 대시보드',
+      icon: <QueryStatsIcon fontSize="small" />,
+      chipColor: theme.palette.primary.dark,
+      chipBg: alpha(theme.palette.primary.main, 0.14),
+      allowed: true,
+      userConfigurable: true,
+      run: () => navigate('/stats'),
+    },
+    {
+      key: 'logs',
+      section: '관리',
+      title: '로그 보기',
+      desc: '화면·서버 로그',
+      icon: <ArticleOutlinedIcon fontSize="small" />,
+      chipColor: '#5b6b7d',
+      chipBg: '#eef1f5',
+      allowed: canManage,
+      run: () => navigate('/logs'),
+    },
   ];
   // 관리자는 모든 허용 항목을 보고, 일반 사용자는 관리자가 켠(사용) 항목만 본다.
   const available = actions.filter(
@@ -393,7 +487,9 @@ export default function FormList() {
   );
   // 앞에 고정할 기본 액션(권한 없으면 첫 번째로 폴백)
   const primary =
-    available.find((a) => a.key === primaryKey) ?? available.find((a) => a.key === 'new') ?? available[0];
+    available.find((a) => a.key === primaryKey) ??
+    available.find((a) => a.key === 'new') ??
+    available[0];
   const SECTIONS: Action['section'][] = ['만들기', '환자', '관리'];
 
   return (
@@ -447,7 +543,13 @@ export default function FormList() {
             <Button
               variant="outlined"
               onClick={(e) => setMenuAnchor(e.currentTarget)}
-              sx={{ ...PILL_SX, minWidth: 44, px: 1.5, borderColor: 'divider', color: 'text.primary' }}
+              sx={{
+                ...PILL_SX,
+                minWidth: 44,
+                px: 1.5,
+                borderColor: 'divider',
+                color: 'text.primary',
+              }}
             >
               <MoreHorizIcon />
             </Button>
@@ -514,7 +616,9 @@ export default function FormList() {
                             />
                           </Tooltip>
                         )}
-                        <Tooltip title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}>
+                        <Tooltip
+                          title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}
+                        >
                           <IconButton
                             size="small"
                             onClick={(e) => {
@@ -526,7 +630,10 @@ export default function FormList() {
                             {a.key === primaryKey ? (
                               <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
                             ) : (
-                              <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                              <PushPinOutlinedIcon
+                                fontSize="small"
+                                sx={{ color: 'text.disabled' }}
+                              />
                             )}
                           </IconButton>
                         </Tooltip>
@@ -546,7 +653,11 @@ export default function FormList() {
             </Typography>
             {canEdit ? (
               <Stack direction="row" spacing={1} justifyContent="center">
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreateOpen(true)}
+                >
                   새 문진 만들기
                 </Button>
                 <Button variant="text" onClick={seedSample}>
@@ -766,12 +877,20 @@ export default function FormList() {
                         </Stack>
                       </Box>
 
-                      <Box sx={{ textAlign: 'right', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}>
+                      <Box
+                        sx={{
+                          textAlign: 'right',
+                          flexShrink: 0,
+                          display: { xs: 'none', sm: 'block' },
+                        }}
+                      >
                         <Typography variant="caption" color="text.secondary" display="block">
-                          등록 {f.createdAt ? new Date(f.createdAt).toLocaleDateString('ko-KR') : '-'}
+                          등록{' '}
+                          {f.createdAt ? new Date(f.createdAt).toLocaleDateString('ko-KR') : '-'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" display="block">
-                          수정 {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('ko-KR') : '-'}
+                          수정{' '}
+                          {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('ko-KR') : '-'}
                         </Typography>
                       </Box>
 
@@ -790,7 +909,11 @@ export default function FormList() {
                             </IconButton>
                           </Tooltip>
                         )}
-                        <Tooltip title={f.status === 'published' ? '응답 화면 열기' : '인증저장 후 응답 가능'}>
+                        <Tooltip
+                          title={
+                            f.status === 'published' ? '응답 화면 열기' : '인증저장 후 응답 가능'
+                          }
+                        >
                           <span>
                             <IconButton
                               size="small"

@@ -17,7 +17,14 @@ interface Props {
   submitLabel?: string;
 }
 
-export default function DesktopForm({ schema, control, errors, onSubmit, preview, submitLabel }: Props) {
+export default function DesktopForm({
+  schema,
+  control,
+  errors,
+  onSubmit,
+  preview,
+  submitLabel,
+}: Props) {
   // 조건부 표시 반영
   const answers = (useWatch({ control }) ?? {}) as Record<string, AnswerValue>;
 
@@ -28,7 +35,11 @@ export default function DesktopForm({ schema, control, errors, onSubmit, preview
           {schema.title || '문진'}
         </Typography>
         {schema.description && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}
+          >
             {schema.description}
           </Typography>
         )}
@@ -62,8 +73,12 @@ export default function DesktopForm({ schema, control, errors, onSubmit, preview
                 borderBottom: '1px solid rgba(15,23,42,0.05)',
               }}
             >
-              <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: pal.bar, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 15, fontWeight: 800, letterSpacing: 0.2, color: pal.text }}>
+              <Box
+                sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: pal.bar, flexShrink: 0 }}
+              />
+              <Typography
+                sx={{ fontSize: 15, fontWeight: 800, letterSpacing: 0.2, color: pal.text }}
+              >
                 {section.title}
               </Typography>
             </Box>

@@ -58,10 +58,7 @@ interface EditorState {
    * 선택된 문항을 방향키로 조작.
    * - move: 일반 이동, fine: 미세 이동(Ctrl), resize: 크기 조절(Shift)
    */
-  nudgeSelected: (
-    dir: 'left' | 'right' | 'up' | 'down',
-    mode: 'move' | 'fine' | 'resize',
-  ) => void;
+  nudgeSelected: (dir: 'left' | 'right' | 'up' | 'down', mode: 'move' | 'fine' | 'resize') => void;
 
   // 초기화
   loadForm: (form: FormSchema) => void;
@@ -140,7 +137,16 @@ interface EditorState {
    * left/right/top/bottom/centerX/centerY = 정렬, matchW/matchH/matchSize = 크기 맞춤
    */
   alignSelected: (
-    mode: 'left' | 'right' | 'top' | 'bottom' | 'centerX' | 'centerY' | 'matchW' | 'matchH' | 'matchSize',
+    mode:
+      | 'left'
+      | 'right'
+      | 'top'
+      | 'bottom'
+      | 'centerX'
+      | 'centerY'
+      | 'matchW'
+      | 'matchH'
+      | 'matchSize',
   ) => void;
 
   // 복사/붙여넣기
@@ -373,7 +379,7 @@ export const useEditorStore = create<EditorState>((set) => ({
         form: mapSections(st.form, () => sections),
         selected: st.selected?.sectionId === sectionId ? null : st.selected,
         activeSectionId:
-          st.activeSectionId === sectionId ? sections[0]?.id ?? null : st.activeSectionId,
+          st.activeSectionId === sectionId ? (sections[0]?.id ?? null) : st.activeSectionId,
         dirty: true,
       };
     }),
@@ -488,7 +494,11 @@ export const useEditorStore = create<EditorState>((set) => ({
             if (item.optionLabels && item.optionLabels.length) {
               question.options = item.optionLabels.map((l) => createOption(l));
             }
-            question.layout = createDefaultLayout(questions, item.type, question.options?.length ?? 0);
+            question.layout = createDefaultLayout(
+              questions,
+              item.type,
+              question.options?.length ?? 0,
+            );
             questions.push(question);
             lastId = question.id;
           }
@@ -613,14 +623,20 @@ export const useEditorStore = create<EditorState>((set) => ({
   updateQuestionLayout: (_sectionId, questionId, layout) =>
     set((st) =>
       st.form
-        ? { form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, layout })), dirty: true }
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, layout })),
+            dirty: true,
+          }
         : st,
     ),
 
   updateQuestionOverlay: (_sectionId, questionId, overlay) =>
     set((st) =>
       st.form
-        ? { form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, overlay })), dirty: true }
+        ? {
+            form: mapQuestionEverywhere(st.form, questionId, (q) => ({ ...q, overlay })),
+            dirty: true,
+          }
         : st,
     ),
 
@@ -651,7 +667,10 @@ export const useEditorStore = create<EditorState>((set) => ({
         ? {
             form: mapQuestionEverywhere(st.form, questionId, (q) => ({
               ...q,
-              options: [...(q.options ?? []), createOption(`선택지 ${(q.options?.length ?? 0) + 1}`)],
+              options: [
+                ...(q.options ?? []),
+                createOption(`선택지 ${(q.options?.length ?? 0) + 1}`),
+              ],
             })),
             dirty: true,
           }
@@ -813,7 +832,11 @@ export const useEditorStore = create<EditorState>((set) => ({
         height: BLANK_PAGE_H,
       };
       return {
-        form: { ...st.form, pages: [...(st.form.pages ?? []), page], updatedAt: new Date().toISOString() },
+        form: {
+          ...st.form,
+          pages: [...(st.form.pages ?? []), page],
+          updatedAt: new Date().toISOString(),
+        },
         dirty: true,
       };
     }),
@@ -829,9 +852,7 @@ export const useEditorStore = create<EditorState>((set) => ({
           secs.map((s) => ({
             ...s,
             questions: s.questions.map((q) =>
-              ids.has(q.id) && q.overlay
-                ? { ...q, overlay: { ...q.overlay, page: pageIndex } }
-                : q,
+              ids.has(q.id) && q.overlay ? { ...q, overlay: { ...q.overlay, page: pageIndex } } : q,
             ),
           })),
         ),

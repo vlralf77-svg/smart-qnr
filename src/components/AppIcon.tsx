@@ -10,7 +10,15 @@ export default function AppIcon({ size = 64 }: { size?: number }) {
           <rect x="46" y="34" width="68" height="92" rx="14" />
         </clipPath>
       </defs>
-      <circle cx="80" cy="80" r="79" fill="#22a06b" stroke="#1b8457" strokeOpacity="0.35" strokeWidth="1.5" />
+      <circle
+        cx="80"
+        cy="80"
+        r="79"
+        fill="#22a06b"
+        stroke="#1b8457"
+        strokeOpacity="0.35"
+        strokeWidth="1.5"
+      />
       <rect x="46" y="34" width="68" height="92" rx="14" fill="#ffffff" />
       <g clipPath={`url(#${clipId})`}>
         <rect x="58" y="50" width="26" height="7" rx="3.5" fill="#bfe3cf" />

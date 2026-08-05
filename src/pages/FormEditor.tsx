@@ -454,7 +454,9 @@ export default function FormEditor() {
               </Tooltip>
             )}
             {!isOverlayForm(form) && (
-              <Tooltip title={popoutPreview ? '미리보기 창 닫기' : '미리보기를 새 창으로 열기 (2모니터)'}>
+              <Tooltip
+                title={popoutPreview ? '미리보기 창 닫기' : '미리보기를 새 창으로 열기 (2모니터)'}
+              >
                 <IconButton
                   color="inherit"
                   size="small"
@@ -492,284 +494,303 @@ export default function FormEditor() {
           <FocusEditor form={form} />
         </Box>
       ) : (
-      <Box
-        ref={splitRef}
-        sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}
-      >
-        {(() => {
-          const showPreview = sidePreview && !isOverlayForm(form);
-          const visibleKeys = panelOrder.filter((k) => (k === 'preview' ? showPreview : true));
+        <Box
+          ref={splitRef}
+          sx={{ flex: 1, overflow: 'hidden', display: 'flex', bgcolor: 'background.default' }}
+        >
+          {(() => {
+            const showPreview = sidePreview && !isOverlayForm(form);
+            const visibleKeys = panelOrder.filter((k) => (k === 'preview' ? showPreview : true));
 
-          const dividerNode = (leftKey: string, rightKey: string) => (
-            <Tooltip title="드래그하여 폭 조절" placement="top">
-              <Box
-                onMouseDown={startDividerDrag(leftKey, rightKey, visibleKeys)}
-                sx={{
-                  flexShrink: 0,
-                  width: '8px',
-                  cursor: 'col-resize',
-                  position: 'relative',
-                  bgcolor: 'divider',
-                  transition: 'background-color .15s',
-                  '&:hover': { bgcolor: 'primary.main' },
-                  '&:hover .grip': { bgcolor: 'primary.contrastText' },
-                  '&::before': { content: '""', position: 'absolute', inset: '0 -4px' },
-                }}
-              >
+            const dividerNode = (leftKey: string, rightKey: string) => (
+              <Tooltip title="드래그하여 폭 조절" placement="top">
                 <Box
-                  className="grip"
+                  onMouseDown={startDividerDrag(leftKey, rightKey, visibleKeys)}
                   sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '2px',
-                    height: 34,
-                    borderRadius: 1,
-                    bgcolor: 'text.disabled',
+                    flexShrink: 0,
+                    width: '8px',
+                    cursor: 'col-resize',
+                    position: 'relative',
+                    bgcolor: 'divider',
+                    transition: 'background-color .15s',
+                    '&:hover': { bgcolor: 'primary.main' },
+                    '&:hover .grip': { bgcolor: 'primary.contrastText' },
+                    '&::before': { content: '""', position: 'absolute', inset: '0 -4px' },
                   }}
-                />
-              </Box>
-            </Tooltip>
-          );
+                >
+                  <Box
+                    className="grip"
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '2px',
+                      height: 34,
+                      borderRadius: 1,
+                      bgcolor: 'text.disabled',
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            );
 
-          const renderPanel = (key: string) => {
-            if (key === 'preview') {
+            const renderPanel = (key: string) => {
+              if (key === 'preview') {
+                return (
+                  <Box
+                    sx={{
+                      flexGrow: sizes.preview ?? 1,
+                      flexBasis: 0,
+                      minWidth: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      bgcolor: 'background.default',
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'background.paper',
+                      }}
+                    >
+                      <VisibilityIcon fontSize="small" color="action" />
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
+                        미리보기
+                      </Typography>
+                      <Chip label="실시간" size="small" color="success" variant="outlined" />
+                      <Tooltip
+                        title={popoutPreview ? '미리보기 창 닫기' : '새 창으로 열기 (2모니터)'}
+                      >
+                        <IconButton
+                          size="small"
+                          color={popoutPreview ? 'primary' : 'default'}
+                          onClick={() => setPopoutPreview((v) => !v)}
+                        >
+                          <OpenInNewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="전체 화면으로 보기">
+                        <IconButton size="small" onClick={() => setPreview(true)}>
+                          <OpenInFullIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                    {popoutPreview ? (
+                      <Box
+                        sx={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 1.5,
+                          p: 3,
+                          color: 'text.secondary',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <OpenInNewIcon color="primary" />
+                        <Typography variant="body2">별도 창에서 미리보기 중입니다.</Typography>
+                        <Typography variant="caption">
+                          미리보기 창을 두 번째 모니터로 옮겨 함께 작업하세요.
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => setPopoutPreview(false)}
+                        >
+                          이 패널로 되돌리기
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+                        <PreviewErrorBoundary>
+                          <FormRenderer key={form.id} schema={form} preview />
+                        </PreviewErrorBoundary>
+                      </Box>
+                    )}
+                  </Box>
+                );
+              }
               return (
                 <Box
                   sx={{
-                    flexGrow: sizes.preview ?? 1,
+                    flexGrow: sizes[key] ?? 1,
                     flexBasis: 0,
                     minWidth: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    bgcolor: 'background.default',
+                    overflowY: 'auto',
+                    p: 2.5,
                   }}
                 >
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider',
-                      bgcolor: 'background.paper',
-                    }}
-                  >
-                    <VisibilityIcon fontSize="small" color="action" />
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
-                      미리보기
-                    </Typography>
-                    <Chip label="실시간" size="small" color="success" variant="outlined" />
-                    <Tooltip
-                      title={popoutPreview ? '미리보기 창 닫기' : '새 창으로 열기 (2모니터)'}
-                    >
-                      <IconButton
-                        size="small"
-                        color={popoutPreview ? 'primary' : 'default'}
-                        onClick={() => setPopoutPreview((v) => !v)}
+                  {key === 'options' ? (
+                    selectedQuestion && selected ? (
+                      <Paper variant="outlined" sx={{ p: 2.5 }}>
+                        <QuestionEditPanel
+                          sectionId={selectedSectionId}
+                          question={selectedQuestion}
+                        />
+                      </Paper>
+                    ) : (
+                      <Box
+                        sx={{
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'text.disabled',
+                          textAlign: 'center',
+                        }}
                       >
-                        <OpenInNewIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="전체 화면으로 보기">
-                      <IconButton size="small" onClick={() => setPreview(true)}>
-                        <OpenInFullIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                  {popoutPreview ? (
-                    <Box
-                      sx={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 1.5,
-                        p: 3,
-                        color: 'text.secondary',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <OpenInNewIcon color="primary" />
-                      <Typography variant="body2">별도 창에서 미리보기 중입니다.</Typography>
-                      <Typography variant="caption">
-                        미리보기 창을 두 번째 모니터로 옮겨 함께 작업하세요.
-                      </Typography>
-                      <Button size="small" variant="outlined" onClick={() => setPopoutPreview(false)}>
-                        이 패널로 되돌리기
-                      </Button>
-                    </Box>
+                        <Typography variant="body1">문항을 선택하면</Typography>
+                        <Typography variant="body1">여기에서 옵션을 편집할 수 있습니다.</Typography>
+                        <Divider sx={{ my: 2, width: 120 }} />
+                        <Typography variant="caption">
+                          AI 자동 변환 결과는 초안입니다. 반드시 확인·수정하세요.
+                        </Typography>
+                      </Box>
+                    )
                   ) : (
-                    <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-                      <PreviewErrorBoundary>
-                        <FormRenderer key={form.id} schema={form} preview />
-                      </PreviewErrorBoundary>
-                    </Box>
+                    <>
+                      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          mb={metaCollapsed ? 0 : 1.5}
+                        >
+                          <Chip
+                            label={
+                              form.status === 'published'
+                                ? '인증저장'
+                                : form.status === 'archived'
+                                  ? '보관됨'
+                                  : '임시저장'
+                            }
+                            color={form.status === 'published' ? 'primary' : 'default'}
+                            size="small"
+                          />
+                          <Chip label={`v${form.version}`} size="small" variant="outlined" />
+                          {metaCollapsed ? (
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              noWrap
+                              sx={{ flex: 1, minWidth: 0 }}
+                            >
+                              {form.title || '제목 없는 문진'}
+                            </Typography>
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ flex: 1 }}
+                              noWrap
+                            >
+                              {form.id}
+                            </Typography>
+                          )}
+                          <Tooltip title={metaCollapsed ? '문진 정보 펼치기' : '문진 정보 접기'}>
+                            <IconButton size="small" onClick={toggleMeta}>
+                              {metaCollapsed ? (
+                                <ExpandMoreIcon fontSize="small" />
+                              ) : (
+                                <ExpandLessIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                        <Collapse in={!metaCollapsed} timeout="auto" unmountOnExit>
+                          <TextField
+                            label="문진 제목"
+                            size="small"
+                            fullWidth
+                            value={form.title}
+                            onChange={(e) => updateMeta({ title: e.target.value })}
+                            sx={{ mb: 1.5 }}
+                          />
+                          <TextField
+                            label="설명 (선택)"
+                            size="small"
+                            fullWidth
+                            multiline
+                            minRows={2}
+                            value={form.description ?? ''}
+                            onChange={(e) => updateMeta({ description: e.target.value })}
+                            sx={{ mb: 1.5 }}
+                          />
+                          <Autocomplete
+                            freeSolo
+                            options={categories}
+                            value={form.category ?? ''}
+                            onInputChange={(_e, v, reason) => {
+                              if (reason === 'input')
+                                updateMeta({ category: v.trim() || undefined });
+                            }}
+                            onChange={(_e, v) => {
+                              const val = (typeof v === 'string' ? v : (v ?? '')).trim();
+                              updateMeta({ category: val || undefined });
+                              if (val) addCategory(val);
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="분류 (선택)"
+                                size="small"
+                                placeholder="예: 건강검진"
+                              />
+                            )}
+                            sx={{ mb: 1.5 }}
+                          />
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={!!form.testFlag}
+                                onChange={(e) => updateMeta({ testFlag: e.target.checked })}
+                              />
+                            }
+                            label="테스트 대상 (환자 화면에 노출)"
+                          />
+                        </Collapse>
+                      </Paper>
+
+                      {isOverlayForm(form) ? (
+                        <OverlayEditor form={form} />
+                      ) : (
+                        <>
+                          <ComponentPalette
+                            onAdd={(t) => {
+                              const targetSectionId =
+                                activeSectionId ||
+                                selectedSectionId ||
+                                form.sections[form.sections.length - 1]?.id;
+                              if (targetSectionId) addQuestion(targetSectionId, t);
+                            }}
+                          />
+                          <EditorOutline form={form} />
+                        </>
+                      )}
+                    </>
                   )}
                 </Box>
               );
-            }
-            return (
-              <Box
-                sx={{ flexGrow: sizes[key] ?? 1, flexBasis: 0, minWidth: 0, overflowY: 'auto', p: 2.5 }}
-              >
-                {key === 'options' ? (
-                  selectedQuestion && selected ? (
-                    <Paper variant="outlined" sx={{ p: 2.5 }}>
-                      <QuestionEditPanel sectionId={selectedSectionId} question={selectedQuestion} />
-                    </Paper>
-                  ) : (
-                    <Box
-                      sx={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'text.disabled',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Typography variant="body1">문항을 선택하면</Typography>
-                      <Typography variant="body1">여기에서 옵션을 편집할 수 있습니다.</Typography>
-                      <Divider sx={{ my: 2, width: 120 }} />
-                      <Typography variant="caption">
-                        AI 자동 변환 결과는 초안입니다. 반드시 확인·수정하세요.
-                      </Typography>
-                    </Box>
-                  )
-                ) : (
-                  <>
-                    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                      <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        mb={metaCollapsed ? 0 : 1.5}
-                      >
-                        <Chip
-                          label={
-                            form.status === 'published'
-                              ? '인증저장'
-                              : form.status === 'archived'
-                                ? '보관됨'
-                                : '임시저장'
-                          }
-                          color={form.status === 'published' ? 'primary' : 'default'}
-                          size="small"
-                        />
-                        <Chip label={`v${form.version}`} size="small" variant="outlined" />
-                        {metaCollapsed ? (
-                          <Typography
-                            variant="body2"
-                            fontWeight={700}
-                            noWrap
-                            sx={{ flex: 1, minWidth: 0 }}
-                          >
-                            {form.title || '제목 없는 문진'}
-                          </Typography>
-                        ) : (
-                          <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
-                            {form.id}
-                          </Typography>
-                        )}
-                        <Tooltip title={metaCollapsed ? '문진 정보 펼치기' : '문진 정보 접기'}>
-                          <IconButton size="small" onClick={toggleMeta}>
-                            {metaCollapsed ? (
-                              <ExpandMoreIcon fontSize="small" />
-                            ) : (
-                              <ExpandLessIcon fontSize="small" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                      <Collapse in={!metaCollapsed} timeout="auto" unmountOnExit>
-                        <TextField
-                          label="문진 제목"
-                          size="small"
-                          fullWidth
-                          value={form.title}
-                          onChange={(e) => updateMeta({ title: e.target.value })}
-                          sx={{ mb: 1.5 }}
-                        />
-                        <TextField
-                          label="설명 (선택)"
-                          size="small"
-                          fullWidth
-                          multiline
-                          minRows={2}
-                          value={form.description ?? ''}
-                          onChange={(e) => updateMeta({ description: e.target.value })}
-                          sx={{ mb: 1.5 }}
-                        />
-                        <Autocomplete
-                          freeSolo
-                          options={categories}
-                          value={form.category ?? ''}
-                          onInputChange={(_e, v, reason) => {
-                            if (reason === 'input') updateMeta({ category: v.trim() || undefined });
-                          }}
-                          onChange={(_e, v) => {
-                            const val = (typeof v === 'string' ? v : v ?? '').trim();
-                            updateMeta({ category: val || undefined });
-                            if (val) addCategory(val);
-                          }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="분류 (선택)"
-                              size="small"
-                              placeholder="예: 건강검진"
-                            />
-                          )}
-                          sx={{ mb: 1.5 }}
-                        />
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={!!form.testFlag}
-                              onChange={(e) => updateMeta({ testFlag: e.target.checked })}
-                            />
-                          }
-                          label="테스트 대상 (환자 화면에 노출)"
-                        />
-                      </Collapse>
-                    </Paper>
+            };
 
-                    {isOverlayForm(form) ? (
-                      <OverlayEditor form={form} />
-                    ) : (
-                      <>
-                        <ComponentPalette
-                          onAdd={(t) => {
-                            const targetSectionId =
-                              activeSectionId ||
-                              selectedSectionId ||
-                              form.sections[form.sections.length - 1]?.id;
-                            if (targetSectionId) addQuestion(targetSectionId, t);
-                          }}
-                        />
-                        <EditorOutline form={form} />
-                      </>
-                    )}
-                  </>
-                )}
-              </Box>
-            );
-          };
-
-          return visibleKeys.map((key, i) => (
-            <Fragment key={key}>
-              {renderPanel(key)}
-              {i < visibleKeys.length - 1 && dividerNode(key, visibleKeys[i + 1])}
-            </Fragment>
-          ));
-        })()}
-      </Box>
+            return visibleKeys.map((key, i) => (
+              <Fragment key={key}>
+                {renderPanel(key)}
+                {i < visibleKeys.length - 1 && dividerNode(key, visibleKeys[i + 1])}
+              </Fragment>
+            ));
+          })()}
+        </Box>
       )}
 
       {/* 영역 순서 바꾸기 메뉴 */}

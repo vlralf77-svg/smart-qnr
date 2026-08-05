@@ -53,7 +53,11 @@ const LEVEL_COLOR: Record<string, string> = {
 
 function fmtTime(ts: number): string {
   const d = new Date(ts);
-  return d.toLocaleTimeString('ko-KR', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  return (
+    d.toLocaleTimeString('ko-KR', { hour12: false }) +
+    '.' +
+    String(d.getMilliseconds()).padStart(3, '0')
+  );
 }
 
 function LevelChip({ level }: { level: string }) {
@@ -106,7 +110,9 @@ export default function LogViewer() {
     return entries
       .filter((e) => (level === 'all' ? true : e.level === level))
       .filter((e) =>
-        q ? (e.message + ' ' + (e.detail ?? '') + ' ' + (e.actor ?? '')).toLowerCase().includes(q) : true,
+        q
+          ? (e.message + ' ' + (e.detail ?? '') + ' ' + (e.actor ?? '')).toLowerCase().includes(q)
+          : true,
       )
       .slice()
       .reverse(); // 최신이 위로
@@ -177,60 +183,67 @@ export default function LogViewer() {
 
         {/* 도구 모음 (화면/서버 탭 공용) */}
         {tab !== 'central' && (
-        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
-          <TextField
-            size="small"
-            placeholder="메시지 검색"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            sx={{ width: 260 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-          {tab === 'client' && (
+          <Stack
+            direction="row"
+            spacing={1.5}
+            alignItems="center"
+            flexWrap="wrap"
+            useFlexGap
+            sx={{ mb: 1.5 }}
+          >
             <TextField
-              select
               size="small"
-              label="레벨"
-              value={level}
-              onChange={(e) => setLevel(e.target.value as LogLevel | 'all')}
-              sx={{ width: 140 }}
-            >
-              {LEVELS.map((l) => (
-                <MenuItem key={l.value} value={l.value}>
-                  {l.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          )}
-          <Box sx={{ flex: 1 }} />
-          {tab === 'server' && (
-            <Tooltip title="새로고침">
-              <span>
-                <IconButton onClick={loadServer} disabled={!isBackendEnabled || serverLoading}>
-                  <RefreshIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
-          )}
-          <Tooltip title="텍스트로 저장">
-            <IconButton onClick={download}>
-              <DownloadIcon />
-            </IconButton>
-          </Tooltip>
-          {tab === 'client' && (
-            <Tooltip title="화면 로그 지우기">
-              <IconButton onClick={clear} color="error">
-                <DeleteSweepIcon />
+              placeholder="메시지 검색"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              sx={{ width: 260 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {tab === 'client' && (
+              <TextField
+                select
+                size="small"
+                label="레벨"
+                value={level}
+                onChange={(e) => setLevel(e.target.value as LogLevel | 'all')}
+                sx={{ width: 140 }}
+              >
+                {LEVELS.map((l) => (
+                  <MenuItem key={l.value} value={l.value}>
+                    {l.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+            <Box sx={{ flex: 1 }} />
+            {tab === 'server' && (
+              <Tooltip title="새로고침">
+                <span>
+                  <IconButton onClick={loadServer} disabled={!isBackendEnabled || serverLoading}>
+                    <RefreshIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            <Tooltip title="텍스트로 저장">
+              <IconButton onClick={download}>
+                <DownloadIcon />
               </IconButton>
             </Tooltip>
-          )}
-        </Stack>
+            {tab === 'client' && (
+              <Tooltip title="화면 로그 지우기">
+                <IconButton onClick={clear} color="error">
+                  <DeleteSweepIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
         )}
 
         {/* 본문 */}
@@ -270,7 +283,8 @@ export default function LogViewer() {
                 </Button>
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                POST {'{url}'} ← {'{ logs: [...] }'} 로 전송, GET {'{url}?user=&level=&q=&limit='} 로 조회합니다.
+                POST {'{url}'} ← {'{ logs: [...] }'} 로 전송, GET {'{url}?user=&level=&q=&limit='}{' '}
+                로 조회합니다.
                 {logCfg.lastSentAt
                   ? ` · 마지막 전송 ${new Date(logCfg.lastSentAt).toLocaleTimeString('ko-KR')}`
                   : ''}
@@ -319,7 +333,11 @@ export default function LogViewer() {
                   ),
                 }}
               />
-              <Button variant="contained" onClick={() => void runCentralQuery()} disabled={centralLoading}>
+              <Button
+                variant="contained"
+                onClick={() => void runCentralQuery()}
+                disabled={centralLoading}
+              >
                 조회
               </Button>
             </Stack>
@@ -332,28 +350,84 @@ export default function LogViewer() {
               ) : centralErr ? (
                 <Box sx={{ p: 4, textAlign: 'center', color: 'error.main' }}>
                   <Typography sx={{ fontWeight: 700, mb: 0.5 }}>조회하지 못했습니다.</Typography>
-                  <Typography variant="body2" color="text.secondary">{centralErr}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {centralErr}
+                  </Typography>
                 </Box>
               ) : centralLoading ? (
-                <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>불러오는 중…</Typography>
+                <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>
+                  불러오는 중…
+                </Typography>
               ) : central.length === 0 ? (
                 <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>
                   결과가 없습니다. [조회]를 눌러 주세요.
                 </Typography>
               ) : (
-                <Box sx={{ maxHeight: '60vh', overflowY: 'auto', fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: 12.5 }}>
+                <Box
+                  sx={{
+                    maxHeight: '60vh',
+                    overflowY: 'auto',
+                    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                    fontSize: 12.5,
+                  }}
+                >
                   {central.map((r, i) => {
                     const lvl = String(r.level ?? 'info').toLowerCase();
                     const ts = r.ts != null ? new Date(r.ts).toLocaleString('ko-KR') : '';
                     const who = r.userName || r.userId || '';
                     return (
-                      <Box key={i} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', px: 1.5, py: 0.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography component="span" sx={{ color: 'text.disabled', fontSize: 12, whiteSpace: 'nowrap', pt: '2px' }}>{ts}</Typography>
-                        <Box sx={{ pt: '1px' }}><LevelChip level={lvl} /></Box>
-                        <Typography component="div" sx={{ fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
+                      <Box
+                        key={i}
+                        sx={{
+                          display: 'flex',
+                          gap: 1.25,
+                          alignItems: 'flex-start',
+                          px: 1.5,
+                          py: 0.75,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Typography
+                          component="span"
+                          sx={{
+                            color: 'text.disabled',
+                            fontSize: 12,
+                            whiteSpace: 'nowrap',
+                            pt: '2px',
+                          }}
+                        >
+                          {ts}
+                        </Typography>
+                        <Box sx={{ pt: '1px' }}>
+                          <LevelChip level={lvl} />
+                        </Box>
+                        <Typography
+                          component="div"
+                          sx={{
+                            fontSize: 12.5,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            flex: 1,
+                          }}
+                        >
                           {who && (
-                            <Box component="span" sx={{ display: 'inline-block', mr: 0.75, px: 0.6, py: '1px', borderRadius: 0.75, bgcolor: 'action.hover', color: 'text.secondary', fontSize: 11, verticalAlign: 'middle' }}>
-                              {who}{r.department ? `·${r.department}` : ''}
+                            <Box
+                              component="span"
+                              sx={{
+                                display: 'inline-block',
+                                mr: 0.75,
+                                px: 0.6,
+                                py: '1px',
+                                borderRadius: 0.75,
+                                bgcolor: 'action.hover',
+                                color: 'text.secondary',
+                                fontSize: 11,
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              {who}
+                              {r.department ? `·${r.department}` : ''}
                             </Box>
                           )}
                           {r.message != null ? String(r.message) : JSON.stringify(r)}
@@ -393,14 +467,20 @@ export default function LogViewer() {
                       borderColor: 'divider',
                     }}
                   >
-                    <Typography component="span" sx={{ color: 'text.disabled', fontSize: 12, whiteSpace: 'nowrap', pt: '2px' }}>
+                    <Typography
+                      component="span"
+                      sx={{ color: 'text.disabled', fontSize: 12, whiteSpace: 'nowrap', pt: '2px' }}
+                    >
                       {fmtTime(e.ts)}
                     </Typography>
                     <Box sx={{ pt: '1px' }}>
                       <LevelChip level={e.level} />
                     </Box>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography component="div" sx={{ fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      <Typography
+                        component="div"
+                        sx={{ fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                      >
                         {e.actor && (
                           <Box
                             component="span"
@@ -424,7 +504,14 @@ export default function LogViewer() {
                       {e.detail && (
                         <Typography
                           component="pre"
-                          sx={{ m: 0, mt: 0.5, fontSize: 11.5, color: 'text.secondary', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                          sx={{
+                            m: 0,
+                            mt: 0.5,
+                            fontSize: 11.5,
+                            color: 'text.secondary',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}
                         >
                           {e.detail}
                         </Typography>
@@ -439,16 +526,21 @@ export default function LogViewer() {
           <Paper variant="outlined" sx={{ borderRadius: 2, p: 0 }}>
             {!isBackendEnabled ? (
               <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                <Typography sx={{ fontWeight: 700, mb: 1 }}>백엔드(서버)에 연결되어 있지 않습니다.</Typography>
+                <Typography sx={{ fontWeight: 700, mb: 1 }}>
+                  백엔드(서버)에 연결되어 있지 않습니다.
+                </Typography>
                 <Typography variant="body2">
                   서버 로그는 백엔드가 <b>/api/logs</b> 엔드포인트를 제공할 때 표시됩니다.
                   <br />
-                  현재는 오프라인(데스크톱) 모드라 서버 로그가 없습니다. 화면(프론트) 로그 탭을 이용하세요.
+                  현재는 오프라인(데스크톱) 모드라 서버 로그가 없습니다. 화면(프론트) 로그 탭을
+                  이용하세요.
                 </Typography>
               </Box>
             ) : serverErr ? (
               <Box sx={{ p: 4, textAlign: 'center', color: 'error.main' }}>
-                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>서버 로그를 불러오지 못했습니다.</Typography>
+                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
+                  서버 로그를 불러오지 못했습니다.
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {serverErr}
                   <br />
@@ -456,7 +548,9 @@ export default function LogViewer() {
                 </Typography>
               </Box>
             ) : serverLoading ? (
-              <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>불러오는 중…</Typography>
+              <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>
+                불러오는 중…
+              </Typography>
             ) : serverLogs.length === 0 ? (
               <Typography sx={{ p: 4, textAlign: 'center', color: 'text.disabled' }}>
                 서버 로그가 없습니다.
@@ -492,13 +586,29 @@ export default function LogViewer() {
                           borderColor: 'divider',
                         }}
                       >
-                        <Typography component="span" sx={{ color: 'text.disabled', fontSize: 12, whiteSpace: 'nowrap', pt: '2px' }}>
+                        <Typography
+                          component="span"
+                          sx={{
+                            color: 'text.disabled',
+                            fontSize: 12,
+                            whiteSpace: 'nowrap',
+                            pt: '2px',
+                          }}
+                        >
                           {ts}
                         </Typography>
                         <Box sx={{ pt: '1px' }}>
                           <LevelChip level={lvl} />
                         </Box>
-                        <Typography component="div" sx={{ fontSize: 12.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
+                        <Typography
+                          component="div"
+                          sx={{
+                            fontSize: 12.5,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            flex: 1,
+                          }}
+                        >
                           {r.message != null ? String(r.message) : JSON.stringify(r)}
                         </Typography>
                       </Box>

@@ -8,23 +8,27 @@
 ## 1. 사전 준비 (Jenkins 관리자)
 
 ### 플러그인
+
 - **Pipeline**, **Subversion Plugin**(SVN 체크아웃), **NodeJS Plugin**,
   **Docker Pipeline**(선택), **Credentials**.
 
 ### Global Tool Configuration 에 등록 (Jenkinsfile 의 tools 이름과 일치해야 함)
-| 종류 | 이름 | 비고 |
-|------|------|------|
-| NodeJS | `node20` | Node.js 20.x |
-| JDK | `jdk21` | Java 21 (백엔드) |
-| Maven | `maven3` | Maven 3.x (백엔드) |
+
+| 종류   | 이름     | 비고               |
+| ------ | -------- | ------------------ |
+| NodeJS | `node20` | Node.js 20.x       |
+| JDK    | `jdk21`  | Java 21 (백엔드)   |
+| Maven  | `maven3` | Maven 3.x (백엔드) |
 
 ### 에이전트(노드) 라벨
-| 라벨 | 용도 | 필요 도구 |
-|------|------|-----------|
-| `windows` | exe 패키징(electron-builder NSIS) | Node.js, (코드사이닝 시 인증서) |
-| `linux` | 프론트 검증, Maven 빌드, Docker 배포 | Docker, docker compose |
+
+| 라벨      | 용도                                 | 필요 도구                       |
+| --------- | ------------------------------------ | ------------------------------- |
+| `windows` | exe 패키징(electron-builder NSIS)    | Node.js, (코드사이닝 시 인증서) |
+| `linux`   | 프론트 검증, Maven 빌드, Docker 배포 | Docker, docker compose          |
 
 ### 자격증명(Credentials)
+
 - **SVN 계정**: 잡 SCM 에서 사용할 SVN 사용자/비밀번호.
 - (선택) 배포 대상 서버 SSH 키, 코드사이닝 인증서.
 
@@ -48,7 +52,8 @@
 ## 3. 자동 트리거
 
 원하는 방식 택1:
-- **SVN 폴링**: 잡 설정 → *Build Triggers* → **Poll SCM**, 스케줄 `H/5 * * * *`(5분마다 변경 확인).
+
+- **SVN 폴링**: 잡 설정 → _Build Triggers_ → **Poll SCM**, 스케줄 `H/5 * * * *`(5분마다 변경 확인).
 - **커밋 훅(post-commit)**: SVN 서버의 `hooks/post-commit` 에서
   `curl -X POST http://jenkins/job/smartqnr-deploy/build?token=...` 호출(즉시 빌드).
 
@@ -56,21 +61,21 @@
 
 ## 4. 파라미터
 
-| 파라미터 | 기본값 | 설명 |
-|----------|--------|------|
-| `BUILD_EXE` | true | 관리 프로그램(exe) 빌드/배포 |
-| `BUILD_BACKEND` | true | 백엔드 jar 빌드 |
-| `DEPLOY_WEB` | true | Docker 웹 스택 재빌드/기동 |
-| `DEPLOY_HOST` | was-01 | 웹 스택 배포 대상 |
+| 파라미터        | 기본값 | 설명                         |
+| --------------- | ------ | ---------------------------- |
+| `BUILD_EXE`     | true   | 관리 프로그램(exe) 빌드/배포 |
+| `BUILD_BACKEND` | true   | 백엔드 jar 빌드              |
+| `DEPLOY_WEB`    | true   | Docker 웹 스택 재빌드/기동   |
+| `DEPLOY_HOST`   | was-01 | 웹 스택 배포 대상            |
 
 ## 5. 환경변수(자동 업데이트 피드)
 
 `Jenkinsfile` 의 `environment` 에서 사내 환경에 맞게 수정:
 
-| 변수 | 예시 | 설명 |
-|------|------|------|
-| `UPDATE_FEED_URL` | `https://dist.lhospital.local/smartqnr` | 설치 앱이 새 버전을 확인하는 URL |
-| `UPDATE_FEED_DIR` | `/var/www/dist/smartqnr` | 위 URL 이 서빙하는 웹 루트(배포 복사 대상) |
+| 변수              | 예시                                    | 설명                                       |
+| ----------------- | --------------------------------------- | ------------------------------------------ |
+| `UPDATE_FEED_URL` | `https://dist.lhospital.local/smartqnr` | 설치 앱이 새 버전을 확인하는 URL           |
+| `UPDATE_FEED_DIR` | `/var/www/dist/smartqnr`                | 위 URL 이 서빙하는 웹 루트(배포 복사 대상) |
 
 `electron-builder` 를 `--publish never -c.publish.provider=generic -c.publish.url=$UPDATE_FEED_URL`
 로 빌드하므로, 설치 앱의 `app-update.yml` 이 이 피드를 바라봅니다.

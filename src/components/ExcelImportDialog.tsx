@@ -62,7 +62,8 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
     if (bridge?.saveTemplate) {
       try {
         const res = await bridge.saveTemplate();
-        if (res?.ok) setSaved(res.filePath ? `저장됨: ${res.filePath}` : '템플릿이 저장되었습니다.');
+        if (res?.ok)
+          setSaved(res.filePath ? `저장됨: ${res.filePath}` : '템플릿이 저장되었습니다.');
         else if (!res?.canceled) setError(res?.error || '템플릿 저장에 실패했습니다.');
       } catch {
         setError('템플릿 저장에 실패했습니다.');
@@ -110,8 +111,8 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
       <DialogTitle sx={{ fontWeight: 800 }}>엑셀 템플릿으로 문진 만들기</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          제공된 엑셀 템플릿의 <b>‘문진질문’ 시트</b>에 문항을 입력한 뒤 업로드하면 문진이
-          자동으로 만들어집니다. 열: 질문ID·섹션·순서·질문·응답유형·선택지·필수·표시조건·기타입력허용·비고.
+          제공된 엑셀 템플릿의 <b>‘문진질문’ 시트</b>에 문항을 입력한 뒤 업로드하면 문진이 자동으로
+          만들어집니다. 열: 질문ID·섹션·순서·질문·응답유형·선택지·필수·표시조건·기타입력허용·비고.
         </Typography>
         <Alert severity="info" icon={false} sx={{ mb: 2, py: 0.5 }}>
           <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
@@ -186,7 +187,10 @@ export default function ExcelImportDialog({ open, onClose, onImport }: Props) {
             <List dense sx={{ bgcolor: 'action.hover', borderRadius: 2, py: 0.5 }}>
               {result.schema.sections.map((s) => (
                 <ListItem key={s.id} sx={{ py: 0.25 }}>
-                  <DescriptionOutlinedIcon fontSize="small" sx={{ mr: 1, color: 'text.disabled' }} />
+                  <DescriptionOutlinedIcon
+                    fontSize="small"
+                    sx={{ mr: 1, color: 'text.disabled' }}
+                  />
                   <ListItemText
                     primary={s.title}
                     secondary={`${s.questions.length}문항`}

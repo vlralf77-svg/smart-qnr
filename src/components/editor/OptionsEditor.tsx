@@ -39,7 +39,8 @@ interface Props {
 }
 
 export default function OptionsEditor({ sectionId, question }: Props) {
-  const { addOption, updateOption, removeOption, reorderOptions, updateQuestion } = useEditorStore();
+  const { addOption, updateOption, removeOption, reorderOptions, updateQuestion } =
+    useEditorStore();
   const options = question.options ?? [];
 
   const sensors = useSensors(
@@ -100,7 +101,9 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                       sx={{ width: 110 }}
                     />
                     {/* 선택 시 강조 색 — 색을 지정하면 스와치, 없으면 색칠 아이콘 */}
-                    <Tooltip title={o.color ? `강조 색 ${o.color} (클릭해 변경)` : '선택 시 강조 색 지정'}>
+                    <Tooltip
+                      title={o.color ? `강조 색 ${o.color} (클릭해 변경)` : '선택 시 강조 색 지정'}
+                    >
                       <Box sx={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
                         <Box
                           component="input"
@@ -180,9 +183,7 @@ export default function OptionsEditor({ sectionId, question }: Props) {
           <Checkbox
             size="small"
             checked={!!question.allowEtc}
-            onChange={(e) =>
-              updateQuestion(sectionId, question.id, { allowEtc: e.target.checked })
-            }
+            onChange={(e) => updateQuestion(sectionId, question.id, { allowEtc: e.target.checked })}
           />
         }
         label={<Typography variant="body2">'기타(직접입력)' 옵션 자동 추가</Typography>}

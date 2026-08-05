@@ -167,8 +167,14 @@ export async function extractTableCells(
 
   if (hLines.length < 2 || vLines.length < 2) return [];
 
-  const xs = cluster(vLines.map((l) => l.x), tol);
-  const ys = cluster(hLines.map((l) => l.y), tol);
+  const xs = cluster(
+    vLines.map((l) => l.x),
+    tol,
+  );
+  const ys = cluster(
+    hLines.map((l) => l.y),
+    tol,
+  );
   if (xs.length < 2 || ys.length < 2 || xs.length > 80 || ys.length > 120) return [];
 
   const hasH = (y: number, a: number, b: number) =>

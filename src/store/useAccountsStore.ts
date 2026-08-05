@@ -58,7 +58,8 @@ export const useAccountsStore = create<AccountsState>()(
         if (!name) return null;
         // admin(내장) 및 중복 방지
         if (name.toLowerCase() === 'admin') return null;
-        if (get().accounts.some((a) => a.username.toLowerCase() === name.toLowerCase())) return null;
+        if (get().accounts.some((a) => a.username.toLowerCase() === name.toLowerCase()))
+          return null;
         const id = uid();
         set((s) => ({
           accounts: [

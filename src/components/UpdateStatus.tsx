@@ -25,7 +25,11 @@ export default function UpdateStatus() {
   // 자동 사라짐: 최신/에러/다운로드완료는 잠시 후 숨김
   useEffect(() => {
     if (!status) return;
-    if (status.state === 'up-to-date' || status.state === 'error' || status.state === 'downloaded') {
+    if (
+      status.state === 'up-to-date' ||
+      status.state === 'error' ||
+      status.state === 'downloaded'
+    ) {
       const t = setTimeout(() => setStatus(null), status.state === 'downloaded' ? 6000 : 2600);
       return () => clearTimeout(t);
     }
@@ -38,7 +42,11 @@ export default function UpdateStatus() {
   const view = (() => {
     switch (status.state) {
       case 'checking':
-        return { icon: <CircularProgress size={16} thickness={5} />, text: '새 버전 확인 중…', bar: null };
+        return {
+          icon: <CircularProgress size={16} thickness={5} />,
+          text: '새 버전 확인 중…',
+          bar: null,
+        };
       case 'available':
         return {
           icon: <CloudDownloadOutlinedIcon fontSize="small" color="secondary" />,

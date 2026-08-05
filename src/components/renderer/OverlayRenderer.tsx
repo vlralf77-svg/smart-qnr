@@ -69,7 +69,11 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
               onChange={(e) => field.onChange(e.target.checked)}
               onClick={(e) => e.stopPropagation()}
               size="small"
-              sx={{ p: 0, color: 'primary.main', '& .MuiSvgIcon-root': { fontSize: 'min(4vw, 26px)' } }}
+              sx={{
+                p: 0,
+                color: 'primary.main',
+                '& .MuiSvgIcon-root': { fontSize: 'min(4vw, 26px)' },
+              }}
             />
           </Box>
         )}
@@ -127,9 +131,7 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
                       checked={val.includes(o.value)}
                       onChange={(e) =>
                         field.onChange(
-                          e.target.checked
-                            ? [...val, o.value]
-                            : val.filter((v) => v !== o.value),
+                          e.target.checked ? [...val, o.value] : val.filter((v) => v !== o.value),
                         )
                       }
                     />
@@ -156,7 +158,12 @@ function FieldControl({ q, control }: { q: Question; control: Control<Record<str
             {...field}
             size="small"
             fullWidth
-            sx={{ height: '100%', fontSize, color: color ?? undefined, bgcolor: 'rgba(255,255,255,0.9)' }}
+            sx={{
+              height: '100%',
+              fontSize,
+              color: color ?? undefined,
+              bgcolor: 'rgba(255,255,255,0.9)',
+            }}
           >
             {options.map((o) => (
               <MenuItem key={o.id} value={o.value}>

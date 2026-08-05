@@ -75,7 +75,9 @@ export const usePatientStore = create<PatientState>((set) => ({
       return false;
     }
     if (!v) {
-      set({ error: idType === 'rrn' ? '주민등록번호를 입력해 주세요.' : '환자번호를 입력해 주세요.' });
+      set({
+        error: idType === 'rrn' ? '주민등록번호를 입력해 주세요.' : '환자번호를 입력해 주세요.',
+      });
       return false;
     }
     // 주민등록번호 길이 체크(하이픈 제외 13자리)

@@ -60,10 +60,22 @@ import { uid } from '@/utils/id';
 const FMT = 'YYYY-MM-DD';
 // 기간 빠른 선택 프리셋
 const RANGE_PRESETS: { label: string; range: () => { from: string; to: string } }[] = [
-  { label: '최근 7일', range: () => ({ from: dayjs().subtract(6, 'day').format(FMT), to: dayjs().format(FMT) }) },
-  { label: '최근 30일', range: () => ({ from: dayjs().subtract(29, 'day').format(FMT), to: dayjs().format(FMT) }) },
-  { label: '이번 달', range: () => ({ from: dayjs().startOf('month').format(FMT), to: dayjs().format(FMT) }) },
-  { label: '올해', range: () => ({ from: dayjs().startOf('year').format(FMT), to: dayjs().format(FMT) }) },
+  {
+    label: '최근 7일',
+    range: () => ({ from: dayjs().subtract(6, 'day').format(FMT), to: dayjs().format(FMT) }),
+  },
+  {
+    label: '최근 30일',
+    range: () => ({ from: dayjs().subtract(29, 'day').format(FMT), to: dayjs().format(FMT) }),
+  },
+  {
+    label: '이번 달',
+    range: () => ({ from: dayjs().startOf('month').format(FMT), to: dayjs().format(FMT) }),
+  },
+  {
+    label: '올해',
+    range: () => ({ from: dayjs().startOf('year').format(FMT), to: dayjs().format(FMT) }),
+  },
   { label: '전체', range: () => ({ from: '', to: '' }) },
 ];
 
@@ -93,8 +105,26 @@ function useFormResponses(formId: string): FormResponse[] {
 }
 
 // 범주형 팔레트(CVD 검증된 8색) — 라이트/다크. 도넛 세그먼트 식별에 사용.
-const CAT_LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
-const CAT_DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+const CAT_LIGHT = [
+  '#2a78d6',
+  '#eb6834',
+  '#1baf7a',
+  '#eda100',
+  '#e87ba4',
+  '#008300',
+  '#4a3aa7',
+  '#e34948',
+];
+const CAT_DARK = [
+  '#3987e5',
+  '#d95926',
+  '#199e70',
+  '#c98500',
+  '#d55181',
+  '#008300',
+  '#9085e9',
+  '#e66767',
+];
 
 // 도넛(비율) 그래프 — 부분/전체 비율. 범례에 라벨·%·개수를 함께 표기(색만으로 식별하지 않음).
 function DonutChart({ items, answered }: { items: DistItem[]; answered: number }) {
@@ -170,7 +200,13 @@ function DonutChart({ items, answered }: { items: DistItem[]; answered: number }
         {segs.map((s, i) => (
           <Stack key={s.key} direction="row" alignItems="center" spacing={1}>
             <Box
-              sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: colorFor(s, i), flexShrink: 0 }}
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: '3px',
+                bgcolor: colorFor(s, i),
+                flexShrink: 0,
+              }}
             />
             <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }} noWrap title={s.label}>
               {s.label || '(빈 응답)'}
@@ -178,7 +214,11 @@ function DonutChart({ items, answered }: { items: DistItem[]; answered: number }
             <Typography variant="body2" fontWeight={800}>
               {s.pct.toFixed(1)}%
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ width: 38, textAlign: 'right' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ width: 38, textAlign: 'right' }}
+            >
               {s.count}
             </Typography>
           </Stack>
@@ -209,7 +249,11 @@ function DistributionBars({ items, answered }: { items: DistItem[]; answered: nu
             <Typography variant="body2" fontWeight={800}>
               {it.count}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ width: 46, textAlign: 'right' }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ width: 46, textAlign: 'right' }}
+            >
               {it.pct.toFixed(1)}%
             </Typography>
           </Stack>
@@ -275,7 +319,10 @@ function ResultView({ result, chart }: { result: StatResult; chart: ChartKind })
   }
   // 비율(도넛) — 단일선택·예/아니오·단답 등 합계 100% 인 분포에 사용.
   // (복수응답은 합이 100%를 넘어 비율 원형이 오해를 줄 수 있어 막대로 표시)
-  if (chart === 'donut' && (result.kind === 'text' || (result.kind === 'distribution' && !result.multi))) {
+  if (
+    chart === 'donut' &&
+    (result.kind === 'text' || (result.kind === 'distribution' && !result.multi))
+  ) {
     return <DonutChart items={result.items} answered={result.answered} />;
   }
   if (result.kind === 'numeric') {
@@ -403,7 +450,11 @@ function DateRangeField({
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 2, pt: 1.5 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', px: 2, pt: 1.5 }}
+        >
           {fromD && !toD ? '② 종료일을 선택하세요' : '① 시작일을 선택하세요'}
         </Typography>
         <DateCalendar value={toD ?? fromD} onChange={pick} slots={{ day: RangeDay }} />
@@ -508,12 +559,14 @@ function StatCard({ item }: { item: StatItem }) {
   const updateFilter = (id: string, patch: Partial<StatFilter>) =>
     setFilters(filters.map((f) => (f.id === id ? { ...f, ...patch } : f)));
   const removeFilter = (id: string) => setFilters(filters.filter((f) => f.id !== id));
-  const defaultOp = (q?: Question): FilterOp =>
-    q && q.type === 'checkbox' ? 'includes' : 'eq';
+  const defaultOp = (q?: Question): FilterOp => (q && q.type === 'checkbox' ? 'includes' : 'eq');
 
   const allResponses = useFormResponses(item.formId);
   const filtered = useMemo(
-    () => allResponses.filter((r) => withinRange(r.submittedAt, item.from || undefined, item.to || undefined)),
+    () =>
+      allResponses.filter((r) =>
+        withinRange(r.submittedAt, item.from || undefined, item.to || undefined),
+      ),
     [allResponses, item.from, item.to],
   );
   // AND 조건으로 대상 응답을 추림
@@ -584,7 +637,9 @@ function StatCard({ item }: { item: StatItem }) {
           disabled={!form}
           getOptionLabel={(q: Question) => q.label || '(제목 없음)'}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          onChange={(_e, val) => updateItem(item.id, { questionIds: (val as Question[]).map((q) => q.id) })}
+          onChange={(_e, val) =>
+            updateItem(item.id, { questionIds: (val as Question[]).map((q) => q.id) })
+          }
           renderOption={(props, q, { selected }) => (
             <li {...props} key={q.id}>
               <Checkbox
@@ -630,7 +685,14 @@ function StatCard({ item }: { item: StatItem }) {
       </Stack>
 
       {/* 기간 빠른 선택 */}
-      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={0.75}
+        alignItems="center"
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ mb: 2 }}
+      >
         <CalendarMonthOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
         {RANGE_PRESETS.map((p) => {
           const r = p.range();
@@ -660,7 +722,12 @@ function StatCard({ item }: { item: StatItem }) {
           borderColor: 'divider',
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: filters.length ? 1.25 : 0 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ mb: filters.length ? 1.25 : 0 }}
+        >
           <FilterAltOutlinedIcon fontSize="small" color="action" />
           <Typography variant="caption" fontWeight={800} sx={{ flex: 1 }}>
             대상 조건 (AND — 모두 만족하는 응답만 집계)
@@ -674,7 +741,14 @@ function StatCard({ item }: { item: StatItem }) {
             const fq = questions.find((q) => q.id === f.questionId);
             const numeric = fq && (fq.type === 'number' || fq.type === 'scale');
             return (
-              <Stack key={f.id} direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              <Stack
+                key={f.id}
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+                useFlexGap
+              >
                 <TextField
                   select
                   size="small"
@@ -682,7 +756,11 @@ function StatCard({ item }: { item: StatItem }) {
                   value={f.questionId}
                   onChange={(e) => {
                     const nq = questions.find((q) => q.id === e.target.value);
-                    updateFilter(f.id, { questionId: e.target.value, op: defaultOp(nq), value: '' });
+                    updateFilter(f.id, {
+                      questionId: e.target.value,
+                      op: defaultOp(nq),
+                      value: '',
+                    });
                   }}
                   sx={{ minWidth: 180 }}
                 >
@@ -735,7 +813,9 @@ function StatCard({ item }: { item: StatItem }) {
       {!form || selectedQuestions.length === 0 ? (
         <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
           <QueryStatsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
-          <Typography variant="body2">문진과 문항(1개 이상)을 선택하면 통계가 표시됩니다.</Typography>
+          <Typography variant="body2">
+            문진과 문항(1개 이상)을 선택하면 통계가 표시됩니다.
+          </Typography>
         </Box>
       ) : (
         <>
@@ -777,11 +857,22 @@ function StatCard({ item }: { item: StatItem }) {
             {results.map(({ question, result }, i) => (
               <Box key={question.id}>
                 {i > 0 && <Divider sx={{ mb: 2.5 }} />}
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.25 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  useFlexGap
+                  sx={{ mb: 1.25 }}
+                >
                   <Typography variant="subtitle2" fontWeight={800} sx={{ mr: 0.5 }}>
                     {question.label || '(제목 없음)'}
                   </Typography>
-                  <Chip size="small" variant="outlined" label={QUESTION_TYPE_META[question.type]?.label} />
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={QUESTION_TYPE_META[question.type]?.label}
+                  />
                   {result.kind !== 'empty' && (
                     <Chip size="small" variant="outlined" label={`응답 ${result.answered}건`} />
                   )}
@@ -790,7 +881,11 @@ function StatCard({ item }: { item: StatItem }) {
                   )}
                   {result.kind === 'text' && (
                     <Tooltip title="중복을 제외한 고유 답변의 개수">
-                      <Chip size="small" variant="outlined" label={`답변 종류 ${result.distinct}가지`} />
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={`답변 종류 ${result.distinct}가지`}
+                      />
                     </Tooltip>
                   )}
                 </Stack>
@@ -830,12 +925,7 @@ export default function StatsPage() {
       </AppBar>
 
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 2 }}
-        >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
           <Box>
             <Typography variant="h5" fontWeight={800}>
               통계 구성

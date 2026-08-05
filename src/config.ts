@@ -4,5 +4,4 @@
 //
 //  데모 빌드:   VITE_DEMO=1 npm run build   (또는 npm run build:demo)
 //  운영 빌드:   npm run build               (기본값 — 테스트 요소 없음)
-export const IS_DEMO =
-  import.meta.env.VITE_DEMO === '1' || import.meta.env.VITE_DEMO === 'true';
+export const IS_DEMO = import.meta.env.VITE_DEMO === '1' || import.meta.env.VITE_DEMO === 'true';

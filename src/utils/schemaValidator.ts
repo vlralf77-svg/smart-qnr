@@ -161,14 +161,19 @@ export function normalizeToSchema(raw: unknown): NormalizeResult {
 
   if (obj.canvas === true) schema.canvas = true;
   if (obj.testFlag === true) schema.testFlag = true;
-  if (typeof obj.category === 'string' && obj.category.trim()) schema.category = obj.category.trim();
+  if (typeof obj.category === 'string' && obj.category.trim())
+    schema.category = obj.category.trim();
 
   // PDF 배경 페이지 보존
   if (Array.isArray(obj.pages)) {
     const pages: FormPage[] = [];
     for (const raw of obj.pages) {
       const p = (raw ?? {}) as Record<string, unknown>;
-      if (typeof p.image === 'string' && typeof p.width === 'number' && typeof p.height === 'number') {
+      if (
+        typeof p.image === 'string' &&
+        typeof p.width === 'number' &&
+        typeof p.height === 'number'
+      ) {
         const page: FormPage = { image: p.image, width: p.width, height: p.height };
         if (Array.isArray(p.cells)) {
           const cells = p.cells

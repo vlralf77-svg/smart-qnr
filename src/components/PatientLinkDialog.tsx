@@ -67,8 +67,8 @@ export default function PatientLinkDialog({ open, onClose }: Props) {
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 0.5 }}>
           <Typography variant="body2" color="text.secondary">
-            환자번호는 링크에 그대로 노출되지 않고 토큰으로 변환됩니다. 링크를 문자·메신저로
-            보내면 환자는 번호 입력 없이 바로 문진 목록으로 들어갑니다.
+            환자번호는 링크에 그대로 노출되지 않고 토큰으로 변환됩니다. 링크를 문자·메신저로 보내면
+            환자는 번호 입력 없이 바로 문진 목록으로 들어갑니다.
           </Typography>
 
           <TextField
@@ -125,7 +125,12 @@ export default function PatientLinkDialog({ open, onClose }: Props) {
         </Stack>
 
         <Box sx={{ mt: 2 }}>
-          <Button variant="contained" startIcon={<ContentCopyIcon />} onClick={copy} disabled={!link}>
+          <Button
+            variant="contained"
+            startIcon={<ContentCopyIcon />}
+            onClick={copy}
+            disabled={!link}
+          >
             링크 복사
           </Button>
         </Box>

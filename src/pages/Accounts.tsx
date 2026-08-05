@@ -39,7 +39,12 @@ const PERM_LABELS: { key: keyof Permissions; label: string; hint: string }[] = [
   { key: 'manageAccounts', label: '계정관리', hint: '계정 생성·권한 부여' },
 ];
 
-const DEFAULT_PERMS: Permissions = { view: true, edit: false, delete: false, manageAccounts: false };
+const DEFAULT_PERMS: Permissions = {
+  view: true,
+  edit: false,
+  delete: false,
+  manageAccounts: false,
+};
 
 export default function Accounts() {
   const navigate = useNavigate();
@@ -151,9 +156,7 @@ export default function Accounts() {
                     <Checkbox
                       size="small"
                       checked={perms[p.key]}
-                      onChange={(e) =>
-                        setPerms((prev) => ({ ...prev, [p.key]: e.target.checked }))
-                      }
+                      onChange={(e) => setPerms((prev) => ({ ...prev, [p.key]: e.target.checked }))}
                     />
                   }
                   label={p.label}
@@ -161,11 +164,7 @@ export default function Accounts() {
               </Tooltip>
             ))}
             <Box sx={{ flex: 1 }} />
-            <Button
-              variant="contained"
-              startIcon={<PersonAddAlt1Icon />}
-              onClick={handleAdd}
-            >
+            <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={handleAdd}>
               계정 추가
             </Button>
           </Stack>
@@ -261,7 +260,11 @@ export default function Accounts() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="계정 삭제">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(a.id, a.username)}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(a.id, a.username)}
+                      >
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -272,7 +275,11 @@ export default function Accounts() {
               {accounts.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8}>
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ py: 2, textAlign: 'center' }}
+                    >
                       추가된 계정이 없습니다. 위에서 새 계정을 만들어 권한을 부여하세요.
                     </Typography>
                   </TableCell>
@@ -283,8 +290,8 @@ export default function Accounts() {
         </Paper>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-          권한 체크박스는 즉시 저장됩니다. 조회=목록·응답 보기, 수정=문진 생성·편집·인증저장, 삭제=문진
-          삭제, 계정관리=이 화면 접근.
+          권한 체크박스는 즉시 저장됩니다. 조회=목록·응답 보기, 수정=문진 생성·편집·인증저장,
+          삭제=문진 삭제, 계정관리=이 화면 접근.
         </Typography>
       </Container>
 
