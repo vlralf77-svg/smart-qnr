@@ -6,7 +6,7 @@
 
 | 요구사항      | 요구값                              | 현재                                                                                                            | 판정 |
 | ------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---- |
-| 런타임        | Node.js v22 LTS↑                    | CI/빌드 Node 22, `engines: node>=22`, web Dockerfile `node:22-alpine`                                           | ✅   |
+| 런타임        | Node.js v22 LTS↑                    | CI/빌드 Node 22, `engines: node>=22`, `.nvmrc`(22), web Dockerfile `node:22-alpine` (개발 PC도 22로 통일 필요)  | ✅   |
 | 개발 언어     | TypeScript ES2024                   | TS 5.9, tsconfig `target/lib ES2024`, Vite `esnext`                                                             | ✅   |
 | 프레임워크    | React v19↑                          | React 19 (함수형 컴포넌트)                                                                                      | ✅   |
 | 상태관리      | Zustand + 미들웨어                  | Zustand 4.5, `persist` + `devtools`                                                                             | ✅   |
