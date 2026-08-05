@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,5 +51,21 @@ public class OpenApiConfig {
                         .description("관리자 API는 로그인(/api/auth/login) 후 발급된 JWT 를 Bearer 토큰으로 전달")))
         // 기본 보안 요구(공개 API는 컨트롤러에서 별도 표시 가능)
         .addSecurityItem(new SecurityRequirement().addList(BEARER));
+  }
+
+  /** REST API 그룹 — /api/** 의 모든 REST 컨트롤러. */
+  @Bean
+  public GroupedOpenApi restApiGroup() {
+    return GroupedOpenApi.builder().group("rest-api").pathsToMatch("/api/**").build();
+  }
+
+  /** View 컨트롤러 그룹 — 서버 렌더링(Thymeleaf) 뷰 엔드포인트도 OpenAPI 로 문서화. */
+  @Bean
+  public GroupedOpenApi viewGroup() {
+    return GroupedOpenApi.builder()
+        .group("view")
+        .pathsToMatch("/console", "/")
+        .packagesToScan("com.lhospital.smartqnr.web")
+        .build();
   }
 }

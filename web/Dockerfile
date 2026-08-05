@@ -1,6 +1,6 @@
 # 프론트(웹) 이미지 — Vite 빌드 후 nginx 로 서빙
 # 컨텍스트는 저장소 루트(프론트 소스 전체 필요)
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 # Electron 바이너리 다운로드 불필요(웹 빌드) — 스킵해 빌드 가속/안정화
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
@@ -14,7 +14,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_USE_BACKEND=1
 RUN npm run build
 
-FROM nginx:1.27-alpine
+# nginx 최신 Stable(alpine) — stable 태그로 최신 안정 버전 추종
+FROM nginx:stable-alpine
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

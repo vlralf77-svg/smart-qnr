@@ -1,0 +1,30 @@
+# SmartQnR 검증(staging)용 오버레이 — 기본 compose 와 함께 사용:
+#   docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --build
+#
+#  목적: 운영 배포 전 검증 환경. 운영에 준하는 보안 설정을 적용하되,
+#        검증 편의를 위해 스키마 자동검증·완화된 잠금 등 검증값을 사용한다.
+#        (개발=docker-compose.yml, 검증=이 파일, 운영=docker-compose.prod.yml)
+services:
+  db:
+    ports: [] # 외부 노출 차단(내부 네트워크에서만 접근)
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 설정하세요}
+
+  backend:
+    ports: [] # 외부 노출 차단(web 프록시 통해서만 접근)
+    environment:
+      APP_VERSION: ${APP_VERSION:-staging}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD 를 설정하세요}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET(랜덤 32B+) 를 설정하세요}
+      # 검증 환경: 스키마 검증만(운영과 동일). 필요 시 update 로 조정
+      JPA_DDL_AUTO: ${JPA_DDL_AUTO:-validate}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:?AUTH_PASSWORD_HASH(BCrypt) 를 설정하세요}
+      AUTH_PASSWORD: '' # 평문 폴백 비활성화
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?DATA_ENCRYPTION_KEY(Base64 32B) 를 설정하세요}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS 를 설정하세요}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-10}
+      LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-5}
+
+  web:
+    ports:
+      - '80:80'
