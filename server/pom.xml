@@ -18,7 +18,7 @@
   <description>SmartQnR 문진 백엔드 (Spring Boot + PostgreSQL)</description>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <jjwt.version>0.12.6</jjwt.version>
     <springdoc.version>3.1.0</springdoc.version>
   </properties>
@@ -27,6 +27,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- 서버 렌더링 뷰(템플릿 엔진) — Thymeleaf 필수 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

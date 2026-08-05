@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="${appName}">SmartQnR</title>
+    <style>
+      body {
+        font-family:
+          'Noto Sans KR', -apple-system, 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 48px 24px;
+        background: #f2f6f4;
+        color: #12213a;
+      }
+      .card {
+        max-width: 520px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 20px 50px -20px rgba(15, 30, 46, 0.35);
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 22px;
+      }
+      .ver {
+        color: #167c50;
+        font-weight: 800;
+      }
+      ul {
+        padding-left: 18px;
+        line-height: 2;
+      }
+      a {
+        color: #0d7d52;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1 th:text="${appName} + ' 서버'">SmartQnR 서버</h1>
+      <p>버전: <span class="ver" th:text="${appVersion}">0.0.0</span> · 상태: 정상 동작 중</p>
+      <ul>
+        <li><a th:href="@{/swagger-ui.html}">API 문서 (Swagger UI)</a></li>
+        <li><a th:href="@{/v3/api-docs}">OpenAPI 3.0 JSON</a></li>
+      </ul>
+    </div>
+  </body>
+</html>
