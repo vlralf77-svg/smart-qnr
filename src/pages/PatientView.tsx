@@ -21,6 +21,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
+import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -118,6 +119,8 @@ export default function PatientView() {
   }, [formId]);
 
   const answers = response?.answers ?? {};
+  // 채점 총점(문진에 채점 문항/설정이 있을 때만)
+  const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
   const isMobile = useIsMobileLayout();
   // 순서 = 섹션 순서 → 섹션 내 읽기순서. 그 순서대로 전체 질문 번호 매김(안내문 제외)
@@ -258,6 +261,66 @@ export default function PatientView() {
                 </Typography>
               </Stack>
             </Box>
+
+            {/* ───────── 채점 총점 요약 ───────── */}
+            {score && (
+              <Paper
+                elevation={0}
+                sx={{
+                  mb: 2.5,
+                  p: { xs: 2, sm: 2.5 },
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
+                }}
+              >
+                <Stack
+                  direction="row"
+                  alignItems="baseline"
+                  spacing={1.5}
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'text.secondary' }}>
+                    {scoringLabel(form!)}
+                  </Typography>
+                  <Typography sx={{ fontSize: 26, fontWeight: 800, lineHeight: 1 }}>
+                    {score.total}
+                    {score.max > 0 && (
+                      <Typography
+                        component="span"
+                        sx={{ fontSize: 15, fontWeight: 600, color: 'text.disabled', ml: 0.5 }}
+                      >
+                        / {score.max}
+                      </Typography>
+                    )}
+                  </Typography>
+                  {score.band && (
+                    <Box
+                      sx={{
+                        px: 1.25,
+                        py: 0.4,
+                        borderRadius: 999,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#fff',
+                        bgcolor: score.band.color ?? 'primary.main',
+                      }}
+                    >
+                      {score.band.label}
+                    </Box>
+                  )}
+                </Stack>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, display: 'block' }}
+                >
+                  채점 문항 {score.scoredCount}개 합산 결과
+                </Typography>
+              </Paper>
+            )}
 
             {isMobile ? (
               /* ───────── 모바일: 카드 리스트(라벨 위 / 값 아래) ───────── */

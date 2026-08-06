@@ -68,7 +68,7 @@ interface EditorState {
 
   // 폼 메타
   updateMeta: (
-    patch: Partial<Pick<FormSchema, 'title' | 'description' | 'testFlag' | 'category'>>,
+    patch: Partial<Pick<FormSchema, 'title' | 'description' | 'testFlag' | 'category' | 'scoring'>>,
   ) => void;
 
   // 섹션

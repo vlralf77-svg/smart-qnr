@@ -43,6 +43,7 @@ import { useCategoriesStore } from '@/store/useCategoriesStore';
 import EditorOutline from '@/components/editor/EditorOutline';
 import OverlayEditor from '@/components/editor/OverlayEditor';
 import QuestionEditPanel from '@/components/editor/QuestionEditPanel';
+import ScoringEditor from '@/components/editor/ScoringEditor';
 import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPalette';
 import TableEditor from '@/components/editor/TableEditor';
 import FocusEditor from '@/components/editor/FocusEditor';
@@ -758,6 +759,7 @@ export default function FormEditor() {
                             }
                             label="테스트 대상 (환자 화면에 노출)"
                           />
+                          <ScoringEditor scoring={form.scoring} />
                         </Collapse>
                       </Paper>
 

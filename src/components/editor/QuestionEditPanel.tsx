@@ -20,6 +20,7 @@ import {
   QUESTION_TYPE_META,
   QUESTION_TYPE_ORDER,
   OPTION_TYPES,
+  SCORABLE_TYPES,
 } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import { fileToResizedDataUrl } from '@/utils/image';
@@ -322,6 +323,31 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
             }
             label="필수 응답"
           />
+
+          {/* 채점: 선택형·척도·숫자 문항만 총점 계산에 포함 가능 */}
+          {SCORABLE_TYPES.includes(question.type) && (
+            <Box sx={{ alignSelf: 'flex-start' }}>
+              <FormControlLabel
+                sx={{ mr: 0 }}
+                control={
+                  <Switch
+                    checked={!!question.scored}
+                    onChange={(e) =>
+                      updateQuestion(sectionId, question.id, { scored: e.target.checked })
+                    }
+                  />
+                }
+                label="채점(총점 계산에 포함)"
+              />
+              {question.scored && (
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {OPTION_TYPES.includes(question.type)
+                    ? '아래 선택지마다 점수를 입력하세요. (복수 선택은 고른 점수를 합산)'
+                    : '응답한 숫자 값이 그대로 점수로 합산됩니다.'}
+                </Typography>
+              )}
+            </Box>
+          )}
         </>
       )}
 

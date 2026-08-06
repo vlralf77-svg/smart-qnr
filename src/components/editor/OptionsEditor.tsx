@@ -100,6 +100,24 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                       }
                       sx={{ width: 110 }}
                     />
+                    {/* 채점 점수 — 문항 채점이 켜진 경우에만 노출 */}
+                    {question.scored && (
+                      <TextField
+                        size="small"
+                        type="number"
+                        label="점수"
+                        value={o.score ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.trim();
+                          const n = raw === '' ? undefined : Number(raw);
+                          updateOption(sectionId, question.id, o.id, {
+                            score: n != null && Number.isFinite(n) ? n : undefined,
+                          });
+                        }}
+                        inputProps={{ inputMode: 'numeric', style: { textAlign: 'right' } }}
+                        sx={{ width: 84 }}
+                      />
+                    )}
                     {/* 선택 시 강조 색 — 색을 지정하면 스와치, 없으면 색칠 아이콘 */}
                     <Tooltip
                       title={o.color ? `강조 색 ${o.color} (클릭해 변경)` : '선택 시 강조 색 지정'}

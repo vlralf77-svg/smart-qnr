@@ -44,6 +44,8 @@ export interface QuestionOption {
   value: string;
   /** 이 선택지가 선택되면 강조 표시할 색(CSS color). 지정 시 입력·조회에서 하이라이트 */
   color?: string;
+  /** 채점 점수 — 이 선택지를 고르면 합산되는 점수(문항 채점 사용 시). 미지정=0점 */
+  score?: number;
 }
 
 /** 에디터 캔버스 상의 위치·크기 (12열 그리드 단위). 없으면 문항 순서대로 자동 배치. */
@@ -106,12 +108,35 @@ export interface Question {
   color?: string;
   /** 참고 이미지(type='image')의 이미지 데이터 URL */
   image?: string;
+  /** 채점 대상 문항 여부. true 면 이 문항의 응답이 총점 계산에 포함된다. (선택형·척도·숫자만) */
+  scored?: boolean;
 }
 
 export interface Section {
   id: string;
   title: string;
   questions: Question[];
+}
+
+/** 채점을 지원하는 문항 유형 */
+export const SCORABLE_TYPES: QuestionType[] = ['radio', 'select', 'checkbox', 'scale', 'number'];
+
+/** 총점 해석 구간(밴드) — 예: 0~4 정상, 5~9 경도, 10~ 중등도 */
+export interface ScoreBand {
+  id: string;
+  min: number; // 이 값 이상
+  max: number; // 이 값 이하
+  label: string; // 해석 라벨(예: '경도 우울')
+  color?: string; // 표시 색(선택)
+}
+
+/** 문진 단위 채점 설정 */
+export interface FormScoring {
+  enabled: boolean;
+  /** 총점 명칭(예: '우울 점수'). 미지정 시 '총점' */
+  label?: string;
+  /** 총점 해석 구간 */
+  bands?: ScoreBand[];
 }
 
 export type FormStatus = 'draft' | 'published' | 'archived';
@@ -131,6 +156,8 @@ export interface FormSchema {
   testFlag?: boolean;
   /** 문진 분류(카테고리) — 목록에서 필터링/정리에 사용 */
   category?: string;
+  /** 문항별 점수 채점·총점 계산 설정 */
+  scoring?: FormScoring;
   createdAt?: string;
   updatedAt?: string;
 }
