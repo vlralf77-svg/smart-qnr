@@ -110,6 +110,8 @@ export interface Question {
   image?: string;
   /** 채점 대상 문항 여부. true 면 이 문항의 응답이 총점 계산에 포함된다. (선택형·척도·숫자만) */
   scored?: boolean;
+  /** 척도·숫자 문항의 값 구간 → 점수 매핑. 규칙이 있으면 값 대신 매핑 점수를 사용(없으면 값 그대로). */
+  scoreMap?: ScoreMapRule[];
 }
 
 export interface Section {
@@ -120,6 +122,14 @@ export interface Section {
 
 /** 채점을 지원하는 문항 유형 */
 export const SCORABLE_TYPES: QuestionType[] = ['radio', 'select', 'checkbox', 'scale', 'number'];
+
+/** 척도·숫자 문항의 값 구간 → 점수 매핑 규칙 (예: 0~3 → 1점) */
+export interface ScoreMapRule {
+  id: string;
+  min: number; // 이 값 이상
+  max: number; // 이 값 이하
+  score: number; // 이 구간에 해당하면 부여할 점수
+}
 
 /** 총점 해석 구간(밴드) — 예: 0~4 정상, 5~9 경도, 10~ 중등도 */
 export interface ScoreBand {

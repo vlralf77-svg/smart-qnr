@@ -25,6 +25,7 @@ import {
 import { useEditorStore } from '@/store/useEditorStore';
 import { fileToResizedDataUrl } from '@/utils/image';
 import OptionsEditor from './OptionsEditor';
+import ScoreMapEditor from './ScoreMapEditor';
 import ConditionEditor from './ConditionEditor';
 
 const FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 32];
@@ -343,7 +344,7 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
                 <Typography variant="caption" color="text.secondary" display="block">
                   {OPTION_TYPES.includes(question.type)
                     ? '아래 선택지마다 점수를 입력하세요. (복수 선택은 고른 점수를 합산)'
-                    : '응답한 숫자 값이 그대로 점수로 합산됩니다.'}
+                    : '응답 숫자 값이 그대로 합산됩니다. 아래 "값 → 점수 매핑"으로 구간별 점수를 줄 수도 있습니다.'}
                 </Typography>
               )}
             </Box>
@@ -387,6 +388,8 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
                 />
               )}
             </Stack>
+            {/* 채점 켜진 척도·숫자 문항: 값 구간 → 점수 매핑 */}
+            {question.scored && <ScoreMapEditor sectionId={sectionId} question={question} />}
           </Box>
         </>
       )}

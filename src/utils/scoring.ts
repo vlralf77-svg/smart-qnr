@@ -36,7 +36,13 @@ export function questionScore(q: Question, answer: AnswerValue): number {
     case 'scale':
     case 'number': {
       const n = typeof answer === 'number' ? answer : Number(answer);
-      return Number.isFinite(n) ? n : 0;
+      if (!Number.isFinite(n)) return 0;
+      const rules = q.scoreMap ?? [];
+      if (rules.length > 0) {
+        const rule = rules.find((r) => n >= r.min && n <= r.max);
+        return rule ? rule.score : 0;
+      }
+      return n; // 매핑 없으면 값 그대로 점수
     }
     default:
       return 0;
@@ -55,8 +61,14 @@ export function questionMaxScore(q: Question): number {
     case 'checkbox':
       return (q.options ?? []).reduce((sum, o) => sum + Math.max(0, optionScore(o)), 0);
     case 'scale':
-    case 'number':
+    case 'number': {
+      const rules = q.scoreMap ?? [];
+      if (rules.length > 0) {
+        const scores = rules.map((r) => r.score);
+        return scores.length ? Math.max(0, ...scores) : 0;
+      }
       return typeof q.max === 'number' && Number.isFinite(q.max) ? q.max : 0;
+    }
     default:
       return 0;
   }
