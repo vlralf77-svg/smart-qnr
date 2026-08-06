@@ -105,6 +105,44 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec web nginx -
 
 ---
 
+## 방식 C) 기존 병원 인증서 재사용 (다른 서버에서 쓰던 인증서)
+
+인증서는 **장비가 아니라 도메인**에 묶인다. 새 서버에서 **사용자가 접속하는 도메인이 그 인증서에
+포함**되어 있으면(같은 도메인 / 와일드카드 `*.hospital.co.kr` / SAN 에 포함) 그대로 재사용 가능하다.
+
+### 재사용 가능 여부
+
+| 상황                                       | 가능                     |
+| ------------------------------------------ | ------------------------ |
+| 새 서버도 같은 도메인으로 접속             | ✅                       |
+| 와일드카드 인증서(`*.hospital.co.kr`) 하위 | ✅                       |
+| 인증서 SAN 에 새 서버 도메인 포함          | ✅                       |
+| 인증서에 없는 다른 도메인으로 접속         | ❌ 재발급/ SAN 추가 필요 |
+
+### 절차
+
+1. 기존 서버(또는 발급 시 받은 파일)에서 **인증서 + 개인키**를 확보한다. (개인키가 없으면 재사용 불가)
+2. 아래 형태로 새 서버 `certs/` 에 배치:
+   ```
+   certs/fullchain.pem   # 서버 인증서 + 중간 체인
+   certs/privkey.pem     # 개인키(비밀번호 없는 PEM)
+   ```
+   - `.pfx/.p12` 만 있으면 변환:
+     `openssl pkcs12 -in cert.pfx -nocerts -nodes -out certs/privkey.pem`
+     `openssl pkcs12 -in cert.pfx -clcerts -nokeys -out certs/fullchain.pem`
+3. `nginx.https.conf` `server_name` 을 그 인증서의 도메인으로 설정.
+4. 그 도메인의 DNS 가 새 서버(또는 로드밸런서)를 가리키게 한다.
+5. 기동: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build`
+
+### 주의
+
+- **개인키 보안**: 키 이동 시 안전하게. (저장소는 `.gitignore` 로 커밋 차단)
+- **만료 공유**: 같은 인증서라 만료일 동일 → 갱신 시 두 서버 모두 교체.
+- **상용 CA 라이선스**: 기술적으로는 동작하나, 계약상 "서버당 라이선스"일 수 있으니 발급처·전산팀 확인.
+- **도메인 불일치 시**: 새 도메인이 인증서에 없으면 경고가 뜨므로, 해당 도메인을 SAN 에 추가해 재발급하거나 새 인증서를 발급해야 한다.
+
+---
+
 ## 2. 적용 확인
 
 ```bash
