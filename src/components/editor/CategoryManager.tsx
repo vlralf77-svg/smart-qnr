@@ -27,6 +27,7 @@ import {
   makeCategoryPath,
 } from '@/store/useCategoriesStore';
 import { useFormsStore } from '@/store/useFormsStore';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Props {
   open: boolean;
@@ -46,6 +47,8 @@ export default function CategoryManager({ open, onClose }: Props) {
     isParent: boolean;
     value: string;
   } | null>(null);
+  // 삭제 확인 다이얼로그 상태 (window.confirm 대체 — 테마 적용 인앱 다이얼로그)
+  const [removeState, setRemoveState] = useState<{ path: string; isParent: boolean } | null>(null);
 
   // 트리 구성: 대분류 목록(명시 + 하위경로에서 유추) + 대분류별 하위경로
   const tree = useMemo(() => {
@@ -136,16 +139,11 @@ export default function CategoryManager({ open, onClose }: Props) {
     setRenameState(null);
   };
 
-  const handleRemove = (path: string, isParent: boolean) => {
-    const n = usageUnder(path);
-    const extra = isParent ? ' (하위 분류도 함께 삭제됩니다)' : '';
-    const msg =
-      n > 0
-        ? `"${path}"${extra}\n이 분류의 문진 ${n}개는 분류 없음으로 바뀝니다. 삭제할까요?`
-        : `"${path}" 분류를 삭제할까요?${extra}`;
-    if (!window.confirm(msg)) return;
-    removeCategory(path);
-    dropForms(path);
+  const confirmRemove = () => {
+    if (!removeState) return;
+    removeCategory(removeState.path);
+    dropForms(removeState.path);
+    setRemoveState(null);
   };
 
   return (
@@ -242,7 +240,7 @@ export default function CategoryManager({ open, onClose }: Props) {
                       size="small"
                       color="error"
                       sx={{ p: 0.5 }}
-                      onClick={() => handleRemove(parent, true)}
+                      onClick={() => setRemoveState({ path: parent, isParent: true })}
                     >
                       <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                     </IconButton>
@@ -280,7 +278,7 @@ export default function CategoryManager({ open, onClose }: Props) {
                           size="small"
                           color="error"
                           sx={{ p: 0.5 }}
-                          onClick={() => handleRemove(path, false)}
+                          onClick={() => setRemoveState({ path, isParent: false })}
                         >
                           <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                         </IconButton>
@@ -368,6 +366,34 @@ export default function CategoryManager({ open, onClose }: Props) {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 삭제 확인 다이얼로그 (window.confirm 대체 — 테마 적용) */}
+      <ConfirmDialog
+        open={removeState != null}
+        title={removeState?.isParent ? '대분류 삭제' : '하위 분류 삭제'}
+        icon={<DeleteOutlineIcon sx={{ fontSize: 32 }} />}
+        iconBg="rgba(214,69,69,0.14)"
+        iconColor="#d64545"
+        confirmLabel="삭제"
+        confirmColor="#d64545"
+        confirmHoverColor="#b53a3a"
+        message={
+          removeState ? (
+            <>
+              <b>&quot;{removeState.path}&quot;</b>
+              {removeState.isParent ? ' (하위 분류도 함께 삭제됩니다)' : ''} 분류를 삭제할까요?
+              {usageUnder(removeState.path) > 0 && (
+                <>
+                  <br />이 분류의 문진 {usageUnder(removeState.path)}개는 &lsquo;분류
+                  없음&rsquo;으로 바뀝니다.
+                </>
+              )}
+            </>
+          ) : undefined
+        }
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoveState(null)}
+      />
     </Dialog>
   );
 }
