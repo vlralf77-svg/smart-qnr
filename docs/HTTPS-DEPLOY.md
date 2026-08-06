@@ -15,9 +15,22 @@
 > 외부 사용자 브라우저에 경고 없이 자물쇠가 뜨려면 **"도메인 + 그 도메인용 공인 인증서"** 가 반드시 필요하다.
 > IP 만으로는 공인 인증서를 받기 어렵고, 자체 서명은 외부 사용자 전원에게 경고가 뜨므로 공개 서비스에 부적합.
 
-## 1. 공통 — nginx 설정
+## 1. 도메인 지정 위치 (한 도메인을 아래에 동일하게)
 
-`web/nginx.https.conf` 의 도메인을 실제 값으로 변경:
+도메인은 DNS(인프라)와 시스템 설정 몇 곳에 같은 값을 맞춘다. 예: `qnr.hospital.co.kr`
+
+| 순서 | 위치                               | 설정                                                                          |
+| ---- | ---------------------------------- | ----------------------------------------------------------------------------- |
+| ①    | **DNS A 레코드** (등록처/DNS 콘솔) | `qnr.hospital.co.kr` → 서버 공인 IP                                           |
+| ②    | **nginx** `web/nginx.https.conf`   | `server_name qnr.hospital.co.kr;`                                             |
+| ③    | **백엔드 CORS** `.env`             | `CORS_ALLOWED_ORIGINS=https://qnr.hospital.co.kr`                             |
+| ④    | **환자 접속 주소**                 | 웹 접속 시 자동(현재 주소 사용). Electron 링크 생성 시만 대화상자에 직접 입력 |
+| ⑤    | **인증서** `certs/`                | 그 도메인용 `fullchain.pem`·`privkey.pem`                                     |
+
+- ① 이 근본. 설정 후 확인: `nslookup qnr.hospital.co.kr`
+- ③ 을 빠뜨리면 브라우저가 API 호출을 CORS 로 차단하므로 반드시 도메인을 넣는다.
+
+### nginx 예시
 
 ```nginx
 server_name qnr.hospital.co.kr;   # ← 실제 도메인
