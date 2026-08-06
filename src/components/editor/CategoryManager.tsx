@@ -40,6 +40,12 @@ export default function CategoryManager({ open, onClose }: Props) {
   const saveForm = useFormsStore((s) => s.saveForm);
   const [newParent, setNewParent] = useState('');
   const [subInput, setSubInput] = useState<Record<string, string>>({});
+  // 이름 변경 다이얼로그 상태 (Electron 은 window.prompt 를 지원하지 않아 인앱 입력창 사용)
+  const [renameState, setRenameState] = useState<{
+    path: string;
+    isParent: boolean;
+    value: string;
+  } | null>(null);
 
   // 트리 구성: 대분류 목록(명시 + 하위경로에서 유추) + 대분류별 하위경로
   const tree = useMemo(() => {
@@ -102,32 +108,32 @@ export default function CategoryManager({ open, onClose }: Props) {
     setSubInput((m) => ({ ...m, [parent]: '' }));
   };
 
-  const handleRenameParent = (parent: string) => {
-    const v = window.prompt('대분류 이름 변경', parent);
-    if (v == null) return;
-    const next = v.trim();
-    if (!next || next === parent) return;
-    if (next.includes(CATEGORY_SEP)) {
-      window.alert(`'${CATEGORY_SEP.trim()}' 는 쓸 수 없습니다.`);
-      return;
-    }
-    renameCategory(parent, next);
-    remapForms(parent, next);
-  };
+  // 이름 변경 다이얼로그 열기(대분류/하위 공통)
+  const openRename = (path: string, isParent: boolean) =>
+    setRenameState({
+      path,
+      isParent,
+      value: isParent ? path : (splitCategory(path).child ?? ''),
+    });
 
-  const handleRenameChild = (path: string) => {
-    const { parent, child } = splitCategory(path);
-    const v = window.prompt('하위 분류 이름 변경', child ?? '');
-    if (v == null) return;
-    const next = v.trim();
-    if (!next || next === child) return;
+  // 이름 변경 확정
+  const confirmRename = () => {
+    if (!renameState) return;
+    const { path, isParent, value } = renameState;
+    const next = value.trim();
+    const current = isParent ? path : (splitCategory(path).child ?? '');
+    if (!next || next === current) {
+      setRenameState(null);
+      return;
+    }
     if (next.includes(CATEGORY_SEP)) {
       window.alert(`'${CATEGORY_SEP.trim()}' 는 쓸 수 없습니다.`);
       return;
     }
-    const newPath = makeCategoryPath(parent, next);
+    const newPath = isParent ? next : makeCategoryPath(splitCategory(path).parent, next);
     renameCategory(path, newPath);
     remapForms(path, newPath);
+    setRenameState(null);
   };
 
   const handleRemove = (path: string, isParent: boolean) => {
@@ -226,7 +232,7 @@ export default function CategoryManager({ open, onClose }: Props) {
                     <IconButton
                       size="small"
                       sx={{ p: 0.5 }}
-                      onClick={() => handleRenameParent(parent)}
+                      onClick={() => openRename(parent, true)}
                     >
                       <EditIcon sx={{ fontSize: 16 }} />
                     </IconButton>
@@ -264,7 +270,7 @@ export default function CategoryManager({ open, onClose }: Props) {
                         <IconButton
                           size="small"
                           sx={{ p: 0.5 }}
-                          onClick={() => handleRenameChild(path)}
+                          onClick={() => openRename(path, false)}
                         >
                           <EditIcon sx={{ fontSize: 16 }} />
                         </IconButton>
@@ -327,6 +333,41 @@ export default function CategoryManager({ open, onClose }: Props) {
       <DialogActions>
         <Button onClick={onClose}>닫기</Button>
       </DialogActions>
+
+      {/* 이름 변경 입력 다이얼로그 (Electron 호환 — window.prompt 대체) */}
+      <Dialog
+        open={renameState != null}
+        onClose={() => setRenameState(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {renameState?.isParent ? '대분류 이름 변경' : '하위 분류 이름 변경'}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="새 이름"
+            value={renameState?.value ?? ''}
+            onChange={(e) => setRenameState((s) => (s ? { ...s, value: e.target.value } : s))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmRename();
+              }
+            }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRenameState(null)}>취소</Button>
+          <Button variant="contained" onClick={confirmRename}>
+            변경
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }
