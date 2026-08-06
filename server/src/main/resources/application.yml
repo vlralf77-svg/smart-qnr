@@ -1,5 +1,8 @@
 server:
   port: ${SERVER_PORT:8080}
+  # 리버스 프록시(병원 Proxy Server → nginx → backend) 뒤에서 X-Forwarded-* 를 신뢰해
+  # 원래 스킴(https)·호스트를 인식(리다이렉트·OpenAPI 서버 URL·secure 쿠키 정확화)
+  forward-headers-strategy: framework
   # 요청 처리 스레드/커넥션 — 동시 접속 100명 기준(여유 있게 기본 200 스레드) 대응
   tomcat:
     threads:

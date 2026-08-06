@@ -52,6 +52,17 @@
 - backend TLS 는 env 로 제어(`SERVER_SSL_ENABLED`); 개발은 기본 off(평문), 운영은 on
 - 운영 오버레이(`docker-compose.prod.yml`)에서 키스토어 마운트 + `SERVER_SSL_*` 주입
 
+## 3-3. 프록시 아키텍처 (병원 Proxy Server 연동)
+
+| 요구                        | 현재                                                                                 | 판정 |
+| --------------------------- | ------------------------------------------------------------------------------------ | ---- |
+| 병원 Proxy 경유·내부 비공개 | 병원 Proxy 뒤 배치, `db`/`backend` 포트 미노출(`ports: []`)                          | ✅   |
+| Reverse Proxy               | web(nginx) `/api` 리버스 프록시 + 병원 Proxy 전단                                    | ✅   |
+| Proxy 구간 SSL(병원 도메인) | 병원 Proxy 가 SSL 종단(병원 도메인), 백엔드 `forward-headers-strategy` 로 https 인식 | ✅   |
+| 기존 Proxy 정책 준수        | 병원 정책에 맞춘 매칭·헤더·SSL 종단(조직 협의)                                       | ➖   |
+
+- 상세: [`docs/PROXY-ARCHITECTURE.md`](./PROXY-ARCHITECTURE.md) (연결 구조·SSL 종단 2방식·협의 항목)
+
 ## 3-2. 성능·용량 (동시 접속 100명)
 
 | 요구사항  | 요구값          | 현재                                                                            | 판정 |
