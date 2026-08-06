@@ -1,12 +1,24 @@
-name: CI (format · lint · typecheck)
+name: CI/CD Pipeline
 
+# 게이트형 파이프라인: 품질검사 · 백엔드 빌드가 모두 통과해야 컨테이너 이미지 빌드/배포로 진행.
+#   frontend-quality ─┐
+#                     ├─▶ docker-images (needs: 둘 다 성공)
+#   backend-build ────┘
 on:
   push:
     branches: ['**']
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write # GHCR 이미지 푸시용(운영은 병원 Private Registry 로 교체)
 
 jobs:
-  quality:
+  # 1) 프론트 품질 게이트 — 포맷·린트·타입·빌드
+  frontend-quality:
+    name: Frontend Quality (format · lint · type · build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,11 +26,81 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
       - name: Prettier (format check)
         run: npm run format:check
       - name: ESLint
         run: npm run lint
       - name: TypeScript (typecheck)
         run: npm run typecheck
+      - name: Vite build
+        run: npm run build
+
+  # 2) 백엔드 빌드 게이트 — Spring Boot 4 / JDK 25 컴파일·패키징
+  backend-build:
+    name: Backend Build (JDK 25 · mvn package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+      - name: Maven package
+        working-directory: server
+        run: mvn -B -ntp -DskipTests package
+
+  # 3) 컨테이너 이미지 빌드(+배포) — 위 두 게이트 통과 시에만 실행
+  docker-images:
+    name: Docker Images (server · web)
+    needs: [frontend-quality, backend-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Compute metadata
+        id: meta
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # PR 에서는 빌드만(푸시 X), 브랜치/태그 push 에서만 레지스트리 푸시
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.owner }}/smartqnr-server:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/smartqnr-server:${{ steps.meta.outputs.version }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.meta.outputs.date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ steps.meta.outputs.owner }}/smartqnr-web:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/smartqnr-web:${{ steps.meta.outputs.version }}
+          build-args: |
+            VITE_API_BASE_URL=
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
