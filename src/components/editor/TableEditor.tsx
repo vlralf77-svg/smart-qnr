@@ -130,6 +130,10 @@ export default function TableEditor({ form }: Props) {
 
   const [sectionId, setSectionId] = useState<string>(form.sections[0]?.id ?? '');
   const section = form.sections.find((s) => s.id === sectionId) ?? form.sections[0];
+  // 실제 조작 대상 = 화면에 표시 중인 섹션. state(sectionId)가 새 문진 등으로
+  // 실제 섹션과 어긋나면(존재하지 않는 id) 폴백된 section 기준으로 조작해야
+  // '문항 추가'가 조용히 무시되지 않는다.
+  const activeId = section?.id ?? sectionId;
 
   // 선택지 셀 편집 중 임시 문자열(커서 튐 방지) — 커밋은 blur 시
   const [optDraft, setOptDraft] = useState<Record<string, string>>({});
@@ -140,7 +144,7 @@ export default function TableEditor({ form }: Props) {
 
   const applyPaste = () => {
     if (parsedPaste.length === 0) return;
-    addQuestionsBulk(sectionId, parsedPaste);
+    addQuestionsBulk(activeId, parsedPaste);
     setPasteText('');
     setPasteOpen(false);
   };
@@ -162,7 +166,7 @@ export default function TableEditor({ form }: Props) {
     const options = labels.map((l, i) =>
       old[i] ? { ...old[i], label: l, value: l } : createOption(l),
     );
-    updateQuestion(sectionId, qid, { options });
+    updateQuestion(activeId, qid, { options });
     setOptDraft((d) => {
       const { [qid]: _drop, ...rest } = d;
       return rest;
@@ -253,7 +257,7 @@ export default function TableEditor({ form }: Props) {
                       fullWidth
                       value={q.type}
                       onChange={(e) =>
-                        changeQuestionType(sectionId, q.id, e.target.value as QuestionType)
+                        changeQuestionType(activeId, q.id, e.target.value as QuestionType)
                       }
                       InputProps={{ disableUnderline: true }}
                     >
@@ -271,7 +275,7 @@ export default function TableEditor({ form }: Props) {
                       fullWidth
                       placeholder="질문을 입력하세요"
                       value={q.label}
-                      onChange={(e) => updateQuestion(sectionId, q.id, { label: e.target.value })}
+                      onChange={(e) => updateQuestion(activeId, q.id, { label: e.target.value })}
                       InputProps={{ disableUnderline: true }}
                     />
                   </TableCell>
@@ -285,7 +289,7 @@ export default function TableEditor({ form }: Props) {
                         size="small"
                         checked={!!q.required}
                         onChange={(e) =>
-                          updateQuestion(sectionId, q.id, { required: e.target.checked })
+                          updateQuestion(activeId, q.id, { required: e.target.checked })
                         }
                       />
                     )}
@@ -327,7 +331,7 @@ export default function TableEditor({ form }: Props) {
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                     <Tooltip title="복제">
-                      <IconButton size="small" onClick={() => duplicateQuestion(sectionId, q.id)}>
+                      <IconButton size="small" onClick={() => duplicateQuestion(activeId, q.id)}>
                         <ContentCopyIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -335,7 +339,7 @@ export default function TableEditor({ form }: Props) {
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => removeQuestion(sectionId, q.id)}
+                        onClick={() => removeQuestion(activeId, q.id)}
                       >
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
@@ -363,7 +367,7 @@ export default function TableEditor({ form }: Props) {
 
       <Button
         startIcon={<AddIcon />}
-        onClick={() => addQuestion(sectionId, 'radio')}
+        onClick={() => addQuestion(activeId, 'radio')}
         sx={{ mt: 1.5 }}
         variant="outlined"
       >
@@ -382,7 +386,7 @@ export default function TableEditor({ form }: Props) {
         <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
           조건부 표시 (분기)
         </Typography>
-        {condQuestion && <ConditionEditor sectionId={sectionId} question={condQuestion} />}
+        {condQuestion && <ConditionEditor sectionId={activeId} question={condQuestion} />}
       </Popover>
 
       {/* 엑셀 붙여넣기(여러 줄 한 번에) */}
