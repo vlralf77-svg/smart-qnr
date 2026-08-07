@@ -36,6 +36,7 @@ import {
   QuestionType,
   QUESTION_TYPE_META,
   QUESTION_TYPE_ORDER,
+  SCORABLE_TYPES,
 } from '@/types/schema';
 import { createOption } from '@/utils/schemaFactory';
 import { useEditorStore } from '@/store/useEditorStore';
@@ -84,13 +85,30 @@ function parseType(raw: string | undefined): QuestionType {
   return TYPE_SYNONYMS[s.replace(/\s+/g, '')] ?? 'radio';
 }
 
+// 선택지 토큰 파싱: "라벨=점수" 형태를 허용(채점 시). 예: "예=2" → { label:'예', score:2 }
+function parseOptToken(token: string, allowScore: boolean): { label: string; score?: number } {
+  const t = token.trim();
+  if (allowScore) {
+    const eq = t.lastIndexOf('=');
+    if (eq >= 0) {
+      const rest = t.slice(eq + 1).trim();
+      const n = Number(rest);
+      if (rest !== '' && Number.isFinite(n)) return { label: t.slice(0, eq).trim(), score: n };
+    }
+  }
+  return { label: t };
+}
+
 interface ParsedRow {
   label: string;
   type: QuestionType;
   optionLabels: string[];
+  optionScores: (number | undefined)[];
+  scored: boolean;
 }
 
 // 엑셀/시트 붙여넣기 파싱: 한 줄 = 한 문항. 열은 탭 구분 → 질문[\t유형][\t선택지]
+//  선택지에 "라벨=점수"가 하나라도 있으면 그 문항은 채점 대상으로 표시된다.
 function parseRows(text: string): ParsedRow[] {
   return text
     .split(/\r?\n/)
@@ -100,15 +118,23 @@ function parseRows(text: string): ParsedRow[] {
       const cols = line.split('\t');
       const label = (cols[0] ?? '').trim();
       const type = parseType(cols[1]);
-      const optionLabels = (cols[2] ?? '')
+      const isOpt = OPTION_TYPES.includes(type);
+      const rawTokens = (cols[2] ?? '')
         .split(/[,，]/)
         .map((s) => s.trim())
         .filter(Boolean);
-      return {
-        label,
-        type,
-        optionLabels: OPTION_TYPES.includes(type) ? optionLabels : [],
-      };
+      const optionLabels: string[] = [];
+      const optionScores: (number | undefined)[] = [];
+      let anyScore = false;
+      if (isOpt) {
+        for (const tok of rawTokens) {
+          const { label: ol, score } = parseOptToken(tok, true);
+          optionLabels.push(ol);
+          optionScores.push(score);
+          if (score != null) anyScore = true;
+        }
+      }
+      return { label, type, optionLabels, optionScores, scored: anyScore };
     })
     .filter((r) => r.label !== '');
 }
@@ -154,18 +180,30 @@ export default function TableEditor({ form }: Props) {
     ? section?.questions.find((q) => q.id === condAnchor.qid)
     : undefined;
 
-  const optionsText = (qid: string, opts: { label: string }[] | undefined) =>
-    optDraft[qid] ?? (opts ?? []).map((o) => o.label).join(', ');
+  // 채점 문항은 "라벨=점수"로 표시(점수 있는 것만 =표기), 아니면 라벨만
+  const optionsText = (
+    qid: string,
+    opts: { label: string; score?: number }[] | undefined,
+    scored: boolean,
+  ) =>
+    optDraft[qid] ??
+    (opts ?? [])
+      .map((o) => (scored && typeof o.score === 'number' ? `${o.label}=${o.score}` : o.label))
+      .join(', ');
 
-  const commitOptions = (qid: string, raw: string) => {
-    const labels = raw
+  const commitOptions = (qid: string, raw: string, scored: boolean) => {
+    const tokens = raw
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
     const old = section?.questions.find((q) => q.id === qid)?.options ?? [];
-    const options = labels.map((l, i) =>
-      old[i] ? { ...old[i], label: l, value: l } : createOption(l),
-    );
+    const options = tokens.map((tok, i) => {
+      const { label, score } = parseOptToken(tok, scored);
+      const base = old[i] ? { ...old[i], label, value: label } : createOption(label);
+      // 채점 중일 때만 점수 반영(없으면 해제). 채점 아니면 기존 점수 보존.
+      if (scored) base.score = score;
+      return base;
+    });
     updateQuestion(activeId, qid, { options });
     setOptDraft((d) => {
       const { [qid]: _drop, ...rest } = d;
@@ -231,6 +269,9 @@ export default function TableEditor({ form }: Props) {
               <TableCell width={80} align="center">
                 필수
               </TableCell>
+              <TableCell width={72} align="center">
+                채점
+              </TableCell>
               <TableCell width={240}>선택지 (쉼표로 구분)</TableCell>
               <TableCell width={70} align="center">
                 조건
@@ -294,21 +335,45 @@ export default function TableEditor({ form }: Props) {
                       />
                     )}
                   </TableCell>
+                  <TableCell align="center">
+                    {SCORABLE_TYPES.includes(q.type) ? (
+                      <Tooltip title="채점 대상(총점 계산에 포함)">
+                        <Switch
+                          size="small"
+                          checked={!!q.scored}
+                          onChange={(e) =>
+                            updateQuestion(activeId, q.id, { scored: e.target.checked })
+                          }
+                        />
+                      </Tooltip>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">
+                        —
+                      </Typography>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {isOpt ? (
                       <TextField
                         size="small"
                         variant="standard"
                         fullWidth
-                        placeholder="예: 예, 아니오, 모름"
-                        value={optionsText(q.id, q.options)}
+                        placeholder={
+                          q.scored ? '예: 예=2, 아니오=0, 모름=1' : '예: 예, 아니오, 모름'
+                        }
+                        value={optionsText(q.id, q.options, !!q.scored)}
                         onChange={(e) => setOptDraft((d) => ({ ...d, [q.id]: e.target.value }))}
-                        onBlur={(e) => commitOptions(q.id, e.target.value)}
+                        onBlur={(e) => commitOptions(q.id, e.target.value, !!q.scored)}
                         InputProps={{ disableUnderline: true }}
                       />
                     ) : q.type === 'scale' ? (
                       <Typography variant="caption" color="text.secondary">
                         {q.min ?? 0} ~ {q.max ?? 10}
+                        {q.scored ? ' · 점수=값' : ''}
+                      </Typography>
+                    ) : q.type === 'number' && q.scored ? (
+                      <Typography variant="caption" color="text.secondary">
+                        점수 = 입력값
                       </Typography>
                     ) : (
                       <Typography variant="caption" color="text.disabled">
@@ -350,7 +415,7 @@ export default function TableEditor({ form }: Props) {
             })}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <Typography
                     variant="body2"
                     color="text.disabled"
@@ -398,6 +463,9 @@ export default function TableEditor({ form }: Props) {
             <br />
             열은 <b>탭</b>으로 구분: <b>질문 [탭] 유형 [탭] 선택지(쉼표)</b> — 유형·선택지는 생략
             가능(기본 단일 선택).
+            <br />
+            선택지에 <b>점수</b>를 넣으려면 <b>라벨=점수</b> 형식(예: <code>예=2, 아니오=0</code>).
+            점수가 하나라도 있으면 그 문항은 <b>채점 대상</b>으로 자동 설정됩니다.
           </Alert>
           <TextField
             multiline
@@ -406,7 +474,7 @@ export default function TableEditor({ form }: Props) {
             maxRows={16}
             autoFocus
             placeholder={
-              '흡연하십니까?\t단일\t예, 아니오\n음주 빈도\t드롭다운\t안함, 주1회, 매일\n복용 중인 약'
+              '흡연하십니까?\t단일\t예=2, 아니오=0\n음주 빈도\t드롭다운\t안함, 주1회, 매일\n복용 중인 약'
             }
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
@@ -414,6 +482,8 @@ export default function TableEditor({ form }: Props) {
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
             인식된 문항: <b>{parsedPaste.length}</b>개
+            {parsedPaste.some((r) => r.scored) &&
+              ` · 채점 ${parsedPaste.filter((r) => r.scored).length}개`}
             {parsedPaste.length > 0 &&
               ` · ${parsedPaste
                 .slice(0, 3)

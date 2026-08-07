@@ -10,6 +10,7 @@ import {
   QuestionOverlay,
   QuestionType,
   Section,
+  SCORABLE_TYPES,
 } from '@/types/schema';
 import {
   coerceQuestionForType,
@@ -88,7 +89,15 @@ interface EditorState {
   /** 여러 문항을 한 번에 추가(엑셀 붙여넣기 등). 마지막 문항을 선택 상태로 둔다. */
   addQuestionsBulk: (
     sectionId: string,
-    items: { label: string; type: QuestionType; optionLabels?: string[] }[],
+    items: {
+      label: string;
+      type: QuestionType;
+      optionLabels?: string[];
+      /** optionLabels 와 인덱스가 대응되는 선택지 점수(없으면 미지정) */
+      optionScores?: (number | undefined)[];
+      /** 채점 대상 문항으로 표시(선택형·척도·숫자만 적용) */
+      scored?: boolean;
+    }[],
   ) => void;
   updateQuestion: (sectionId: string, questionId: string, patch: Partial<Question>) => void;
   changeQuestionType: (sectionId: string, questionId: string, type: QuestionType) => void;
@@ -504,8 +513,14 @@ export const useEditorStore = create<EditorState>()(
                 const question = createQuestion(item.type);
                 question.label = item.label;
                 if (item.optionLabels && item.optionLabels.length) {
-                  question.options = item.optionLabels.map((l) => createOption(l));
+                  question.options = item.optionLabels.map((l, idx) => {
+                    const opt = createOption(l);
+                    const sc = item.optionScores?.[idx];
+                    if (typeof sc === 'number' && Number.isFinite(sc)) opt.score = sc;
+                    return opt;
+                  });
                 }
+                if (item.scored && SCORABLE_TYPES.includes(item.type)) question.scored = true;
                 question.layout = createDefaultLayout(
                   questions,
                   item.type,
