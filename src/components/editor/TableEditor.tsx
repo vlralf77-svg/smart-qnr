@@ -30,6 +30,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
+import TuneIcon from '@mui/icons-material/Tune';
 import {
   FormSchema,
   OPTION_TYPES,
@@ -41,6 +42,7 @@ import {
 import { createOption } from '@/utils/schemaFactory';
 import { useEditorStore } from '@/store/useEditorStore';
 import ConditionEditor from './ConditionEditor';
+import ScoreMapEditor from './ScoreMapEditor';
 
 const TYPES = QUESTION_TYPE_ORDER.filter((t) => t !== 'signature');
 
@@ -178,6 +180,11 @@ export default function TableEditor({ form }: Props) {
   const [condAnchor, setCondAnchor] = useState<{ el: HTMLElement; qid: string } | null>(null);
   const condQuestion = condAnchor
     ? section?.questions.find((q) => q.id === condAnchor.qid)
+    : undefined;
+  // 구간 점수 매핑 편집 팝오버(척도·숫자)
+  const [mapAnchor, setMapAnchor] = useState<{ el: HTMLElement; qid: string } | null>(null);
+  const mapQuestion = mapAnchor
+    ? section?.questions.find((q) => q.id === mapAnchor.qid)
     : undefined;
 
   // 채점 문항은 "라벨=점수"로 표시(점수 있는 것만 =표기), 아니면 라벨만
@@ -366,15 +373,23 @@ export default function TableEditor({ form }: Props) {
                         onBlur={(e) => commitOptions(q.id, e.target.value, !!q.scored)}
                         InputProps={{ disableUnderline: true }}
                       />
-                    ) : q.type === 'scale' ? (
-                      <Typography variant="caption" color="text.secondary">
-                        {q.min ?? 0} ~ {q.max ?? 10}
-                        {q.scored ? ' · 점수=값' : ''}
-                      </Typography>
-                    ) : q.type === 'number' && q.scored ? (
-                      <Typography variant="caption" color="text.secondary">
-                        점수 = 입력값
-                      </Typography>
+                    ) : q.type === 'scale' || q.type === 'number' ? (
+                      <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+                        <Typography variant="caption" color="text.secondary">
+                          {q.type === 'scale' ? `${q.min ?? 0} ~ ${q.max ?? 10}` : '숫자'}
+                        </Typography>
+                        {q.scored && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<TuneIcon fontSize="small" />}
+                            onClick={(e) => setMapAnchor({ el: e.currentTarget, qid: q.id })}
+                            sx={{ minWidth: 0, px: 0.75, py: 0 }}
+                          >
+                            {q.scoreMap?.length ? `구간 ${q.scoreMap.length}개` : '점수=값'}
+                          </Button>
+                        )}
+                      </Stack>
                     ) : (
                       <Typography variant="caption" color="text.disabled">
                         —
@@ -452,6 +467,18 @@ export default function TableEditor({ form }: Props) {
           조건부 표시 (분기)
         </Typography>
         {condQuestion && <ConditionEditor sectionId={activeId} question={condQuestion} />}
+      </Popover>
+
+      {/* 구간 점수 매핑 편집(척도·숫자) */}
+      <Popover
+        open={!!mapAnchor && !!mapQuestion}
+        anchorEl={mapAnchor?.el ?? null}
+        onClose={() => setMapAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{ sx: { p: 2, width: 380, maxWidth: '92vw' } }}
+      >
+        {mapQuestion && <ScoreMapEditor sectionId={activeId} question={mapQuestion} />}
       </Popover>
 
       {/* 엑셀 붙여넣기(여러 줄 한 번에) */}
