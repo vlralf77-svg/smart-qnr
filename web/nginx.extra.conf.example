@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────
+# 추가 솔루션 라우팅 예시 (web/nginx.conf 또는 nginx.https.conf 의 server{} 안에 넣는다)
+#
+#   web(nginx) 가 유일한 관문. 경로(prefix)로 어느 컨테이너로 보낼지 가른다.
+#     도메인/           , /api/       → SmartQnR
+#     도메인/solution-a/              → 케이스 1 서비스
+#     도메인/solution-b/              → 케이스 2 벤더 이미지
+#
+#   ※ location 은 위에서부터 매칭되므로 /api/ /assets/ 와 겹치지 않는 prefix 사용.
+# ─────────────────────────────────────────────────────────────
+
+# ── (A) 경로 기반 방식 — 도메인 하나를 공유(가장 간단) ───────
+# 케이스 1) 자체 서비스
+location /solution-a/ {
+  proxy_pass         http://solution-a:8080/;   # 끝 슬래시 → "/solution-a" 접두어 제거 후 전달
+  proxy_http_version 1.1;
+  proxy_set_header   Host              $host;
+  proxy_set_header   X-Real-IP         $remote_addr;
+  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+  proxy_set_header   X-Forwarded-Prefix /solution-a;   # 앱이 base path 인식용(필요 시)
+  proxy_read_timeout 120s;
+}
+
+# 케이스 2) 벤더 이미지
+location /solution-b/ {
+  proxy_pass         http://solution-b:8080/;
+  proxy_http_version 1.1;
+  proxy_set_header   Host              $host;
+  proxy_set_header   X-Real-IP         $remote_addr;
+  proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header   X-Forwarded-Proto $scheme;
+  # 벤더 앱이 절대경로 리소스를 반환해 깨지면, 앱 설정에서 base-url 을
+  # /solution-b 로 지정하거나 sub_filter 로 경로를 치환한다.
+  proxy_read_timeout 120s;
+}
+
+# WebSocket 을 쓰는 솔루션이면 아래 두 줄을 해당 location 에 추가
+#   proxy_set_header Upgrade    $http_upgrade;
+#   proxy_set_header Connection "upgrade";
+
+
+# ── (B) 서브도메인 방식 — 완전 분리(별도 server 블록) ────────
+# DNS(solution-a.hospital.kr)와 인증서(SAN 추가)를 병원과 협의해야 한다.
+#
+# server {
+#   listen 443 ssl;
+#   server_name solution-a.hospital.kr;
+#   # ssl_certificate ... (병원 도메인 인증서 / 또는 병원 Proxy 가 SSL 종단)
+#   location / {
+#     proxy_pass         http://solution-a:8080/;
+#     proxy_http_version 1.1;
+#     proxy_set_header   Host              $host;
+#     proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+#     proxy_set_header   X-Forwarded-Proto $scheme;
+#   }
+# }

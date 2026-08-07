@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────
+# 서버에 "다른 솔루션"을 추가로 올리는 확장 오버레이(예시)
+#
+#   기본 스택은 그대로 두고, 이 파일로 새 서비스만 얹는다.
+#     docker compose -f docker-compose.yml -f docker-compose.ext.yml up -d
+#
+#   두 가지 케이스를 모두 담았다.
+#     · solution-a : 우리가 직접 만드는 서비스(빌드)        ← 케이스 1
+#     · solution-b : 외부 벤더가 준 컨테이너 이미지(그대로)  ← 케이스 2
+#
+#   공통 원칙
+#     · ports 미노출 → 외부에서 직접 못 열고 오직 web(nginx)만 관문
+#     · 같은 compose = 같은 네트워크 → http://solution-a:<port> 로 상호 통신
+#     · 자원 상한 지정 → 기존 SmartQnR(동시 100명)에 영향 최소화
+#     · nginx 라우팅은 web/nginx.extra.conf.example 참고
+#     · DB 는 scripts/init-extra-solutions.sql.example 로 분리
+# ─────────────────────────────────────────────────────────────
+services:
+  # ── 케이스 1) 우리가 만드는 서비스 (소스 빌드) ─────────────
+  solution-a:
+    build:
+      context: ./solution-a # ← 새 솔루션 소스 폴더(Dockerfile 포함)
+    image: smartqnr-solution-a:${SOL_A_VERSION:-latest}
+    container_name: smartqnr-solution-a
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 같은 Postgres 안의 별도 DB/계정 사용(scripts/init-extra-solutions.sql.example)
+      DB_URL: jdbc:postgresql://db:5432/${SOL_A_DB:-solution_a}
+      DB_USER: ${SOL_A_DB_USER:-solution_a}
+      DB_PASSWORD: ${SOL_A_DB_PASSWORD:-change-me}
+    # ★ 호스트 포트 노출 안 함(내부 네트워크에서만 접근)
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8080/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512m
+
+  # ── 케이스 2) 외부 벤더 패키지 (이미지 그대로) ─────────────
+  solution-b:
+    # 운영에서는 병원 Private Registry 에 미러링한 태그 고정본을 쓴다.
+    #   예) registry.hospital.local/vendor/solution-b:1.4.0
+    image: ${SOL_B_IMAGE:-vendor/solution-b:1.4.0}
+    container_name: smartqnr-solution-b
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 벤더가 요구하는 환경변수 형식에 맞춰 채운다(문서 확인).
+      SOLUTION_DB_HOST: db
+      SOLUTION_DB_PORT: '5432'
+      SOLUTION_DB_NAME: ${SOL_B_DB:-solution_b}
+      SOLUTION_DB_USER: ${SOL_B_DB_USER:-solution_b}
+      SOLUTION_DB_PASS: ${SOL_B_DB_PASSWORD:-change-me}
+    # 벤더 이미지가 상태 파일을 쓰면 볼륨으로 영속화
+    volumes:
+      - solution_b_data:/data
+    # ★ 호스트 포트 노출 안 함
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512m
+
+volumes:
+  solution_b_data:
