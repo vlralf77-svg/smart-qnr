@@ -722,54 +722,65 @@ export default function FormList() {
               />
 
               <SideLabel>분류</SideLabel>
-              <SideItem
-                label="전체"
-                count={counts.total}
-                active={catFilter === ALL}
-                onClick={() => setCatFilter(ALL)}
-              />
-              {(() => {
-                // 대분류 → 하위 순서로, 하위는 들여쓰기 표시
-                const parents = Array.from(
-                  new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
-                );
-                const items: JSX.Element[] = [];
-                parents.forEach((p) => {
-                  items.push(
-                    <SideItem
-                      key={p}
-                      label={p}
-                      count={catCount(p)}
-                      active={catFilter === p}
-                      onClick={() => setCatFilter(p)}
-                    />,
-                  );
-                  filterCategories
-                    .filter((c) => c.startsWith(p + CATEGORY_SEP))
-                    .forEach((c) => {
-                      const child = c.slice((p + CATEGORY_SEP).length);
-                      items.push(
-                        <SideItem
-                          key={c}
-                          label={child}
-                          depth={1}
-                          count={catCount(c)}
-                          active={catFilter === c}
-                          onClick={() => setCatFilter(c)}
-                        />,
+              {/* 분류가 많아도 찾기 쉽도록 리스트 대신 드롭다운(대분류/하위 들여쓰기·건수) */}
+              <TextField
+                select
+                size="small"
+                fullWidth
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                SelectProps={{
+                  MenuProps: { PaperProps: { sx: { maxHeight: 380 } } },
+                  renderValue: (val) => {
+                    const v = val as string;
+                    if (v === ALL) return `전체 (${counts.total})`;
+                    if (v === NONE) return `분류 없음 (${counts.byCat[NONE] ?? 0})`;
+                    return `${v} (${catCount(v)})`;
+                  },
+                }}
+              >
+                {[
+                  <MenuItem key={ALL} value={ALL} sx={{ fontWeight: 600 }}>
+                    전체 ({counts.total})
+                  </MenuItem>,
+                  ...(() => {
+                    // 대분류 → 하위 순서, 하위는 들여쓰기
+                    const parents = Array.from(
+                      new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
+                    );
+                    const els: JSX.Element[] = [];
+                    parents.forEach((p) => {
+                      els.push(
+                        <MenuItem key={p} value={p} sx={{ fontWeight: 600 }}>
+                          {p} ({catCount(p)})
+                        </MenuItem>,
                       );
+                      filterCategories
+                        .filter((c) => c.startsWith(p + CATEGORY_SEP))
+                        .forEach((c) => {
+                          const child = c.slice((p + CATEGORY_SEP).length);
+                          els.push(
+                            <MenuItem
+                              key={c}
+                              value={c}
+                              sx={{ pl: 3, fontSize: 13, color: 'text.secondary' }}
+                            >
+                              {child} ({catCount(c)})
+                            </MenuItem>,
+                          );
+                        });
                     });
-                });
-                return items;
-              })()}
-              {hasUncategorized && (
-                <SideItem
-                  label="분류 없음"
-                  count={counts.byCat[NONE] ?? 0}
-                  active={catFilter === NONE}
-                  onClick={() => setCatFilter(NONE)}
-                />
-              )}
+                    return els;
+                  })(),
+                  ...(hasUncategorized
+                    ? [
+                        <MenuItem key={NONE} value={NONE}>
+                          분류 없음 ({counts.byCat[NONE] ?? 0})
+                        </MenuItem>,
+                      ]
+                    : []),
+                ]}
+              </TextField>
 
               <Button
                 variant="outlined"
