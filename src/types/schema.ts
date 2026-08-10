@@ -151,6 +151,14 @@ export interface FormScoring {
 
 export type FormStatus = 'draft' | 'published' | 'archived';
 
+/** 확정 버전 스냅샷 — 재확정 시 직전 확정본 내용을 보관(이전 버전 조회용) */
+export interface FormRevision {
+  version: number;
+  confirmedAt: string;
+  /** 그 버전 시점의 문진 내용 전체(이력 자체는 제외해 중첩 방지) */
+  form: FormSchema;
+}
+
 export interface FormSchema {
   id: string;
   title: string;
@@ -168,6 +176,8 @@ export interface FormSchema {
   category?: string;
   /** 문항별 점수 채점·총점 계산 설정 */
   scoring?: FormScoring;
+  /** 확정 버전 이력 — 재확정 시 직전 확정본이 쌓인다(최신이 앞). 조회 전용 */
+  history?: FormRevision[];
   createdAt?: string;
   updatedAt?: string;
 }

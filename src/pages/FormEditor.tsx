@@ -34,6 +34,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import HistoryIcon from '@mui/icons-material/History';
 import Tooltip from '@mui/material/Tooltip';
 import IconButton from '@mui/material/IconButton';
 import { isOverlayForm } from '@/types/schema';
@@ -48,6 +49,7 @@ import ComponentPalette, { PALETTE_ITEMS } from '@/components/editor/ComponentPa
 import TableEditor from '@/components/editor/TableEditor';
 import FocusEditor from '@/components/editor/FocusEditor';
 import PreviewDialog from '@/components/editor/PreviewDialog';
+import VersionHistoryDialog from '@/components/editor/VersionHistoryDialog';
 import PreviewWindow from '@/components/editor/PreviewWindow';
 import FormRenderer from '@/components/renderer/FormRenderer';
 import PreviewErrorBoundary from '@/components/PreviewErrorBoundary';
@@ -80,8 +82,9 @@ export default function FormEditor() {
   const activeSectionId = useEditorStore((s) => s.activeSectionId);
   const categories = useCategoriesStore((s) => s.categories);
   const addCategory = useCategoriesStore((s) => s.addCategory);
-  const { getForm, saveForm, publishForm, fetchForm } = useFormsStore();
+  const { getForm, saveForm, confirmForm, fetchForm } = useFormsStore();
   const [preview, setPreview] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   // 미리보기를 별도 창(2모니터)으로 띄우는 중인지
   const [popoutPreview, setPopoutPreview] = useState(false);
   const [toast, setToast] = useState('');
@@ -354,9 +357,16 @@ export default function FormEditor() {
   const handlePublish = async () => {
     try {
       if (form.category) addCategory(form.category);
-      await saveForm(form);
-      await publishForm(form.id);
-      setToast('확정되었습니다 (응답 화면에서 확인 가능)');
+      const wasPublished = form.status === 'published';
+      const saved = await confirmForm(form);
+      // 확정 결과(버전·상태·이력)를 에디터에 반영
+      const updated = getForm(saved.id) ?? saved;
+      loadForm(updated);
+      setToast(
+        wasPublished
+          ? `새 버전 v${saved.version}(으)로 확정되었습니다 · 이전 버전은 ‘버전 기록’에서 볼 수 있습니다`
+          : '확정되었습니다 (응답 화면에서 확인 가능)',
+      );
     } catch (e) {
       setToast('확정 실패: ' + (e as Error).message);
     }
@@ -468,6 +478,24 @@ export default function FormEditor() {
                 </IconButton>
               </Tooltip>
             )}
+            <Tooltip
+              title={
+                form.history && form.history.length
+                  ? `버전 기록 (이전 ${form.history.length}개)`
+                  : '버전 기록 (이전 버전 없음)'
+              }
+            >
+              <span>
+                <IconButton
+                  color="inherit"
+                  size="small"
+                  onClick={() => setHistoryOpen(true)}
+                  disabled={!(form.history && form.history.length)}
+                >
+                  <HistoryIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
             <Button color="inherit" startIcon={<VisibilityIcon />} onClick={() => setPreview(true)}>
               전체 미리보기
             </Button>
@@ -863,6 +891,7 @@ export default function FormEditor() {
       )}
 
       <PreviewDialog open={preview} schema={form} onClose={() => setPreview(false)} />
+      <VersionHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} form={form} />
       <Snackbar
         open={!!toast}
         autoHideDuration={2500}

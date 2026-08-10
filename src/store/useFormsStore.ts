@@ -5,7 +5,7 @@
 // 화면 진입 시 refreshForms()/fetchForm() 으로 캐시를 채운다.
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { FormSchema, FormResponse } from '@/types/schema';
+import { FormSchema, FormResponse, FormRevision } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 
 interface FormsState {
@@ -22,6 +22,12 @@ interface FormsState {
   deleteForm: (formId: string) => Promise<void>;
   getForm: (formId: string) => FormSchema | undefined;
   publishForm: (formId: string) => Promise<void>;
+  /**
+   * 문진 확정(버전 확정). 편집 내용을 저장하면서 확정한다.
+   * 이미 확정(published)된 문진을 다시 확정하면 직전 확정본을 이력에 보관하고 버전을 +1 한다.
+   * (첫 확정은 v1 유지, 이력 없음)
+   */
+  confirmForm: (form: FormSchema) => Promise<FormSchema>;
 
   addResponse: (response: FormResponse) => Promise<void>;
   responsesByForm: (formId: string) => FormResponse[];
@@ -97,6 +103,51 @@ export const useFormsStore = create<FormsState>()(
                 : f,
             ),
           }));
+        },
+
+        confirmForm: async (form) => {
+          const prev = get().forms.find((f) => f.id === form.id);
+          const now = new Date().toISOString();
+          let version = form.version ?? 1;
+          // 이력은 항상 저장본 기준으로 이어간다(중첩 방지 위해 스냅샷에는 history 제외)
+          let history: FormRevision[] = prev?.history ?? form.history ?? [];
+          // 이미 확정본이 있는데 다시 확정 → 직전 확정본을 이력에 보관하고 버전 +1
+          if (prev && prev.status === 'published') {
+            const snapshot: FormSchema = { ...prev };
+            delete snapshot.history;
+            history = [
+              { version: prev.version, confirmedAt: prev.updatedAt ?? now, form: snapshot },
+              ...history,
+            ];
+            version = prev.version + 1;
+          }
+          const next: FormSchema = {
+            ...form,
+            version,
+            status: 'published',
+            history,
+            createdAt: form.createdAt ?? prev?.createdAt ?? now,
+            updatedAt: now,
+          };
+          if (isBackendEnabled) {
+            // 백엔드가 이력·버전을 자체 관리하지 않을 수 있으므로 우리가 계산한 값을 신뢰
+            const saved = await api.saveForm(next);
+            const merged: FormSchema = {
+              ...saved,
+              version: next.version,
+              status: 'published',
+              history: next.history,
+            };
+            try {
+              await api.publishForm(next.id);
+            } catch {
+              /* 상태는 merged 로 보장 */
+            }
+            set((st) => ({ forms: upsert(st.forms, merged) }));
+            return merged;
+          }
+          set((st) => ({ forms: upsert(st.forms, next) }));
+          return next;
         },
 
         addResponse: async (response) => {

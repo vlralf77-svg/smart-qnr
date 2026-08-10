@@ -873,6 +873,7 @@ export default function FormList() {
                           <Chip label={st.label} color={st.color} size="small" />
                           <Typography variant="caption" color="text.secondary">
                             문항 {qCount} · v{f.version}
+                            {f.history && f.history.length ? ` · 이력 ${f.history.length}` : ''}
                           </Typography>
                         </Stack>
                       </Box>
