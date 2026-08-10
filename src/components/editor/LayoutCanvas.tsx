@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function LayoutCanvas({ sectionId, questions }: Props) {
-  const { selected, select, updateQuestionLayout, duplicateQuestion, removeQuestion } =
+  const { selected, select, updateQuestionLayoutsBulk, duplicateQuestion, removeQuestion } =
     useEditorStore();
 
   if (questions.length === 0) {
@@ -39,30 +39,33 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
     minH: 1,
   }));
 
-  const handleDragStop = (_l: Layout[], oldItem: Layout, newItem: Layout) => {
+  // 드래그로 이동하면 겹침 방지를 위해 이웃 문항도 밀려난다. 드래그된 항목만이 아니라
+  // 변경된 모든 항목(nextLayout 전체)을 저장해야 미리보기 순서가 실제로 반영된다.
+  const commitLayouts = (nextLayout: Layout[]) => {
+    const cur = new Map(placed.map((q) => [q.id, q.layout]));
+    const updates = nextLayout
+      .filter((it) => {
+        const c = cur.get(it.i);
+        return !c || c.x !== it.x || c.y !== it.y || c.w !== it.w || c.h !== it.h;
+      })
+      .map((it) => ({ id: it.i, layout: { x: it.x, y: it.y, w: it.w, h: it.h } }));
+    if (updates.length) updateQuestionLayoutsBulk(updates);
+  };
+
+  const handleDragStop = (nextLayout: Layout[], oldItem: Layout, newItem: Layout) => {
     if (oldItem.x === newItem.x && oldItem.y === newItem.y) {
       select({ sectionId, questionId: newItem.i });
       return;
     }
-    updateQuestionLayout(sectionId, newItem.i, {
-      x: newItem.x,
-      y: newItem.y,
-      w: newItem.w,
-      h: newItem.h,
-    });
+    commitLayouts(nextLayout);
   };
 
-  const handleResizeStop = (_l: Layout[], oldItem: Layout, newItem: Layout) => {
+  const handleResizeStop = (nextLayout: Layout[], oldItem: Layout, newItem: Layout) => {
     if (oldItem.w === newItem.w && oldItem.h === newItem.h) {
       select({ sectionId, questionId: newItem.i });
       return;
     }
-    updateQuestionLayout(sectionId, newItem.i, {
-      x: newItem.x,
-      y: newItem.y,
-      w: newItem.w,
-      h: newItem.h,
-    });
+    commitLayouts(nextLayout);
   };
 
   return (

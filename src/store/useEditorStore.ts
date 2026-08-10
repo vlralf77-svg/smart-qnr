@@ -109,6 +109,8 @@ interface EditorState {
   moveQuestion: (questionId: string, toSectionId: string, toIndex: number) => void;
   /** 캔버스 드래그·리사이즈로 문항 위치/크기 변경 */
   updateQuestionLayout: (sectionId: string, questionId: string, layout: QuestionLayout) => void;
+  /** 여러 문항 레이아웃을 한 번에 갱신 — 드래그로 이웃이 밀려난 경우 함께 반영(순서 유지) */
+  updateQuestionLayoutsBulk: (updates: { id: string; layout: QuestionLayout }[]) => void;
   /** PDF 오버레이 모드: 필드 위치/크기(%) 변경 */
   updateQuestionOverlay: (sectionId: string, questionId: string, overlay: QuestionOverlay) => void;
   /** PDF 오버레이 모드: 지정 위치에 필드 추가 */
@@ -661,6 +663,24 @@ export const useEditorStore = create<EditorState>()(
               }
             : st,
         ),
+
+      updateQuestionLayoutsBulk: (updates) =>
+        set((st) => {
+          if (!st.form || updates.length === 0) return st;
+          const map = new Map(updates.map((u) => [u.id, u.layout]));
+          return {
+            form: {
+              ...st.form,
+              sections: st.form.sections.map((s) => ({
+                ...s,
+                questions: s.questions.map((q) =>
+                  map.has(q.id) ? { ...q, layout: map.get(q.id)! } : q,
+                ),
+              })),
+            },
+            dirty: true,
+          };
+        }),
 
       updateQuestionOverlay: (_sectionId, questionId, overlay) =>
         set((st) =>
