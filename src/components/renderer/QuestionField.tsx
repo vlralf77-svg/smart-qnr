@@ -16,8 +16,10 @@ import {
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
+import type { ReactNode } from 'react';
 import { Controller, Control, FieldErrors } from 'react-hook-form';
 import { Question, QuestionOption } from '@/types/schema';
+import { isQuestionScored } from '@/utils/scoring';
 
 const ETC_VALUE = '__etc__';
 
@@ -36,6 +38,29 @@ export default function QuestionField({ question: q, control, errors }: Props) {
   const err = errors[q.id];
   const errText = err?.message ? String(err.message) : undefined;
   const rules = q.required ? { required: '필수 항목입니다' } : {};
+
+  // 채점 문항이면 점수가 매겨진 선택지 옆에 (N점) 표시
+  const scored = isQuestionScored(q);
+  const optLabel = (o: QuestionOption): ReactNode =>
+    scored && typeof o.score === 'number' ? (
+      <>
+        {o.label}
+        <Typography
+          component="span"
+          sx={{
+            ml: 0.5,
+            fontSize: '0.85em',
+            fontWeight: 700,
+            color: 'text.secondary',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          ({o.score}점)
+        </Typography>
+      </>
+    ) : (
+      o.label
+    );
 
   // 안내문: 입력 없음
   if (q.type === 'info') {
@@ -142,7 +167,7 @@ export default function QuestionField({ question: q, control, errors }: Props) {
                     key={o.id}
                     value={o.value}
                     control={<Radio />}
-                    label={o.label}
+                    label={optLabel(o)}
                   />
                 ))}
               </RadioGroup>
@@ -183,7 +208,7 @@ export default function QuestionField({ question: q, control, errors }: Props) {
                           onChange={() => field.onChange(toggle(o.value))}
                         />
                       }
-                      label={o.label}
+                      label={optLabel(o)}
                     />
                   ))}
                 </FormGroup>
@@ -210,7 +235,7 @@ export default function QuestionField({ question: q, control, errors }: Props) {
               <TextField {...field} select size="small" error={!!err} helperText={errText}>
                 {options.map((o) => (
                   <MenuItem key={o.id} value={o.value}>
-                    {o.label}
+                    {optLabel(o)}
                   </MenuItem>
                 ))}
               </TextField>
