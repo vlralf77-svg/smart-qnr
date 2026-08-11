@@ -48,8 +48,8 @@ export default function CreateFormDialog({ open, onClose, onChoose }: Props) {
           어떤 방식으로 만들지 선택하세요. (편집 중에도 언제든 바꿀 수 있어요)
         </Typography>
       </DialogTitle>
-      <DialogContent>
-        <Stack spacing={1.25} sx={{ pb: 1 }}>
+      <DialogContent sx={{ pt: 1 }}>
+        <Stack spacing={1.25} sx={{ pt: 0.5, pb: 1 }}>
           {OPTIONS.map((o) => (
             <Box
               key={o.mode}
