@@ -729,30 +729,120 @@ export default function FormList() {
                 fullWidth
                 value={catFilter}
                 onChange={(e) => setCatFilter(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LabelOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' },
+                }}
                 SelectProps={{
-                  MenuProps: { PaperProps: { sx: { maxHeight: 380 } } },
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        mt: 0.5,
+                        borderRadius: 2.5,
+                        maxHeight: 320,
+                        boxShadow: '0 10px 30px -12px rgba(15,40,30,.4)',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        // 얇고 둥근 브랜드 스크롤바
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: (t) => `${alpha(t.palette.text.primary, 0.18)} transparent`,
+                        '&::-webkit-scrollbar': { width: 8 },
+                        '&::-webkit-scrollbar-track': { background: 'transparent', margin: 4 },
+                        '&::-webkit-scrollbar-thumb': {
+                          borderRadius: 8,
+                          border: '2px solid transparent',
+                          backgroundClip: 'padding-box',
+                          backgroundColor: (t) => alpha(t.palette.text.primary, 0.18),
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                          backgroundColor: (t) => alpha(t.palette.text.primary, 0.32),
+                        },
+                        '& .MuiList-root': { py: 0.5 },
+                        '& .MuiMenuItem-root': { borderRadius: 1.5, mx: 0.5, minHeight: 38 },
+                      },
+                    },
+                  },
                   renderValue: (val) => {
                     const v = val as string;
-                    if (v === ALL) return `전체 (${counts.total})`;
-                    if (v === NONE) return `분류 없음 (${counts.byCat[NONE] ?? 0})`;
-                    return `${v} (${catCount(v)})`;
+                    const label = v === ALL ? '전체' : v === NONE ? '분류 없음' : v;
+                    const n =
+                      v === ALL
+                        ? counts.total
+                        : v === NONE
+                          ? (counts.byCat[NONE] ?? 0)
+                          : catCount(v);
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                        <Typography noWrap sx={{ fontSize: 13.5, fontWeight: 700, minWidth: 0 }}>
+                          {label}
+                        </Typography>
+                        <Box
+                          component="span"
+                          sx={{
+                            ml: 'auto',
+                            flexShrink: 0,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            fontVariantNumeric: 'tabular-nums',
+                            color: 'text.secondary',
+                            bgcolor: 'action.hover',
+                            px: 0.75,
+                            borderRadius: 1,
+                          }}
+                        >
+                          {n}
+                        </Box>
+                      </Box>
+                    );
                   },
                 }}
               >
                 {[
-                  <MenuItem key={ALL} value={ALL} sx={{ fontWeight: 600 }}>
-                    전체 ({counts.total})
+                  <MenuItem key={ALL} value={ALL} sx={{ display: 'flex', gap: 1, fontWeight: 700 }}>
+                    <span>전체</span>
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: 'auto',
+                        fontSize: 11.5,
+                        color: 'text.secondary',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {counts.total}
+                    </Box>
                   </MenuItem>,
                   ...(() => {
-                    // 대분류 → 하위 순서, 하위는 들여쓰기
+                    // 대분류 → 하위 순서, 하위는 점 마커 + 들여쓰기
                     const parents = Array.from(
                       new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
                     );
                     const els: JSX.Element[] = [];
                     parents.forEach((p) => {
                       els.push(
-                        <MenuItem key={p} value={p} sx={{ fontWeight: 600 }}>
-                          {p} ({catCount(p)})
+                        <MenuItem
+                          key={p}
+                          value={p}
+                          sx={{ display: 'flex', gap: 1, fontWeight: 700 }}
+                        >
+                          <span>{p}</span>
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 'auto',
+                              fontSize: 11.5,
+                              color: 'text.secondary',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {catCount(p)}
+                          </Box>
                         </MenuItem>,
                       );
                       filterCategories
@@ -763,9 +853,36 @@ export default function FormList() {
                             <MenuItem
                               key={c}
                               value={c}
-                              sx={{ pl: 3, fontSize: 13, color: 'text.secondary' }}
+                              sx={{
+                                display: 'flex',
+                                gap: 1,
+                                pl: 2,
+                                fontSize: 13,
+                                color: 'text.secondary',
+                              }}
                             >
-                              {child} ({catCount(c)})
+                              <Box
+                                component="span"
+                                sx={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: '50%',
+                                  bgcolor: 'divider',
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span>{child}</span>
+                              <Box
+                                component="span"
+                                sx={{
+                                  ml: 'auto',
+                                  fontSize: 11.5,
+                                  color: 'text.secondary',
+                                  fontVariantNumeric: 'tabular-nums',
+                                }}
+                              >
+                                {catCount(c)}
+                              </Box>
                             </MenuItem>,
                           );
                         });
@@ -774,8 +891,19 @@ export default function FormList() {
                   })(),
                   ...(hasUncategorized
                     ? [
-                        <MenuItem key={NONE} value={NONE}>
-                          분류 없음 ({counts.byCat[NONE] ?? 0})
+                        <MenuItem key={NONE} value={NONE} sx={{ display: 'flex', gap: 1 }}>
+                          <span>분류 없음</span>
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 'auto',
+                              fontSize: 11.5,
+                              color: 'text.secondary',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {counts.byCat[NONE] ?? 0}
+                          </Box>
                         </MenuItem>,
                       ]
                     : []),
