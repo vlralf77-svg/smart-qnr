@@ -28,7 +28,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
@@ -386,18 +385,6 @@ export default function FormList() {
       allowed: canEdit,
       userConfigurable: true,
       run: () => setCreateOpen(true),
-    },
-    {
-      key: 'convert',
-      section: '만들기',
-      title: '문서로 변환',
-      desc: 'PDF·워드 불러오기',
-      icon: <UploadFileIcon fontSize="small" />,
-      chipColor: '#d98324',
-      chipBg: '#fdf0e3',
-      allowed: canEdit,
-      userConfigurable: true,
-      run: () => navigate('/upload'),
     },
     {
       key: 'excel',
