@@ -34,6 +34,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ApiIcon from '@mui/icons-material/Api';
+import StorageIcon from '@mui/icons-material/Storage';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import LinkIcon from '@mui/icons-material/Link';
@@ -443,6 +444,17 @@ export default function FormList() {
       chipBg: '#e8f0fe',
       allowed: canManage,
       run: () => navigate('/integration'),
+    },
+    {
+      key: 'dblink',
+      section: '관리',
+      title: 'DB 쿼리 연동',
+      desc: 'DB 직접 조회·매핑',
+      icon: <StorageIcon fontSize="small" />,
+      chipColor: '#8a5a12',
+      chipBg: '#faf1dc',
+      allowed: canManage,
+      run: () => navigate('/db-link'),
     },
     {
       key: 'stats',

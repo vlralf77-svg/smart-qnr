@@ -16,6 +16,7 @@ const ResponseForm = lazy(() => import('./pages/ResponseForm'));
 const UploadConvert = lazy(() => import('./pages/UploadConvert'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const IntegrationConfig = lazy(() => import('./pages/IntegrationConfig'));
+const DbLinkConfig = lazy(() => import('./pages/DbLinkConfig'));
 const LogViewer = lazy(() => import('./pages/LogViewer'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 const PatientForms = lazy(() => import('./pages/PatientForms'));
@@ -166,6 +167,16 @@ export default function App() {
                   <RequireAuth>
                     <RequirePermission perm="manageAccounts">
                       <IntegrationConfig />
+                    </RequirePermission>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/db-link"
+                element={
+                  <RequireAuth>
+                    <RequirePermission perm="manageAccounts">
+                      <DbLinkConfig />
                     </RequirePermission>
                   </RequireAuth>
                 }
