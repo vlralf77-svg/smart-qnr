@@ -296,6 +296,10 @@ export default function PatientForms() {
           <Stack spacing={1.75}>
             {forms.map((f) => {
               const done = responses[f.id];
+              const accent = done ? '#2e9d6e' : '#5b7cfa';
+              const tint = done ? '#eaf7f0' : '#eef4ff';
+              const tintStrong = done ? '#d7efe2' : '#dfe8ff';
+              const ring = done ? 'rgba(46,157,110,0.22)' : 'rgba(91,124,250,0.22)';
               return (
                 <Card
                   key={f.id}
@@ -305,6 +309,14 @@ export default function PatientForms() {
                     border: '1px solid rgba(15,23,42,0.06)',
                     boxShadow:
                       '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.16)',
+                    transition: 'background-color .12s, border-color .12s, box-shadow .12s',
+                    '&:hover': { borderColor: accent, bgcolor: tint },
+                    '&:focus-within': {
+                      borderColor: accent,
+                      bgcolor: tint,
+                      boxShadow: `0 0 0 3px ${ring}`,
+                    },
+                    '& .MuiCardActionArea-root:active': { bgcolor: tintStrong },
                   }}
                 >
                   <CardActionArea onClick={() => goto(f)} sx={{ p: 2.25 }}>
@@ -418,13 +430,25 @@ export default function PatientForms() {
               <TableBody>
                 {forms.map((f) => {
                   const done = responses[f.id];
+                  const rowTint = done ? '#eaf7f0' : '#eef4ff';
+                  const rowActive = done ? '#d7efe2' : '#dfe8ff';
+                  const rowAccent = done ? '#2e9d6e' : '#5b7cfa';
                   return (
                     <TableRow
                       key={f.id}
-                      hover
                       onClick={() => goto(f)}
+                      tabIndex={0}
                       sx={{
                         cursor: 'pointer',
+                        transition: 'background-color .12s',
+                        '&:hover': { bgcolor: rowTint },
+                        '&:active': { bgcolor: rowActive },
+                        '&:focus-visible': {
+                          bgcolor: rowTint,
+                          outline: '2px solid',
+                          outlineColor: rowAccent,
+                          outlineOffset: '-2px',
+                        },
                         '&:last-child td': { borderBottom: 'none' },
                         '& td': { borderBottom: '1px solid rgba(15,23,42,0.05)', py: 1.5 },
                       }}
