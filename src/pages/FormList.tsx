@@ -70,26 +70,6 @@ const STATUS_LABEL: Record<
   archived: { label: '보관됨', color: 'warning' },
 };
 
-// 상대 시간 표기(방금 전 / N분·시간·일·주·개월·년 전)
-function relTime(iso?: string): string {
-  if (!iso) return '-';
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '-';
-  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (s < 60) return '방금 전';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}분 전`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}일 전`;
-  const w = Math.floor(d / 7);
-  if (w < 5) return `${w}주 전`;
-  const mo = Math.floor(d / 30);
-  if (mo < 12) return `${mo}개월 전`;
-  return `${Math.floor(d / 365)}년 전`;
-}
-
 // 드롭다운 섹션 라벨
 function MenuSection({ label }: { label: string }) {
   return (
@@ -1030,7 +1010,7 @@ export default function FormList() {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 100px 150px',
+                    gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 124px 150px',
                     alignItems: 'center',
                     gap: 1.5,
                     px: 2,
@@ -1057,7 +1037,7 @@ export default function FormList() {
                   <Typography className="col">분류</Typography>
                   <Typography className="col">상태</Typography>
                   <Typography className="col">문항 · 버전</Typography>
-                  <Typography className="col">최근 수정</Typography>
+                  <Typography className="col">등록 · 수정</Typography>
                   <Typography className="col" sx={{ textAlign: 'right' }}>
                     관리
                   </Typography>
@@ -1074,7 +1054,7 @@ export default function FormList() {
                       key={f.id}
                       sx={{
                         display: 'grid',
-                        gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 100px 150px',
+                        gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 124px 150px',
                         alignItems: 'center',
                         gap: 1.5,
                         px: 2,
@@ -1173,9 +1153,16 @@ export default function FormList() {
                         문항 {qCount} · v{f.version}
                         {f.history && f.history.length ? ` · 이력 ${f.history.length}` : ''}
                       </Typography>
-                      <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-                        {relTime(f.updatedAt)}
-                      </Typography>
+                      <Box sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                          등록{' '}
+                          {f.createdAt ? new Date(f.createdAt).toLocaleDateString('ko-KR') : '-'}
+                        </Typography>
+                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                          수정{' '}
+                          {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('ko-KR') : '-'}
+                        </Typography>
+                      </Box>
                       {/* 행 관리 — 아이콘 직접 클릭(내용 보기·편집·응답 화면·삭제) */}
                       <Stack
                         direction="row"
