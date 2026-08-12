@@ -32,6 +32,19 @@ function fmtDate(ts?: string): string {
   return Number.isNaN(d.getTime()) ? ts : d.toLocaleString('ko-KR');
 }
 
+// 선택한 답변(선택지)에 지정된 강조 색이 있으면 반환 — 조회 화면과 동일하게 표시
+function answerColor(q: Question, v: AnswerValue): string | undefined {
+  if (v === null || v === undefined || v === '') return undefined;
+  if (q.type === 'radio' || q.type === 'select') {
+    return q.options?.find((o) => o.value === v)?.color;
+  }
+  if (q.type === 'checkbox') {
+    const arr = Array.isArray(v) ? v : [v];
+    return q.options?.find((o) => arr.includes(o.value) && o.color)?.color;
+  }
+  return undefined;
+}
+
 interface Cmd {
   x: number;
   y: number;
@@ -119,11 +132,16 @@ export function buildResponseImageDataUrl(
     if (qs.length === 0) continue;
     if (section.title) block(section.title, 14, '#41600f', { bold: true, gap: 2 });
     for (const q of qs) {
-      block(`Q. ${q.label || ''}`, 15, '#14203a', { bold: true });
-      let ans = fmtAnswer(q, answers[q.id] ?? null);
+      // 편집기에서 지정한 글자 색·크기를 라벨에 반영(조회 화면과 동일)
+      const labelColor = q.color || '#14203a';
+      const labelSize = q.fontSize && q.fontSize > 0 ? q.fontSize : 15;
+      block(`Q. ${q.label || ''}`, labelSize, labelColor, { bold: true });
+      const val = answers[q.id] ?? null;
+      let ans = fmtAnswer(q, val);
       const note = answers[`${q.id}__text`];
       if (note != null && String(note).trim() !== '') ans += `  · 직접입력: ${String(note)}`;
-      block(`→ ${ans}`, 14, '#33415e', { indent: 14, gap: 10 });
+      // 선택지에 강조 색이 지정되어 있으면 답변 글자도 같은 색으로 표시
+      block(`→ ${ans}`, 14, answerColor(q, val) || '#33415e', { indent: 14, gap: 10 });
     }
     y += 6;
   }
