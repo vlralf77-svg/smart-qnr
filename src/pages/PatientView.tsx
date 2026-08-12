@@ -44,35 +44,102 @@ function fmtDate(ts?: string): string {
   }
 }
 
-/** 문항 유형에 맞춰 응답 값을 사람이 읽을 수 있는 문자열로 */
-function formatAnswer(q: Question, v: AnswerValue): string {
-  if (v === null || v === undefined || v === '') return '(미응답)';
-  if (q.type === 'boolean') return v === true || v === 'true' ? '예' : '아니오';
+/** 응답 값을 (라벨, 강조색) 조각으로 분해 — 다중 선택은 선택지마다 개별 색 적용 */
+interface AnsPart {
+  label: string;
+  color?: string;
+}
+function answerParts(q: Question, v: AnswerValue): AnsPart[] {
+  if (v === null || v === undefined || v === '') return [{ label: '(미응답)' }];
+  if (q.type === 'boolean') return [{ label: v === true || v === 'true' ? '예' : '아니오' }];
   if (q.type === 'radio' || q.type === 'select') {
     const opt = q.options?.find((o) => o.value === v);
-    return opt?.label ?? String(v);
+    return [{ label: opt?.label ?? String(v), color: opt?.color }];
   }
   if (q.type === 'checkbox') {
     const arr = Array.isArray(v) ? v : [v];
-    return arr.map((x) => q.options?.find((o) => o.value === x)?.label ?? String(x)).join(', ');
+    return arr.map((x) => {
+      const o = q.options?.find((oo) => oo.value === x);
+      return { label: o?.label ?? String(x), color: o?.color };
+    });
   }
-  return String(v);
+  return [{ label: String(v) }];
 }
 
-/** 선택된 답에 강조 색이 지정돼 있으면 그 색을 반환(라디오/드롭다운/체크박스). */
-function answerColor(q: Question, v: AnswerValue): string | undefined {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (q.type === 'radio' || q.type === 'select') {
-    return q.options?.find((o) => o.value === v)?.color;
+/** 응답 값 표시 — 강조색이 지정된 선택지만 색으로 강조(다중 선택 시 해당 항목만). */
+function AnswerContent({
+  q,
+  v,
+  fontSize,
+  plainColor = '#1a2438',
+}: {
+  q: Question;
+  v: AnswerValue;
+  fontSize: number;
+  plainColor?: string;
+}) {
+  const parts = answerParts(q, v);
+  if (parts.length === 1 && parts[0].label === '(미응답)') {
+    return (
+      <Typography
+        component="span"
+        sx={{
+          fontSize,
+          lineHeight: 1.45,
+          fontWeight: 400,
+          fontStyle: 'italic',
+          color: 'text.disabled',
+        }}
+      >
+        (미응답)
+      </Typography>
+    );
   }
-  if (q.type === 'checkbox') {
-    const arr = Array.isArray(v) ? v : [v];
-    for (const x of arr) {
-      const c = q.options?.find((o) => o.value === x)?.color;
-      if (c) return c;
-    }
-  }
-  return undefined;
+  return (
+    <Box
+      component="span"
+      sx={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.6 }}
+    >
+      {parts.map((p, i) =>
+        p.color ? (
+          <Box
+            key={i}
+            component="span"
+            sx={{
+              fontSize,
+              lineHeight: 1.45,
+              fontWeight: 800,
+              color: p.color,
+              px: 1,
+              py: 0.3,
+              borderRadius: 1.5,
+              bgcolor: alpha(p.color, 0.12),
+              border: `1px solid ${alpha(p.color, 0.35)}`,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {p.label}
+          </Box>
+        ) : (
+          <Box
+            key={i}
+            component="span"
+            sx={{
+              fontSize,
+              lineHeight: 1.45,
+              fontWeight: 600,
+              color: plainColor,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {p.label}
+          </Box>
+        ),
+      )}
+    </Box>
+  );
 }
 
 export default function PatientView() {
@@ -367,9 +434,6 @@ export default function PatientView() {
                       {sectionHeader(section.title, pal, qs.length)}
                       <Box>
                         {qs.map((q, idx) => {
-                          const ans = formatAnswer(q, answers[q.id] ?? null);
-                          const unanswered = ans === '(미응답)';
-                          const hi = answerColor(q, answers[q.id] ?? null);
                           return (
                             <Box
                               key={q.id}
@@ -407,29 +471,9 @@ export default function PatientView() {
                                 >
                                   {q.label}
                                 </Typography>
-                                <Typography
-                                  component="span"
-                                  sx={{
-                                    mt: 0.6,
-                                    fontSize: 16,
-                                    lineHeight: 1.45,
-                                    fontWeight: unanswered ? 400 : hi ? 800 : 600,
-                                    color: unanswered ? 'text.disabled' : hi ? hi : '#1a2438',
-                                    fontStyle: unanswered ? 'italic' : 'normal',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-word',
-                                    ...(hi && {
-                                      display: 'inline-block',
-                                      px: 1,
-                                      py: 0.3,
-                                      borderRadius: 1.5,
-                                      bgcolor: alpha(hi, 0.12),
-                                      border: `1px solid ${alpha(hi, 0.35)}`,
-                                    }),
-                                  }}
-                                >
-                                  {ans}
-                                </Typography>
+                                <Box sx={{ mt: 0.6 }}>
+                                  <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={16} />
+                                </Box>
                               </Box>
                             </Box>
                           );
@@ -458,9 +502,6 @@ export default function PatientView() {
                       <Table size="small">
                         <TableBody>
                           {qs.map((q) => {
-                            const ans = formatAnswer(q, answers[q.id] ?? null);
-                            const unanswered = ans === '(미응답)';
-                            const hi = answerColor(q, answers[q.id] ?? null);
                             return (
                               <TableRow
                                 key={q.id}
@@ -510,28 +551,7 @@ export default function PatientView() {
                                     py: 1.5,
                                   }}
                                 >
-                                  <Typography
-                                    component="span"
-                                    sx={{
-                                      fontSize: 15,
-                                      lineHeight: 1.45,
-                                      fontWeight: unanswered ? 400 : hi ? 800 : 600,
-                                      color: unanswered ? 'text.disabled' : hi ? hi : '#1a2438',
-                                      fontStyle: unanswered ? 'italic' : 'normal',
-                                      whiteSpace: 'pre-wrap',
-                                      wordBreak: 'break-word',
-                                      ...(hi && {
-                                        display: 'inline-block',
-                                        px: 1,
-                                        py: 0.3,
-                                        borderRadius: 1.5,
-                                        bgcolor: alpha(hi, 0.12),
-                                        border: `1px solid ${alpha(hi, 0.35)}`,
-                                      }),
-                                    }}
-                                  >
-                                    {ans}
-                                  </Typography>
+                                  <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={15} />
                                 </TableCell>
                               </TableRow>
                             );

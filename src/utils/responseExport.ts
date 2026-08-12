@@ -137,11 +137,28 @@ export function buildResponseImageDataUrl(
       const labelSize = q.fontSize && q.fontSize > 0 ? q.fontSize : 15;
       block(`Q. ${q.label || ''}`, labelSize, labelColor, { bold: true });
       const val = answers[q.id] ?? null;
-      let ans = fmtAnswer(q, val);
+      // 답변을 (라벨, 강조색) 세그먼트로 분해 — 다중 선택은 선택지마다 개별 색 반영
+      const segs: { text: string; color?: string }[] = [];
+      if (val === null || val === undefined || val === '') {
+        segs.push({ text: '(미응답)' });
+      } else if (q.type === 'checkbox') {
+        const arr = Array.isArray(val) ? val : [val];
+        arr.forEach((x) => {
+          const o = q.options?.find((oo) => oo.value === x);
+          segs.push({ text: o?.label ?? String(x), color: o?.color });
+        });
+      } else {
+        segs.push({ text: fmtAnswer(q, val), color: answerColor(q, val) });
+      }
       const note = answers[`${q.id}__text`];
-      if (note != null && String(note).trim() !== '') ans += `  · 직접입력: ${String(note)}`;
-      // 선택지에 강조 색이 지정되어 있으면 답변 글자도 같은 색으로 표시
-      block(`→ ${ans}`, 14, answerColor(q, val) || '#33415e', { indent: 14, gap: 10 });
+      if (note != null && String(note).trim() !== '')
+        segs.push({ text: `직접입력: ${String(note)}` });
+      segs.forEach((s, i) => {
+        block(`${i === 0 ? '→ ' : '· '}${s.text}`, 14, s.color || '#33415e', {
+          indent: i === 0 ? 14 : 26,
+          gap: i === segs.length - 1 ? 10 : 0,
+        });
+      });
     }
     y += 6;
   }
