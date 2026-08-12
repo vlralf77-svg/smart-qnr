@@ -2,11 +2,11 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AppBar,
   Box,
   Button,
+  Checkbox,
   Chip,
-  Container,
+  Divider,
   IconButton,
   InputAdornment,
   Menu,
@@ -15,14 +15,13 @@ import {
   Stack,
   Switch,
   TextField,
-  Toolbar,
   Tooltip,
   Typography,
   alpha,
   useTheme,
 } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -39,6 +38,10 @@ import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import LinkIcon from '@mui/icons-material/Link';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -71,26 +74,36 @@ const STATUS_LABEL: Record<
   archived: { label: '보관됨', color: 'warning' },
 };
 
-// 트렌디 필 버튼 스타일
-const PILL_SX = {
-  borderRadius: 999,
-  textTransform: 'none',
-  fontWeight: 700,
-  px: 2,
-  height: 40,
-} as const;
-// 새 문진 등 주요 버튼 — 테마 강조색 그라데이션을 따름
-const GRAD_PILL_SX: SxProps<Theme> = {
-  ...PILL_SX,
-  color: '#fff',
-  background: (t) =>
-    `linear-gradient(135deg, ${t.palette.primary.light}, ${t.palette.primary.dark})`,
-  boxShadow: (t) => `0 8px 18px -8px ${alpha(t.palette.primary.dark, 0.7)}`,
-  '&:hover': {
-    background: (t) =>
-      `linear-gradient(135deg, ${t.palette.primary.main}, ${t.palette.primary.dark})`,
-  },
-};
+// 상대 시간 표기(방금 전 / N분·시간·일·주·개월·년 전)
+function relTime(iso?: string): string {
+  if (!iso) return '-';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '-';
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return '방금 전';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}일 전`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `${w}주 전`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo}개월 전`;
+  return `${Math.floor(d / 365)}년 전`;
+}
+
+// 분류(대분류) 점 색 팔레트
+const CAT_DOT_COLORS = [
+  '#2e9d57',
+  '#7c5cff',
+  '#e07b39',
+  '#3f76d0',
+  '#d64545',
+  '#d9a94a',
+  '#0f9b8e',
+];
 
 // 드롭다운 섹션 라벨
 function MenuSection({ label }: { label: string }) {
@@ -111,21 +124,23 @@ function MenuSection({ label }: { label: string }) {
   );
 }
 
-// 사이드 필터 항목(라벨 + 건수 + 선택 강조 + 상태 점)
+// 사이드 필터·내비 항목(아이콘 + 라벨 + 건수 + 선택 강조 + 상태 점)
 function SideItem({
   label,
   count,
   active,
   onClick,
   dot,
+  icon,
   depth = 0,
 }: {
   label: string;
-  count: number;
+  count?: number;
   active: boolean;
   onClick: () => void;
   dot?: string;
-  /** 0=대분류, 1=하위(들여쓰기 + 연결선 표시) */
+  icon?: React.ReactNode;
+  /** 0=대분류, 1=하위(들여쓰기) */
   depth?: number;
 }) {
   const isChild = depth > 0;
@@ -138,55 +153,55 @@ function SideItem({
         justifyContent: 'space-between',
         gap: 1,
         pr: 1,
-        pl: 1.25,
-        ml: isChild ? 1.5 : 0, // 하위 들여쓰기
+        pl: isChild ? 2.5 : 1.25,
         py: 0.7,
         borderRadius: 2,
         cursor: 'pointer',
-        // 하위는 좌측 연결선으로 뎁스 표시(선택 시 브랜드색)
-        borderLeft: isChild ? '2px solid' : '2px solid transparent',
-        borderLeftColor: isChild ? (active ? 'primary.dark' : 'divider') : 'transparent',
-        // 선택 상태를 브랜드색 채움으로 확실히 구분
-        bgcolor: active ? 'primary.main' : 'transparent',
-        color: active ? 'primary.contrastText' : 'inherit',
-        boxShadow: active
-          ? (t) => `0 6px 14px -6px ${alpha(t.palette.primary.main, 0.55)}`
-          : 'none',
-        '&:hover': { bgcolor: active ? 'primary.dark' : 'action.hover' },
+        bgcolor: active ? (t) => alpha(t.palette.primary.main, 0.12) : 'transparent',
+        '&:hover': {
+          bgcolor: active ? (t) => alpha(t.palette.primary.main, 0.18) : 'action.hover',
+        },
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        {dot && (
+        {icon && (
           <Box
             sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: active ? 'primary.contrastText' : dot,
-              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              color: active ? 'primary.dark' : 'text.secondary',
+              '& svg': { fontSize: 19 },
             }}
-          />
+          >
+            {icon}
+          </Box>
+        )}
+        {dot && (
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: dot, flexShrink: 0 }} />
         )}
         <Typography
           noWrap
           sx={{
             fontSize: isChild ? 12.5 : 13.5,
-            fontWeight: active ? 700 : isChild ? 400 : 600,
-            color: active ? 'primary.contrastText' : isChild ? 'text.secondary' : 'text.primary',
+            fontWeight: active ? 800 : isChild ? 500 : 600,
+            color: active ? 'primary.dark' : isChild ? 'text.secondary' : 'text.primary',
           }}
         >
           {label}
         </Typography>
       </Box>
-      <Typography
-        sx={{
-          fontSize: 11.5,
-          fontVariantNumeric: 'tabular-nums',
-          color: active ? 'rgba(255,255,255,0.9)' : 'text.secondary',
-        }}
-      >
-        {count}
-      </Typography>
+      {count != null && (
+        <Typography
+          sx={{
+            fontSize: 11.5,
+            fontVariantNumeric: 'tabular-nums',
+            color: active ? 'primary.dark' : 'text.secondary',
+            fontWeight: active ? 800 : 400,
+          }}
+        >
+          {count}
+        </Typography>
+      )}
     </Box>
   );
 }
@@ -296,6 +311,16 @@ export default function FormList() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const closeMenu = () => setMenuAnchor(null);
+  const responsesAll = useFormsStore((s) => s.responses);
+  const [sortKey, setSortKey] = useState<'recent' | 'created' | 'title'>('recent');
+  const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; form: FormSchema } | null>(null);
+  const SORT_LABEL: Record<'recent' | 'created' | 'title', string> = {
+    recent: '최근 수정순',
+    created: '최근 등록순',
+    title: '이름순',
+  };
 
   // 백엔드 연동 시 목록을 서버에서 불러옴(오프라인이면 no-op)
   useEffect(() => {
@@ -345,6 +370,46 @@ export default function FormList() {
   // 분류 건수 — 대분류는 하위(경로) 문진까지 합산
   const catCount = (c: string) =>
     forms.filter((f) => f.category === c || f.category?.startsWith(c + CATEGORY_SEP)).length;
+
+  // 문진별 응답 수
+  const respCount = useMemo(() => {
+    const m: Record<string, number> = {};
+    responsesAll.forEach((r) => {
+      m[r.formId] = (m[r.formId] ?? 0) + 1;
+    });
+    return m;
+  }, [responsesAll]);
+
+  // 정렬 적용
+  const sorted = useMemo(() => {
+    const arr = filtered.slice();
+    if (sortKey === 'title') arr.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+    else if (sortKey === 'created')
+      arr.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+    else arr.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
+    return arr;
+  }, [filtered, sortKey]);
+
+  // 대분류 목록(점 색 부여용)
+  const parentCats = useMemo(
+    () => Array.from(new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0]))),
+    [filterCategories],
+  );
+
+  // 선택(체크박스)
+  const allSelected = sorted.length > 0 && sorted.every((f) => selected.has(f.id));
+  const toggleSel = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(sorted.map((f) => f.id)));
+  const bulkDelete = () => {
+    selected.forEach((id) => void deleteForm(id).catch(() => {}));
+    setSelected(new Set());
+  };
 
   const seedSample = () => {
     void saveForm({ ...SAMPLE_FORM, id: `${SAMPLE_FORM.id}_${Date.now().toString(36)}` }).catch(
@@ -484,602 +549,727 @@ export default function FormList() {
   const available = actions.filter(
     (a) => a.allowed && (canManage || !a.userConfigurable || isMenuEnabled(a.key)),
   );
-  // 앞에 고정할 기본 액션(권한 없으면 첫 번째로 폴백)
-  const primary =
-    available.find((a) => a.key === primaryKey) ??
-    available.find((a) => a.key === 'new') ??
-    available[0];
   const SECTIONS: Action['section'][] = ['만들기', '환자', '관리'];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="sticky" color="primary" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flex: 1 }}>
-            SmartQnR · 문진 관리
-          </Typography>
-          <Chip
-            label={`v${APP_VERSION}`}
-            size="small"
-            variant="outlined"
-            sx={{ mr: 1.5, color: 'inherit', borderColor: 'rgba(255,255,255,0.5)' }}
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* ─────────── 좌측 사이드바 ─────────── */}
+      <Box
+        component="aside"
+        sx={{
+          width: 250,
+          flexShrink: 0,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+        }}
+      >
+        {/* 브랜드 */}
+        <Box sx={{ px: 2, pt: 2.25, pb: 1.75, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: 2.5,
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: 20,
+              boxShadow: (t) => `0 6px 16px -6px ${alpha(t.palette.primary.main, 0.7)}`,
+            }}
+          >
+            Q
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 15.5, fontWeight: 800, lineHeight: 1.15 }}>
+              SmartQnR
+            </Typography>
+            <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary' }}>
+              문진 관리
+            </Typography>
+          </Box>
+        </Box>
+        <Divider />
+
+        {/* 상단 내비 */}
+        <Box sx={{ px: 1.25, py: 1.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          <SideItem
+            icon={<DescriptionOutlinedIcon />}
+            label="문진"
+            count={counts.total}
+            active
+            onClick={() => {
+              setStatusFilter('all');
+              setCatFilter(ALL);
+            }}
           />
-          <Typography variant="caption" sx={{ opacity: 0.9, mr: 1 }}>
-            {department ? `${department} · ` : ''}
-            {displayName ?? currentUser ?? 'admin'}
-          </Typography>
+          <SideItem
+            icon={<SendOutlinedIcon />}
+            label="배포"
+            count={counts.published}
+            active={false}
+            onClick={() => setLinkOpen(true)}
+          />
+          <SideItem
+            icon={<InsightsOutlinedIcon />}
+            label="응답"
+            count={responsesAll.length}
+            active={false}
+            onClick={() => navigate('/stats')}
+          />
+          <SideItem
+            icon={<AssignmentIndIcon />}
+            label="환자 화면"
+            active={false}
+            onClick={() => window.open('#/patient/login', '_blank')}
+          />
+          {/* 설정 — 관리 메뉴(만들기·환자·관리) 열기 */}
+          <Box
+            onClick={(e) => setMenuAnchor(e.currentTarget)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              pl: 1.25,
+              pr: 1,
+              py: 0.7,
+              borderRadius: 2,
+              cursor: 'pointer',
+              color: 'text.primary',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.secondary',
+                '& svg': { fontSize: 19 },
+              }}
+            >
+              <SettingsOutlinedIcon />
+            </Box>
+            <Typography sx={{ fontSize: 13.5, fontWeight: 600 }}>설정 · 메뉴</Typography>
+            <MoreHorizIcon sx={{ ml: 'auto', fontSize: 18, color: 'text.disabled' }} />
+          </Box>
+        </Box>
+        <Divider />
+
+        {/* 분류 필터(스크롤) */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            px: 1.25,
+            pb: 1,
+            scrollbarWidth: 'thin',
+            scrollbarColor: (t) => `${alpha(t.palette.text.primary, 0.18)} transparent`,
+            '&::-webkit-scrollbar': { width: 8 },
+            '&::-webkit-scrollbar-thumb': {
+              borderRadius: 8,
+              border: '2px solid transparent',
+              backgroundClip: 'padding-box',
+              backgroundColor: (t) => alpha(t.palette.text.primary, 0.18),
+            },
+          }}
+        >
+          <SideLabel>분류</SideLabel>
+          <SideItem
+            label="전체"
+            count={counts.total}
+            active={catFilter === ALL}
+            onClick={() => setCatFilter(ALL)}
+          />
+          {parentCats.map((c, i) => (
+            <SideItem
+              key={c}
+              dot={CAT_DOT_COLORS[i % CAT_DOT_COLORS.length]}
+              label={c}
+              count={catCount(c)}
+              active={catFilter === c}
+              onClick={() => setCatFilter(c)}
+            />
+          ))}
+          {hasUncategorized && (
+            <SideItem
+              label="분류 없음"
+              count={counts.byCat[NONE] ?? 0}
+              active={catFilter === NONE}
+              onClick={() => setCatFilter(NONE)}
+            />
+          )}
+          <Button
+            size="small"
+            fullWidth
+            startIcon={<LabelOutlinedIcon />}
+            onClick={() => setManageOpen(true)}
+            sx={{ mt: 1, justifyContent: 'flex-start', color: 'text.secondary', fontWeight: 700 }}
+          >
+            분류 관리
+          </Button>
+        </Box>
+        <Divider />
+
+        {/* 사용자 */}
+        <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              bgcolor: (t) => alpha(t.palette.primary.main, 0.15),
+              color: 'primary.dark',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: 13,
+              flexShrink: 0,
+            }}
+          >
+            {(displayName ?? currentUser ?? 'A').slice(0, 1).toUpperCase()}
+          </Box>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography noWrap sx={{ fontSize: 13, fontWeight: 700 }}>
+              {displayName ?? currentUser ?? 'admin'}
+            </Typography>
+            <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary' }}>
+              {department || '관리자'}
+            </Typography>
+          </Box>
           <ThemeSettingsButton />
           <Tooltip title="로그아웃">
-            <IconButton color="inherit" size="small" onClick={() => setLogoutOpen(true)}>
+            <IconButton size="small" onClick={() => setLogoutOpen(true)}>
               <LogoutIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-        </Toolbar>
-      </AppBar>
+        </Box>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+      {/* ─────────── 본문 ─────────── */}
+      <Box component="main" sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* 헤더 */}
+        <Box
+          sx={{
+            px: { xs: 2, md: 4 },
+            pt: 3,
+            pb: 2,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
           <Box>
-            <Typography variant="h5" fontWeight={700}>
-              문진 목록
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              문진
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              총 {forms.length}개
+              등록된 문진 {forms.length}개 · 확정 {counts.published} · 임시저장 {counts.draft}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {primary && (
-              <Button
-                disableElevation
-                variant="contained"
-                startIcon={primary.icon}
-                onClick={primary.run}
-                sx={GRAD_PILL_SX}
-              >
-                {primary.title}
-              </Button>
-            )}
-            <Button
-              variant="outlined"
-              onClick={(e) => setMenuAnchor(e.currentTarget)}
-              sx={{
-                ...PILL_SX,
-                minWidth: 44,
-                px: 1.5,
-                borderColor: 'divider',
-                color: 'text.primary',
-              }}
-            >
-              <MoreHorizIcon />
-            </Button>
-          </Stack>
-
-          <Menu
-            anchorEl={menuAnchor}
-            open={!!menuAnchor}
-            onClose={closeMenu}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            PaperProps={{
-              sx: {
-                mt: 1,
-                minWidth: 288,
-                borderRadius: 3,
-                boxShadow: '0 20px 50px -16px rgba(15,30,46,.3)',
-                py: 0.5,
-              },
-            }}
-          >
-            <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, fontSize: 11, color: 'text.secondary' }}>
-              📌 아이콘 = <b>앞에 고정</b>
-              {canManage && (
-                <>
-                  {' '}
-                  · 스위치 = <b>사용자 메뉴 표시 여부</b>
-                </>
-              )}
-            </Typography>
-            {SECTIONS.map((section) => {
-              const items = available.filter((a) => a.section === section);
-              if (items.length === 0) return null;
-              return [
-                <MenuSection key={`s-${section}`} label={section} />,
-                ...items.map((a) => (
-                  <ActionItem
-                    key={a.key}
-                    icon={a.icon}
-                    chipColor={a.chipColor}
-                    chipBg={a.chipBg}
-                    title={a.title}
-                    desc={a.desc}
-                    onClick={() => {
-                      closeMenu();
-                      a.run();
-                    }}
-                    dimmed={canManage && a.userConfigurable && !isMenuEnabled(a.key)}
-                    trailing={
-                      <Stack direction="row" alignItems="center" spacing={0.25}>
-                        {canManage && a.userConfigurable && (
-                          <Tooltip
-                            title={
-                              isMenuEnabled(a.key)
-                                ? '사용자에게 표시됨 (끄면 사용자 메뉴에서 숨김)'
-                                : '사용자에게 숨김'
-                            }
-                          >
-                            <Switch
-                              size="small"
-                              checked={isMenuEnabled(a.key)}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={() => toggleMenu(a.key)}
-                            />
-                          </Tooltip>
-                        )}
-                        <Tooltip
-                          title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPrimaryAction(a.key);
-                            }}
-                            sx={{ ml: 0.25 }}
-                          >
-                            {a.key === primaryKey ? (
-                              <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                            ) : (
-                              <PushPinOutlinedIcon
-                                fontSize="small"
-                                sx={{ color: 'text.disabled' }}
-                              />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    }
-                  />
-                )),
-              ];
-            })}
-          </Menu>
-        </Stack>
-
-        {forms.length === 0 ? (
-          <Paper variant="outlined" sx={{ p: 6, textAlign: 'center' }}>
-            <Typography color="text.secondary" mb={2}>
-              등록된 문진이 없습니다.
-            </Typography>
-            {canEdit ? (
-              <Stack direction="row" spacing={1} justifyContent="center">
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setCreateOpen(true)}
-                >
-                  새 문진 만들기
-                </Button>
-                <Button variant="text" onClick={seedSample}>
-                  샘플(마취 문진표) 불러오기
-                </Button>
-              </Stack>
-            ) : (
-              <Typography variant="caption" color="text.disabled">
-                문진 생성 권한이 없습니다.
-              </Typography>
-            )}
-          </Paper>
-        ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
-              gap: 2.5,
-              alignItems: 'start',
-            }}
-          >
-            {/* 좌: 검색 + 상태·분류 필터 (상시 노출) */}
-            <Paper
-              variant="outlined"
-              sx={{ p: 1.5, borderRadius: 3, position: { md: 'sticky' }, top: 88 }}
-            >
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="제목 · ID 검색"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <SideLabel>상태</SideLabel>
-              <SideItem
-                label="전체"
-                count={counts.total}
-                active={statusFilter === 'all'}
-                onClick={() => setStatusFilter('all')}
-              />
-              <SideItem
-                label="확정"
-                dot={theme.palette.primary.main}
-                count={counts.published}
-                active={statusFilter === 'published'}
-                onClick={() => setStatusFilter('published')}
-              />
-              <SideItem
-                label="임시저장"
-                dot="#b7791f"
-                count={counts.draft}
-                active={statusFilter === 'draft'}
-                onClick={() => setStatusFilter('draft')}
-              />
-
-              <SideLabel>분류</SideLabel>
-              {/* 분류가 많아도 찾기 쉽도록 리스트 대신 드롭다운(대분류/하위 들여쓰기·건수) */}
-              <TextField
-                select
-                size="small"
-                fullWidth
-                value={catFilter}
-                onChange={(e) => setCatFilter(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LabelOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' },
-                }}
-                SelectProps={{
-                  MenuProps: {
-                    PaperProps: {
-                      sx: {
-                        mt: 0.5,
-                        borderRadius: 2.5,
-                        maxHeight: 320,
-                        boxShadow: '0 10px 30px -12px rgba(15,40,30,.4)',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        // 얇고 둥근 브랜드 스크롤바
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: (t) => `${alpha(t.palette.text.primary, 0.18)} transparent`,
-                        '&::-webkit-scrollbar': { width: 8 },
-                        '&::-webkit-scrollbar-track': { background: 'transparent', margin: 4 },
-                        '&::-webkit-scrollbar-thumb': {
-                          borderRadius: 8,
-                          border: '2px solid transparent',
-                          backgroundClip: 'padding-box',
-                          backgroundColor: (t) => alpha(t.palette.text.primary, 0.18),
-                        },
-                        '&::-webkit-scrollbar-thumb:hover': {
-                          backgroundColor: (t) => alpha(t.palette.text.primary, 0.32),
-                        },
-                        '& .MuiList-root': { py: 0.5 },
-                        '& .MuiMenuItem-root': { borderRadius: 1.5, mx: 0.5, minHeight: 38 },
-                      },
-                    },
-                  },
-                  renderValue: (val) => {
-                    const v = val as string;
-                    const label = v === ALL ? '전체' : v === NONE ? '분류 없음' : v;
-                    const n =
-                      v === ALL
-                        ? counts.total
-                        : v === NONE
-                          ? (counts.byCat[NONE] ?? 0)
-                          : catCount(v);
-                    return (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Typography noWrap sx={{ fontSize: 13.5, fontWeight: 700, minWidth: 0 }}>
-                          {label}
-                        </Typography>
-                        <Box
-                          component="span"
-                          sx={{
-                            ml: 'auto',
-                            flexShrink: 0,
-                            fontSize: 11,
-                            fontWeight: 800,
-                            fontVariantNumeric: 'tabular-nums',
-                            color: 'text.secondary',
-                            bgcolor: 'action.hover',
-                            px: 0.75,
-                            borderRadius: 1,
-                          }}
-                        >
-                          {n}
-                        </Box>
-                      </Box>
-                    );
-                  },
-                }}
-              >
-                {[
-                  <MenuItem key={ALL} value={ALL} sx={{ display: 'flex', gap: 1, fontWeight: 700 }}>
-                    <span>전체</span>
-                    <Box
-                      component="span"
-                      sx={{
-                        ml: 'auto',
-                        fontSize: 11.5,
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {counts.total}
-                    </Box>
-                  </MenuItem>,
-                  ...(() => {
-                    // 대분류 → 하위 순서, 하위는 점 마커 + 들여쓰기
-                    const parents = Array.from(
-                      new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
-                    );
-                    const els: JSX.Element[] = [];
-                    parents.forEach((p) => {
-                      els.push(
-                        <MenuItem
-                          key={p}
-                          value={p}
-                          sx={{ display: 'flex', gap: 1, fontWeight: 700 }}
-                        >
-                          <span>{p}</span>
-                          <Box
-                            component="span"
-                            sx={{
-                              ml: 'auto',
-                              fontSize: 11.5,
-                              color: 'text.secondary',
-                              fontVariantNumeric: 'tabular-nums',
-                            }}
-                          >
-                            {catCount(p)}
-                          </Box>
-                        </MenuItem>,
-                      );
-                      filterCategories
-                        .filter((c) => c.startsWith(p + CATEGORY_SEP))
-                        .forEach((c) => {
-                          const child = c.slice((p + CATEGORY_SEP).length);
-                          els.push(
-                            <MenuItem
-                              key={c}
-                              value={c}
-                              sx={{
-                                display: 'flex',
-                                gap: 1,
-                                pl: 2,
-                                fontSize: 13,
-                                color: 'text.secondary',
-                              }}
-                            >
-                              <Box
-                                component="span"
-                                sx={{
-                                  width: 5,
-                                  height: 5,
-                                  borderRadius: '50%',
-                                  bgcolor: 'divider',
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span>{child}</span>
-                              <Box
-                                component="span"
-                                sx={{
-                                  ml: 'auto',
-                                  fontSize: 11.5,
-                                  color: 'text.secondary',
-                                  fontVariantNumeric: 'tabular-nums',
-                                }}
-                              >
-                                {catCount(c)}
-                              </Box>
-                            </MenuItem>,
-                          );
-                        });
-                    });
-                    return els;
-                  })(),
-                  ...(hasUncategorized
-                    ? [
-                        <MenuItem key={NONE} value={NONE} sx={{ display: 'flex', gap: 1 }}>
-                          <span>분류 없음</span>
-                          <Box
-                            component="span"
-                            sx={{
-                              ml: 'auto',
-                              fontSize: 11.5,
-                              color: 'text.secondary',
-                              fontVariantNumeric: 'tabular-nums',
-                            }}
-                          >
-                            {counts.byCat[NONE] ?? 0}
-                          </Box>
-                        </MenuItem>,
-                      ]
-                    : []),
-                ]}
-              </TextField>
-
+          <Stack direction="row" spacing={1}>
+            {canEdit && (
               <Button
                 variant="outlined"
-                size="small"
-                fullWidth
-                startIcon={<LabelOutlinedIcon />}
-                onClick={() => setManageOpen(true)}
-                sx={{ mt: 1.5 }}
+                startIcon={<TableChartOutlinedIcon />}
+                onClick={() => setExcelOpen(true)}
+                sx={{ borderRadius: 2, fontWeight: 700 }}
               >
-                분류 관리
+                가져오기
               </Button>
-            </Paper>
+            )}
+            {canEdit && (
+              <Button
+                variant="contained"
+                disableElevation
+                startIcon={<AddIcon />}
+                onClick={() => setCreateOpen(true)}
+                sx={{ borderRadius: 2, fontWeight: 700 }}
+              >
+                새 문진 만들기
+              </Button>
+            )}
+          </Stack>
+        </Box>
 
-            {/* 우: 문진 리스트(여유로운 행) */}
-            {filtered.length === 0 ? (
-              <Paper variant="outlined" sx={{ p: 5, textAlign: 'center', borderRadius: 3 }}>
-                <Typography color="text.secondary">조건에 맞는 문진이 없습니다.</Typography>
-              </Paper>
-            ) : (
-              <Stack spacing={1.25}>
-                {filtered.map((f) => {
-                  const qCount = f.sections.reduce((a, s) => a + s.questions.length, 0);
-                  const st = STATUS_LABEL[f.status] ?? STATUS_LABEL.draft;
-                  return (
-                    <Paper
-                      key={f.id}
-                      variant="outlined"
-                      sx={{
-                        p: 1.75,
-                        borderRadius: 3,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        transition: 'box-shadow .15s, border-color .15s',
-                        '&:hover': {
-                          borderColor: 'divider',
-                          boxShadow: '0 10px 26px -16px rgba(15,23,42,.35)',
-                        },
-                      }}
-                    >
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography fontWeight={700} noWrap>
-                          {f.title}
-                        </Typography>
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          flexWrap="wrap"
-                          useFlexGap
-                          sx={{ mt: 0.5 }}
-                        >
-                          {f.category
-                            ? (() => {
-                                const { parent, child } = splitCategory(f.category as string);
-                                return (
-                                  <Box
-                                    onClick={() => setCatFilter(f.category as string)}
-                                    sx={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 0.5,
-                                      height: 24,
-                                      pl: 1,
-                                      pr: child ? 0.5 : 1,
-                                      border: '1px solid',
-                                      borderColor: 'divider',
-                                      borderRadius: 999,
-                                      cursor: 'pointer',
-                                      bgcolor: 'background.paper',
-                                      '&:hover': { borderColor: 'primary.main' },
-                                    }}
-                                  >
-                                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                      {parent}
-                                    </Typography>
-                                    {child && (
-                                      <>
-                                        <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
-                                          ›
-                                        </Typography>
-                                        <Box
-                                          sx={{
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            color: 'primary.dark',
-                                            bgcolor: 'action.hover',
-                                            borderRadius: 999,
-                                            px: 0.9,
-                                            py: '1px',
-                                          }}
-                                        >
-                                          {child}
-                                        </Box>
-                                      </>
-                                    )}
-                                  </Box>
-                                );
-                              })()
-                            : null}
-                          <Chip label={st.label} color={st.color} size="small" />
-                          <Typography variant="caption" color="text.secondary">
-                            문항 {qCount} · v{f.version}
-                            {f.history && f.history.length ? ` · 이력 ${f.history.length}` : ''}
-                          </Typography>
-                        </Stack>
-                      </Box>
+        {/* 툴바: 검색 · 상태 · 정렬 */}
+        <Box
+          sx={{
+            px: { xs: 2, md: 4 },
+            pb: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.25,
+            flexWrap: 'wrap',
+          }}
+        >
+          <TextField
+            size="small"
+            placeholder="문진지 제목 · ID 검색"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{ flex: '1 1 240px', minWidth: 220, maxWidth: 380 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Stack direction="row" spacing={0.75}>
+            <Chip
+              label="전체"
+              size="small"
+              onClick={() => setStatusFilter('all')}
+              color={statusFilter === 'all' ? 'primary' : 'default'}
+              variant={statusFilter === 'all' ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              label="확정"
+              size="small"
+              onClick={() => setStatusFilter('published')}
+              color={statusFilter === 'published' ? 'primary' : 'default'}
+              variant={statusFilter === 'published' ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              label="임시저장"
+              size="small"
+              onClick={() => setStatusFilter('draft')}
+              color={statusFilter === 'draft' ? 'primary' : 'default'}
+              variant={statusFilter === 'draft' ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700 }}
+            />
+          </Stack>
+          <Button
+            variant="text"
+            startIcon={<SwapVertIcon />}
+            onClick={(e) => setSortAnchor(e.currentTarget)}
+            sx={{ ml: 'auto', color: 'text.secondary', fontWeight: 700 }}
+          >
+            {SORT_LABEL[sortKey]}
+          </Button>
+        </Box>
 
-                      <Box
-                        sx={{
-                          textAlign: 'right',
-                          flexShrink: 0,
-                          display: { xs: 'none', sm: 'block' },
-                        }}
-                      >
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          등록{' '}
-                          {f.createdAt ? new Date(f.createdAt).toLocaleDateString('ko-KR') : '-'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          수정{' '}
-                          {f.updatedAt ? new Date(f.updatedAt).toLocaleDateString('ko-KR') : '-'}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        {canView && (
-                          <Tooltip title="내용 보기">
-                            <IconButton size="small" onClick={() => setPreviewForm(f)}>
-                              <VisibilityOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {canEdit && (
-                          <Tooltip title="편집">
-                            <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <Tooltip
-                          title={f.status === 'published' ? '응답 화면 열기' : '확정 후 응답 가능'}
-                        >
-                          <span>
-                            <IconButton
-                              size="small"
-                              disabled={f.status !== 'published'}
-                              onClick={() => navigate(`/respond/${f.id}`)}
-                            >
-                              <OpenInNewIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        {canDelete && (
-                          <Tooltip title="삭제">
-                            <IconButton
-                              size="small"
-                              onClick={() => void deleteForm(f.id).catch(() => {})}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
-                    </Paper>
-                  );
-                })}
-              </Stack>
+        {/* 선택 바 */}
+        {selected.size > 0 && (
+          <Box
+            sx={{
+              mx: { xs: 2, md: 4 },
+              mb: 1.5,
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+              border: '1px solid',
+              borderColor: (t) => alpha(t.palette.primary.main, 0.35),
+            }}
+          >
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'primary.dark' }}>
+              {selected.size}개 선택됨
+            </Typography>
+            <Button size="small" variant="text" onClick={() => setSelected(new Set())}>
+              선택 해제
+            </Button>
+            {canDelete && (
+              <Button
+                size="small"
+                variant="text"
+                color="error"
+                startIcon={<DeleteOutlineIcon />}
+                onClick={bulkDelete}
+                sx={{ ml: 'auto', fontWeight: 700 }}
+              >
+                삭제
+              </Button>
             )}
           </Box>
         )}
-      </Container>
+
+        {/* 테이블 */}
+        <Box sx={{ px: { xs: 2, md: 4 }, pb: 4, flex: 1 }}>
+          {sorted.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
+              <Typography color="text.secondary" sx={{ mb: forms.length === 0 && canEdit ? 2 : 0 }}>
+                {forms.length === 0 ? '등록된 문진이 없습니다.' : '조건에 맞는 문진이 없습니다.'}
+              </Typography>
+              {forms.length === 0 && canEdit && (
+                <Stack direction="row" spacing={1} justifyContent="center">
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setCreateOpen(true)}
+                  >
+                    새 문진 만들기
+                  </Button>
+                  <Button variant="text" onClick={seedSample}>
+                    샘플(마취 문진표) 불러오기
+                  </Button>
+                </Stack>
+              )}
+            </Paper>
+          ) : (
+            <Paper variant="outlined" sx={{ borderRadius: 3, overflowX: 'auto' }}>
+              <Box sx={{ minWidth: 780 }}>
+                {/* 헤더 행 */}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '34px minmax(0,1fr) 190px 96px 150px 108px 44px',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 2,
+                    py: 1.25,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'action.hover',
+                    '& .col': {
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      letterSpacing: '0.03em',
+                      color: 'text.secondary',
+                    },
+                  }}
+                >
+                  <Checkbox
+                    size="small"
+                    checked={allSelected}
+                    indeterminate={selected.size > 0 && !allSelected}
+                    onChange={toggleAll}
+                    sx={{ p: 0 }}
+                  />
+                  <Typography className="col">문진지</Typography>
+                  <Typography className="col">분류</Typography>
+                  <Typography className="col">상태</Typography>
+                  <Typography className="col">문항 · 버전</Typography>
+                  <Typography className="col">최근 수정</Typography>
+                  <span />
+                </Box>
+
+                {/* 데이터 행 */}
+                {sorted.map((f) => {
+                  const qCount = f.sections.reduce((a, s) => a + s.questions.length, 0);
+                  const st = STATUS_LABEL[f.status] ?? STATUS_LABEL.draft;
+                  const sel = selected.has(f.id);
+                  const cat = f.category ? splitCategory(f.category) : null;
+                  return (
+                    <Box
+                      key={f.id}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: '34px minmax(0,1fr) 190px 96px 150px 108px 44px',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        px: 2,
+                        py: 1.25,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        '&:last-of-type': { borderBottom: 'none' },
+                        bgcolor: sel ? (t) => alpha(t.palette.primary.main, 0.06) : 'transparent',
+                        transition: 'background-color .12s',
+                        '&:hover': {
+                          bgcolor: sel ? (t) => alpha(t.palette.primary.main, 0.1) : 'action.hover',
+                        },
+                      }}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={sel}
+                        onChange={() => toggleSel(f.id)}
+                        sx={{ p: 0 }}
+                      />
+                      <Box
+                        sx={{ minWidth: 0, cursor: canView ? 'pointer' : 'default' }}
+                        onClick={() => canView && setPreviewForm(f)}
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={0.75}
+                          sx={{ minWidth: 0 }}
+                        >
+                          <Typography noWrap sx={{ fontWeight: 700, fontSize: 14 }}>
+                            {f.title}
+                          </Typography>
+                          {f.status !== 'published' && (
+                            <Chip
+                              label="편집 중"
+                              size="small"
+                              sx={{
+                                height: 18,
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                bgcolor: (t) => alpha(t.palette.warning.main, 0.16),
+                                color: 'warning.dark',
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                        </Stack>
+                        <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary' }}>
+                          {f.id}
+                          {respCount[f.id] ? ` · 응답 ${respCount[f.id]}` : ''}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        {cat ? (
+                          <Box
+                            sx={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              minWidth: 0,
+                            }}
+                          >
+                            <Typography noWrap sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                              {cat.parent}
+                            </Typography>
+                            {cat.child && (
+                              <>
+                                <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
+                                  ›
+                                </Typography>
+                                <Typography
+                                  noWrap
+                                  sx={{ fontSize: 12.5, fontWeight: 700, color: 'primary.dark' }}
+                                >
+                                  {cat.child}
+                                </Typography>
+                              </>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography sx={{ fontSize: 12.5, color: 'text.disabled' }}>—</Typography>
+                        )}
+                      </Box>
+                      <Box>
+                        <Chip label={st.label} color={st.color} size="small" />
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: 12.5,
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        문항 {qCount} · v{f.version}
+                        {f.history && f.history.length ? ` · 이력 ${f.history.length}` : ''}
+                      </Typography>
+                      <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                        {relTime(f.updatedAt)}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => setRowMenu({ el: e.currentTarget, form: f })}
+                      >
+                        <MoreHorizIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+          )}
+
+          {sorted.length > 0 && (
+            <Box
+              sx={{
+                px: 0.5,
+                pt: 1.25,
+                display: 'flex',
+                justifyContent: 'space-between',
+                color: 'text.secondary',
+              }}
+            >
+              <Typography variant="caption">
+                {sorted.length}개 표시 · 총 {forms.length}개
+              </Typography>
+              <Typography variant="caption">v{APP_VERSION}</Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      <Menu
+        anchorEl={menuAnchor}
+        open={!!menuAnchor}
+        onClose={closeMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 288,
+            borderRadius: 3,
+            boxShadow: '0 20px 50px -16px rgba(15,30,46,.3)',
+            py: 0.5,
+          },
+        }}
+      >
+        <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, fontSize: 11, color: 'text.secondary' }}>
+          📌 아이콘 = <b>앞에 고정</b>
+          {canManage && (
+            <>
+              {' '}
+              · 스위치 = <b>사용자 메뉴 표시 여부</b>
+            </>
+          )}
+        </Typography>
+        {SECTIONS.map((section) => {
+          const items = available.filter((a) => a.section === section);
+          if (items.length === 0) return null;
+          return [
+            <MenuSection key={`s-${section}`} label={section} />,
+            ...items.map((a) => (
+              <ActionItem
+                key={a.key}
+                icon={a.icon}
+                chipColor={a.chipColor}
+                chipBg={a.chipBg}
+                title={a.title}
+                desc={a.desc}
+                onClick={() => {
+                  closeMenu();
+                  a.run();
+                }}
+                dimmed={canManage && a.userConfigurable && !isMenuEnabled(a.key)}
+                trailing={
+                  <Stack direction="row" alignItems="center" spacing={0.25}>
+                    {canManage && a.userConfigurable && (
+                      <Tooltip
+                        title={
+                          isMenuEnabled(a.key)
+                            ? '사용자에게 표시됨 (끄면 사용자 메뉴에서 숨김)'
+                            : '사용자에게 숨김'
+                        }
+                      >
+                        <Switch
+                          size="small"
+                          checked={isMenuEnabled(a.key)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => toggleMenu(a.key)}
+                        />
+                      </Tooltip>
+                    )}
+                    <Tooltip title={a.key === primaryKey ? '기본 화면(앞에 고정됨)' : '앞에 고정'}>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPrimaryAction(a.key);
+                        }}
+                        sx={{ ml: 0.25 }}
+                      >
+                        {a.key === primaryKey ? (
+                          <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                        ) : (
+                          <PushPinOutlinedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                }
+              />
+            )),
+          ];
+        })}
+      </Menu>
+
+      {/* 정렬 메뉴 */}
+      <Menu
+        anchorEl={sortAnchor}
+        open={!!sortAnchor}
+        onClose={() => setSortAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        {(['recent', 'created', 'title'] as const).map((k) => (
+          <MenuItem
+            key={k}
+            selected={sortKey === k}
+            onClick={() => {
+              setSortKey(k);
+              setSortAnchor(null);
+            }}
+          >
+            {SORT_LABEL[k]}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* 행 메뉴 */}
+      <Menu
+        anchorEl={rowMenu?.el ?? null}
+        open={!!rowMenu}
+        onClose={() => setRowMenu(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        {canView && (
+          <MenuItem
+            onClick={() => {
+              const f = rowMenu!.form;
+              setRowMenu(null);
+              setPreviewForm(f);
+            }}
+          >
+            <VisibilityOutlinedIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
+            내용 보기
+          </MenuItem>
+        )}
+        {canEdit && (
+          <MenuItem
+            onClick={() => {
+              const f = rowMenu!.form;
+              setRowMenu(null);
+              navigate(`/editor/${f.id}`);
+            }}
+          >
+            <EditIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
+            편집
+          </MenuItem>
+        )}
+        <MenuItem
+          disabled={rowMenu?.form.status !== 'published'}
+          onClick={() => {
+            const f = rowMenu!.form;
+            setRowMenu(null);
+            navigate(`/respond/${f.id}`);
+          }}
+        >
+          <OpenInNewIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
+          응답 화면 열기
+        </MenuItem>
+        {canDelete && <Divider />}
+        {canDelete && (
+          <MenuItem
+            onClick={() => {
+              const f = rowMenu!.form;
+              setRowMenu(null);
+              void deleteForm(f.id).catch(() => {});
+            }}
+            sx={{ color: 'error.main' }}
+          >
+            <DeleteOutlineIcon fontSize="small" style={{ marginRight: 10 }} />
+            삭제
+          </MenuItem>
+        )}
+      </Menu>
 
       <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
       <PatientLinkDialog open={linkOpen} onClose={() => setLinkOpen(false)} />
