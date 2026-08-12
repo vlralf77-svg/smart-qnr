@@ -160,18 +160,43 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             control={control}
             rules={rules}
             defaultValue=""
-            render={({ field }) => (
-              <RadioGroup {...field}>
-                {options.map((o) => (
-                  <FormControlLabel
-                    key={o.id}
-                    value={o.value}
-                    control={<Radio />}
-                    label={optLabel(o)}
-                  />
-                ))}
-              </RadioGroup>
-            )}
+            render={({ field }) => {
+              const fixed = (q.options ?? []).map((o) => o.value);
+              const val = field.value == null ? '' : String(field.value);
+              // 기타(직접입력) 상태: ETC 마커이거나, 고정 선택지에 없는 임의 텍스트가 들어온 경우
+              const isEtc =
+                !!q.allowEtc && (val === ETC_VALUE || (val !== '' && !fixed.includes(val)));
+              return (
+                <>
+                  <RadioGroup
+                    value={isEtc ? ETC_VALUE : val}
+                    onChange={(_e, v) => field.onChange(v)}
+                  >
+                    {options.map((o) => (
+                      <FormControlLabel
+                        key={o.id}
+                        value={o.value}
+                        control={<Radio />}
+                        label={optLabel(o)}
+                      />
+                    ))}
+                  </RadioGroup>
+                  {isEtc && (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      autoFocus
+                      placeholder="직접 입력"
+                      value={val === ETC_VALUE ? '' : val}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? ETC_VALUE : e.target.value)
+                      }
+                      sx={{ mt: 1, maxWidth: 360 }}
+                    />
+                  )}
+                </>
+              );
+            }}
           />
           {errText && <FormHelperText>{errText}</FormHelperText>}
         </FormControl>
@@ -231,15 +256,45 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             control={control}
             rules={rules}
             defaultValue=""
-            render={({ field }) => (
-              <TextField {...field} select size="small" error={!!err} helperText={errText}>
-                {options.map((o) => (
-                  <MenuItem key={o.id} value={o.value}>
-                    {optLabel(o)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
+            render={({ field }) => {
+              const fixed = (q.options ?? []).map((o) => o.value);
+              const val = field.value == null ? '' : String(field.value);
+              const isEtc =
+                !!q.allowEtc && (val === ETC_VALUE || (val !== '' && !fixed.includes(val)));
+              return (
+                <>
+                  <TextField
+                    select
+                    size="small"
+                    error={!!err}
+                    helperText={isEtc ? undefined : errText}
+                    value={isEtc ? ETC_VALUE : val}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    {options.map((o) => (
+                      <MenuItem key={o.id} value={o.value}>
+                        {optLabel(o)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {isEtc && (
+                    <TextField
+                      size="small"
+                      fullWidth
+                      autoFocus
+                      placeholder="직접 입력"
+                      value={val === ETC_VALUE ? '' : val}
+                      onChange={(e) =>
+                        field.onChange(e.target.value === '' ? ETC_VALUE : e.target.value)
+                      }
+                      error={!!err}
+                      helperText={errText}
+                      sx={{ mt: 1, maxWidth: 360 }}
+                    />
+                  )}
+                </>
+              );
+            }}
           />
         </FormControl>
       );
