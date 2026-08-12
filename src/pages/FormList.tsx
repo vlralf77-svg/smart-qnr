@@ -300,7 +300,6 @@ export default function FormList() {
   const [sortKey, setSortKey] = useState<'recent' | 'created' | 'title'>('recent');
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; form: FormSchema } | null>(null);
   const SORT_LABEL: Record<'recent' | 'created' | 'title', string> = {
     recent: '최근 수정순',
     created: '최근 등록순',
@@ -1026,12 +1025,12 @@ export default function FormList() {
             </Paper>
           ) : (
             <Paper variant="outlined" sx={{ borderRadius: 3, overflowX: 'auto' }}>
-              <Box sx={{ minWidth: 780 }}>
+              <Box sx={{ minWidth: 900 }}>
                 {/* 헤더 행 */}
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '34px minmax(0,1fr) 190px 96px 150px 108px 44px',
+                    gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 100px 150px',
                     alignItems: 'center',
                     gap: 1.5,
                     px: 2,
@@ -1054,12 +1053,14 @@ export default function FormList() {
                     onChange={toggleAll}
                     sx={{ p: 0 }}
                   />
-                  <Typography className="col">문진지</Typography>
+                  <Typography className="col">문진명</Typography>
                   <Typography className="col">분류</Typography>
                   <Typography className="col">상태</Typography>
                   <Typography className="col">문항 · 버전</Typography>
                   <Typography className="col">최근 수정</Typography>
-                  <span />
+                  <Typography className="col" sx={{ textAlign: 'right' }}>
+                    관리
+                  </Typography>
                 </Box>
 
                 {/* 데이터 행 */}
@@ -1073,7 +1074,7 @@ export default function FormList() {
                       key={f.id}
                       sx={{
                         display: 'grid',
-                        gridTemplateColumns: '34px minmax(0,1fr) 190px 96px 150px 108px 44px',
+                        gridTemplateColumns: '34px minmax(0,1fr) 176px 92px 140px 100px 150px',
                         alignItems: 'center',
                         gap: 1.5,
                         px: 2,
@@ -1122,10 +1123,11 @@ export default function FormList() {
                             />
                           )}
                         </Stack>
-                        <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary' }}>
-                          {f.id}
-                          {respCount[f.id] ? ` · 응답 ${respCount[f.id]}` : ''}
-                        </Typography>
+                        {respCount[f.id] ? (
+                          <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary' }}>
+                            응답 {respCount[f.id]}
+                          </Typography>
+                        ) : null}
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         {cat ? (
@@ -1174,12 +1176,51 @@ export default function FormList() {
                       <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
                         {relTime(f.updatedAt)}
                       </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => setRowMenu({ el: e.currentTarget, form: f })}
+                      {/* 행 관리 — 아이콘 직접 클릭(내용 보기·편집·응답 화면·삭제) */}
+                      <Stack
+                        direction="row"
+                        spacing={0.25}
+                        justifyContent="flex-end"
+                        sx={{ whiteSpace: 'nowrap' }}
                       >
-                        <MoreHorizIcon fontSize="small" />
-                      </IconButton>
+                        {canView && (
+                          <Tooltip title="내용 보기">
+                            <IconButton size="small" onClick={() => setPreviewForm(f)}>
+                              <VisibilityOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {canEdit && (
+                          <Tooltip title="편집">
+                            <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip
+                          title={f.status === 'published' ? '응답 화면 열기' : '확정 후 응답 가능'}
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              disabled={f.status !== 'published'}
+                              onClick={() => navigate(`/respond/${f.id}`)}
+                            >
+                              <OpenInNewIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        {canDelete && (
+                          <Tooltip title="삭제">
+                            <IconButton
+                              size="small"
+                              onClick={() => void deleteForm(f.id).catch(() => {})}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </Box>
                   );
                 })}
@@ -1311,65 +1352,6 @@ export default function FormList() {
             {SORT_LABEL[k]}
           </MenuItem>
         ))}
-      </Menu>
-
-      {/* 행 메뉴 */}
-      <Menu
-        anchorEl={rowMenu?.el ?? null}
-        open={!!rowMenu}
-        onClose={() => setRowMenu(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        {canView && (
-          <MenuItem
-            onClick={() => {
-              const f = rowMenu!.form;
-              setRowMenu(null);
-              setPreviewForm(f);
-            }}
-          >
-            <VisibilityOutlinedIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
-            내용 보기
-          </MenuItem>
-        )}
-        {canEdit && (
-          <MenuItem
-            onClick={() => {
-              const f = rowMenu!.form;
-              setRowMenu(null);
-              navigate(`/editor/${f.id}`);
-            }}
-          >
-            <EditIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
-            편집
-          </MenuItem>
-        )}
-        <MenuItem
-          disabled={rowMenu?.form.status !== 'published'}
-          onClick={() => {
-            const f = rowMenu!.form;
-            setRowMenu(null);
-            navigate(`/respond/${f.id}`);
-          }}
-        >
-          <OpenInNewIcon fontSize="small" style={{ marginRight: 10, opacity: 0.7 }} />
-          응답 화면 열기
-        </MenuItem>
-        {canDelete && <Divider />}
-        {canDelete && (
-          <MenuItem
-            onClick={() => {
-              const f = rowMenu!.form;
-              setRowMenu(null);
-              void deleteForm(f.id).catch(() => {});
-            }}
-            sx={{ color: 'error.main' }}
-          >
-            <DeleteOutlineIcon fontSize="small" style={{ marginRight: 10 }} />
-            삭제
-          </MenuItem>
-        )}
       </Menu>
 
       <CategoryManager open={manageOpen} onClose={() => setManageOpen(false)} />
