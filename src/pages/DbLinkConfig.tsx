@@ -1,30 +1,37 @@
 // DB(쿼리) 연동 설정 — 병원 DB(Oracle 등)에 직접 쿼리해서 데이터를 받아온다.
 //  · 실제 접속·실행은 백엔드에서 수행(프론트는 DB 직접 접속 불가) → 여기서는 설정만 저장.
 //  · 접속 정보(TNS/JDBC) · 읽기전용 쿼리 · 바인드 파라미터 · 컬럼→앱필드 매핑.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   AppBar,
   Box,
   Button,
+  Chip,
   Container,
   IconButton,
   MenuItem,
   Paper,
   Stack,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   TextField,
   Toolbar,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StorageIcon from '@mui/icons-material/Storage';
 import { APP_FIELDS, PURPOSE_LABELS, type ApiPurpose } from '@/store/useApiConfigStore';
 import { buildJdbcUrl, useDbLinkStore, type DbConnMode } from '@/store/useDbLinkStore';
+import { simulateDbQuery, type SimResult } from '@/utils/dbLinkSim';
 
 const MODE_LABELS: Record<DbConnMode, string> = {
   ezconnect: 'EZConnect (호스트/포트/서비스)',
@@ -39,6 +46,15 @@ export default function DbLinkConfig() {
 
   const jdbcPreview = useMemo(() => buildJdbcUrl(c), [c]);
   const appFields = APP_FIELDS[c.purpose];
+
+  // 테스트(시뮬레이션): 값이 비어 있는 파라미터는 실행 시 입력받는다
+  const runtimeKeys = useMemo(
+    () => c.params.filter((p) => p.key && !(p.value ?? '').trim()).map((p) => p.key),
+    [c.params],
+  );
+  const [runtime, setRuntime] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<SimResult | null>(null);
+  const runTest = () => setResult(simulateDbQuery(c, runtime));
 
   const setParam = (i: number, patch: Partial<{ key: string; value: string }>) =>
     update({ params: c.params.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) });
@@ -390,22 +406,88 @@ export default function DbLinkConfig() {
             </Stack>
           </Paper>
 
-          {/* 연결 테스트(백엔드 필요) */}
+          {/* 테스트(시뮬레이션) */}
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-            <Typography variant="subtitle2" fontWeight={800} mb={1}>
-              연결 테스트
+            <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+              <Typography variant="subtitle2" fontWeight={800}>
+                테스트
+              </Typography>
+              <Chip size="small" label="시뮬레이션" color="warning" variant="outlined" />
+            </Stack>
+            <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+              내장 샘플 데이터에 <b>파라미터(WHERE)</b>와 <b>컬럼 매핑</b>을 적용해 결과를 미리
+              봅니다. (실제 접속은 백엔드 배포 후 동일 화면에서 실제 값으로 실행)
+              {c.purpose === 'patientForms' && ' 예: patientNo = 10001'}
             </Typography>
-            <Tooltip title="백엔드 DB 연동 모듈 배포 후 지원됩니다(브라우저는 DB 직접 접속 불가)">
-              <span>
-                <Button variant="contained" startIcon={<StorageIcon />} disabled>
-                  연결 테스트 (백엔드 배포 후)
-                </Button>
-              </span>
-            </Tooltip>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-              설정은 자동 저장됩니다. 백엔드가 이 설정(JDBC URL·쿼리·파라미터·매핑)을 받아 읽기
-              전용으로 실행하고 결과를 앱 필드로 매핑해 반환합니다.
-            </Typography>
+
+            {runtimeKeys.length > 0 && (
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={1.5}>
+                {runtimeKeys.map((k) => (
+                  <TextField
+                    key={k}
+                    size="small"
+                    label={`:${k}`}
+                    value={runtime[k] ?? ''}
+                    onChange={(e) => setRuntime((v) => ({ ...v, [k]: e.target.value }))}
+                    sx={{ width: 200 }}
+                  />
+                ))}
+              </Stack>
+            )}
+
+            <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={runTest}>
+              테스트 실행
+            </Button>
+
+            {result && (
+              <Box sx={{ mt: 2 }}>
+                <Alert severity="success" sx={{ mb: 1.5 }}>
+                  {result.matched}건 조회됨
+                  {Object.keys(result.effective).length > 0 &&
+                    ` · 조건 ${Object.entries(result.effective)
+                      .map(([k, v]) => `${k}=${v}`)
+                      .join(', ')}`}
+                </Alert>
+                {result.rows.length > 0 ? (
+                  <Box
+                    sx={{
+                      overflowX: 'auto',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          {result.columns.map((col) => (
+                            <TableCell key={col} sx={{ fontWeight: 700 }}>
+                              {col}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {result.rows.map((r, i) => (
+                          <TableRow key={i}>
+                            {result.columns.map((col) => (
+                              <TableCell key={col}>{String(r[col] ?? '')}</TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    조건에 맞는 행이 없습니다. 파라미터 값 또는 매핑을 확인하세요.
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                  {result.note}
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Stack>
       </Container>
