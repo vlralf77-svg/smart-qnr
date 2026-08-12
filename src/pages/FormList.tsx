@@ -38,10 +38,6 @@ import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import LinkIcon from '@mui/icons-material/Link';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
-import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -93,17 +89,6 @@ function relTime(iso?: string): string {
   if (mo < 12) return `${mo}개월 전`;
   return `${Math.floor(d / 365)}년 전`;
 }
-
-// 분류(대분류) 점 색 팔레트
-const CAT_DOT_COLORS = [
-  '#2e9d57',
-  '#7c5cff',
-  '#e07b39',
-  '#3f76d0',
-  '#d64545',
-  '#d9a94a',
-  '#0f9b8e',
-];
 
 // 드롭다운 섹션 라벨
 function MenuSection({ label }: { label: string }) {
@@ -390,12 +375,6 @@ export default function FormList() {
     return arr;
   }, [filtered, sortKey]);
 
-  // 대분류 목록(점 색 부여용)
-  const parentCats = useMemo(
-    () => Array.from(new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0]))),
-    [filterCategories],
-  );
-
   // 선택(체크박스)
   const allSelected = sorted.length > 0 && sorted.every((f) => selected.has(f.id));
   const toggleSel = (id: string) =>
@@ -549,6 +528,11 @@ export default function FormList() {
   const available = actions.filter(
     (a) => a.allowed && (canManage || !a.userConfigurable || isMenuEnabled(a.key)),
   );
+  // 앞에 고정할 기본 액션(권한 없으면 새 문진 → 첫 번째로 폴백)
+  const primary =
+    available.find((a) => a.key === primaryKey) ??
+    available.find((a) => a.key === 'new') ??
+    available[0];
   const SECTIONS: Action['section'][] = ['만들기', '환자', '관리'];
 
   return (
@@ -599,77 +583,13 @@ export default function FormList() {
         </Box>
         <Divider />
 
-        {/* 상단 내비 */}
-        <Box sx={{ px: 1.25, py: 1.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-          <SideItem
-            icon={<DescriptionOutlinedIcon />}
-            label="문진"
-            count={counts.total}
-            active
-            onClick={() => {
-              setStatusFilter('all');
-              setCatFilter(ALL);
-            }}
-          />
-          <SideItem
-            icon={<SendOutlinedIcon />}
-            label="배포"
-            count={counts.published}
-            active={false}
-            onClick={() => setLinkOpen(true)}
-          />
-          <SideItem
-            icon={<InsightsOutlinedIcon />}
-            label="응답"
-            count={responsesAll.length}
-            active={false}
-            onClick={() => navigate('/stats')}
-          />
-          <SideItem
-            icon={<AssignmentIndIcon />}
-            label="환자 화면"
-            active={false}
-            onClick={() => window.open('#/patient/login', '_blank')}
-          />
-          {/* 설정 — 관리 메뉴(만들기·환자·관리) 열기 */}
-          <Box
-            onClick={(e) => setMenuAnchor(e.currentTarget)}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              pl: 1.25,
-              pr: 1,
-              py: 0.7,
-              borderRadius: 2,
-              cursor: 'pointer',
-              color: 'text.primary',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                color: 'text.secondary',
-                '& svg': { fontSize: 19 },
-              }}
-            >
-              <SettingsOutlinedIcon />
-            </Box>
-            <Typography sx={{ fontSize: 13.5, fontWeight: 600 }}>설정 · 메뉴</Typography>
-            <MoreHorizIcon sx={{ ml: 'auto', fontSize: 18, color: 'text.disabled' }} />
-          </Box>
-        </Box>
-        <Divider />
-
-        {/* 분류 필터(스크롤) */}
+        {/* 상태·분류 필터(이전 상태와 동일: 상태 조회 + 분류 콤보) */}
         <Box
           sx={{
             flex: 1,
             overflowY: 'auto',
             px: 1.25,
-            pb: 1,
+            py: 1.25,
             scrollbarWidth: 'thin',
             scrollbarColor: (t) => `${alpha(t.palette.text.primary, 0.18)} transparent`,
             '&::-webkit-scrollbar': { width: 8 },
@@ -681,31 +601,208 @@ export default function FormList() {
             },
           }}
         >
-          <SideLabel>분류</SideLabel>
+          <SideLabel>상태</SideLabel>
           <SideItem
             label="전체"
             count={counts.total}
-            active={catFilter === ALL}
-            onClick={() => setCatFilter(ALL)}
+            active={statusFilter === 'all'}
+            onClick={() => setStatusFilter('all')}
           />
-          {parentCats.map((c, i) => (
-            <SideItem
-              key={c}
-              dot={CAT_DOT_COLORS[i % CAT_DOT_COLORS.length]}
-              label={c}
-              count={catCount(c)}
-              active={catFilter === c}
-              onClick={() => setCatFilter(c)}
-            />
-          ))}
-          {hasUncategorized && (
-            <SideItem
-              label="분류 없음"
-              count={counts.byCat[NONE] ?? 0}
-              active={catFilter === NONE}
-              onClick={() => setCatFilter(NONE)}
-            />
-          )}
+          <SideItem
+            label="확정"
+            dot={theme.palette.primary.main}
+            count={counts.published}
+            active={statusFilter === 'published'}
+            onClick={() => setStatusFilter('published')}
+          />
+          <SideItem
+            label="임시저장"
+            dot="#b7791f"
+            count={counts.draft}
+            active={statusFilter === 'draft'}
+            onClick={() => setStatusFilter('draft')}
+          />
+
+          <SideLabel>분류</SideLabel>
+          {/* 분류가 많아도 찾기 쉽도록 리스트 대신 드롭다운(대분류/하위 들여쓰기·건수) */}
+          <TextField
+            select
+            size="small"
+            fullWidth
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LabelOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'background.paper' },
+            }}
+            SelectProps={{
+              MenuProps: {
+                PaperProps: {
+                  sx: {
+                    mt: 0.5,
+                    borderRadius: 2.5,
+                    maxHeight: 320,
+                    boxShadow: '0 10px 30px -12px rgba(15,40,30,.4)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: (t) => `${alpha(t.palette.text.primary, 0.18)} transparent`,
+                    '&::-webkit-scrollbar': { width: 8 },
+                    '&::-webkit-scrollbar-track': { background: 'transparent', margin: 4 },
+                    '&::-webkit-scrollbar-thumb': {
+                      borderRadius: 8,
+                      border: '2px solid transparent',
+                      backgroundClip: 'padding-box',
+                      backgroundColor: (t) => alpha(t.palette.text.primary, 0.18),
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': {
+                      backgroundColor: (t) => alpha(t.palette.text.primary, 0.32),
+                    },
+                    '& .MuiList-root': { py: 0.5 },
+                    '& .MuiMenuItem-root': { borderRadius: 1.5, mx: 0.5, minHeight: 38 },
+                  },
+                },
+              },
+              renderValue: (val) => {
+                const v = val as string;
+                const label = v === ALL ? '전체' : v === NONE ? '분류 없음' : v;
+                const n =
+                  v === ALL ? counts.total : v === NONE ? (counts.byCat[NONE] ?? 0) : catCount(v);
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                    <Typography noWrap sx={{ fontSize: 13.5, fontWeight: 700, minWidth: 0 }}>
+                      {label}
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: 'auto',
+                        flexShrink: 0,
+                        fontSize: 11,
+                        fontWeight: 800,
+                        fontVariantNumeric: 'tabular-nums',
+                        color: 'text.secondary',
+                        bgcolor: 'action.hover',
+                        px: 0.75,
+                        borderRadius: 1,
+                      }}
+                    >
+                      {n}
+                    </Box>
+                  </Box>
+                );
+              },
+            }}
+          >
+            {[
+              <MenuItem key={ALL} value={ALL} sx={{ display: 'flex', gap: 1, fontWeight: 700 }}>
+                <span>전체</span>
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 'auto',
+                    fontSize: 11.5,
+                    color: 'text.secondary',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {counts.total}
+                </Box>
+              </MenuItem>,
+              ...(() => {
+                // 대분류 → 하위 순서, 하위는 점 마커 + 들여쓰기
+                const parents = Array.from(
+                  new Set(filterCategories.map((c) => c.split(CATEGORY_SEP)[0])),
+                );
+                const els: JSX.Element[] = [];
+                parents.forEach((p) => {
+                  els.push(
+                    <MenuItem key={p} value={p} sx={{ display: 'flex', gap: 1, fontWeight: 700 }}>
+                      <span>{p}</span>
+                      <Box
+                        component="span"
+                        sx={{
+                          ml: 'auto',
+                          fontSize: 11.5,
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {catCount(p)}
+                      </Box>
+                    </MenuItem>,
+                  );
+                  filterCategories
+                    .filter((c) => c.startsWith(p + CATEGORY_SEP))
+                    .forEach((c) => {
+                      const child = c.slice((p + CATEGORY_SEP).length);
+                      els.push(
+                        <MenuItem
+                          key={c}
+                          value={c}
+                          sx={{
+                            display: 'flex',
+                            gap: 1,
+                            pl: 2,
+                            fontSize: 13,
+                            color: 'text.secondary',
+                          }}
+                        >
+                          <Box
+                            component="span"
+                            sx={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: '50%',
+                              bgcolor: 'divider',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span>{child}</span>
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 'auto',
+                              fontSize: 11.5,
+                              color: 'text.secondary',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {catCount(c)}
+                          </Box>
+                        </MenuItem>,
+                      );
+                    });
+                });
+                return els;
+              })(),
+              ...(hasUncategorized
+                ? [
+                    <MenuItem key={NONE} value={NONE} sx={{ display: 'flex', gap: 1 }}>
+                      <span>분류 없음</span>
+                      <Box
+                        component="span"
+                        sx={{
+                          ml: 'auto',
+                          fontSize: 11.5,
+                          color: 'text.secondary',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {counts.byCat[NONE] ?? 0}
+                      </Box>
+                    </MenuItem>,
+                  ]
+                : []),
+            ]}
+          </TextField>
+
           <Button
             size="small"
             fullWidth
@@ -777,28 +874,32 @@ export default function FormList() {
               등록된 문진 {forms.length}개 · 확정 {counts.published} · 임시저장 {counts.draft}
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1}>
-            {canEdit && (
-              <Button
-                variant="outlined"
-                startIcon={<TableChartOutlinedIcon />}
-                onClick={() => setExcelOpen(true)}
-                sx={{ borderRadius: 2, fontWeight: 700 }}
-              >
-                가져오기
-              </Button>
-            )}
-            {canEdit && (
+          {/* 기존 메뉴 기능: 앞에 고정된 기본 액션 + ⋯ 전체 메뉴 */}
+          <Stack direction="row" spacing={1} alignItems="center">
+            {primary && (
               <Button
                 variant="contained"
                 disableElevation
-                startIcon={<AddIcon />}
-                onClick={() => setCreateOpen(true)}
+                startIcon={primary.icon}
+                onClick={primary.run}
                 sx={{ borderRadius: 2, fontWeight: 700 }}
               >
-                새 문진 만들기
+                {primary.title}
               </Button>
             )}
+            <Button
+              variant="outlined"
+              onClick={(e) => setMenuAnchor(e.currentTarget)}
+              sx={{
+                borderRadius: 2,
+                minWidth: 44,
+                px: 1.5,
+                borderColor: 'divider',
+                color: 'text.primary',
+              }}
+            >
+              <MoreHorizIcon />
+            </Button>
           </Stack>
         </Box>
 
