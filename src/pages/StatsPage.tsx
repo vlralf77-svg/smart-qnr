@@ -884,6 +884,24 @@ function StatCard({ item }: { item: StatItem }) {
                   (기간 {filtered.length}건 중 조건 일치)
                 </Typography>
               )}
+              <Box sx={{ flex: 1 }} />
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={item.chart}
+                onChange={(_e, v) => v && updateItem(item.id, { chart: v as ChartKind })}
+              >
+                <ToggleButton value="bar" sx={{ px: 1, py: 0.3 }}>
+                  <Tooltip title="막대 (개수)">
+                    <BarChartRoundedIcon fontSize="small" />
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="donut" sx={{ px: 1, py: 0.3 }}>
+                  <Tooltip title="비율 (도넛)">
+                    <DonutLargeRoundedIcon fontSize="small" />
+                  </Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Stack>
             {scoreStats.count === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
@@ -896,7 +914,11 @@ function StatCard({ item }: { item: StatItem }) {
                     <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
                       해석 구간별 분포
                     </Typography>
-                    <DistributionBars items={scoreStats.bands} answered={scoreStats.count} />
+                    {item.chart === 'donut' ? (
+                      <DonutChart items={scoreStats.bands} answered={scoreStats.count} />
+                    ) : (
+                      <DistributionBars items={scoreStats.bands} answered={scoreStats.count} />
+                    )}
                   </Box>
                 )}
                 <Box>
@@ -904,7 +926,11 @@ function StatCard({ item }: { item: StatItem }) {
                   <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
                     총점 분포
                   </Typography>
-                  <DistributionBars items={scoreStats.bins} answered={scoreStats.count} />
+                  {item.chart === 'donut' ? (
+                    <DonutChart items={scoreStats.bins} answered={scoreStats.count} />
+                  ) : (
+                    <DistributionBars items={scoreStats.bins} answered={scoreStats.count} />
+                  )}
                 </Box>
               </Stack>
             )}
