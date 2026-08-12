@@ -92,6 +92,8 @@ export interface Question {
   options?: QuestionOption[];
   /** '기타(직접입력)' 옵션 자동 추가 */
   allowEtc?: boolean;
+  /** 단일 선택(radio)에서 옵션 선택 시 상세 텍스트 입력칸 표시(예/아니오를 골라도 추가 입력 가능) */
+  allowOptionText?: boolean;
   /** number/scale 범위 */
   min?: number;
   max?: number;

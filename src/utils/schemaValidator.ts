@@ -70,6 +70,7 @@ function normalizeQuestion(raw: unknown, warnings: string[], seen: Set<string>):
       question.options = rawOpts.map((o) => normalizeOption(o));
     }
     if (q.allowEtc === true) question.allowEtc = true;
+    if (q.allowOptionText === true && type === 'radio') question.allowOptionText = true;
   }
 
   if (type === 'scale' || type === 'number') {

@@ -204,14 +204,28 @@ export default function OptionsEditor({ sectionId, question }: Props) {
             onChange={(e) => updateQuestion(sectionId, question.id, { allowEtc: e.target.checked })}
           />
         }
-        label={
-          <Typography variant="body2">
-            {question.type === 'radio'
-              ? '직접 입력(기타) 허용 — 선택 시 텍스트 입력 칸 표시'
-              : "'기타(직접입력)' 옵션 자동 추가"}
-          </Typography>
-        }
+        label={<Typography variant="body2">'기타(직접입력)' 옵션 자동 추가</Typography>}
       />
+
+      {question.type === 'radio' && (
+        <FormControlLabel
+          sx={{ display: 'block' }}
+          control={
+            <Checkbox
+              size="small"
+              checked={!!question.allowOptionText}
+              onChange={(e) =>
+                updateQuestion(sectionId, question.id, { allowOptionText: e.target.checked })
+              }
+            />
+          }
+          label={
+            <Typography variant="body2">
+              선택 시 텍스트 입력 허용 — 예/아니오 등을 골라도 상세 입력칸 표시
+            </Typography>
+          }
+        />
+      )}
     </Box>
   );
 }

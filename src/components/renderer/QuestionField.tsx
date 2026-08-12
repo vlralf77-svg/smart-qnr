@@ -161,17 +161,12 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             rules={rules}
             defaultValue=""
             render={({ field }) => {
-              const fixed = (q.options ?? []).map((o) => o.value);
               const val = field.value == null ? '' : String(field.value);
-              // 기타(직접입력) 상태: ETC 마커이거나, 고정 선택지에 없는 임의 텍스트가 들어온 경우
-              const isEtc =
-                !!q.allowEtc && (val === ETC_VALUE || (val !== '' && !fixed.includes(val)));
+              // 선택 시 상세 텍스트 입력: 값이 선택되었고(비어있지 않음) 기타(직접입력)가 아닐 때
+              const showNote = !!q.allowOptionText && val !== '' && val !== ETC_VALUE;
               return (
                 <>
-                  <RadioGroup
-                    value={isEtc ? ETC_VALUE : val}
-                    onChange={(_e, v) => field.onChange(v)}
-                  >
+                  <RadioGroup {...field}>
                     {options.map((o) => (
                       <FormControlLabel
                         key={o.id}
@@ -181,17 +176,21 @@ export default function QuestionField({ question: q, control, errors }: Props) {
                       />
                     ))}
                   </RadioGroup>
-                  {isEtc && (
-                    <TextField
-                      size="small"
-                      fullWidth
-                      autoFocus
-                      placeholder="직접 입력"
-                      value={val === ETC_VALUE ? '' : val}
-                      onChange={(e) =>
-                        field.onChange(e.target.value === '' ? ETC_VALUE : e.target.value)
-                      }
-                      sx={{ mt: 1, maxWidth: 360 }}
+                  {showNote && (
+                    <Controller
+                      name={`${q.id}__text`}
+                      control={control}
+                      defaultValue=""
+                      render={({ field: nf }) => (
+                        <TextField
+                          size="small"
+                          fullWidth
+                          placeholder="상세 입력 (선택)"
+                          value={nf.value == null ? '' : String(nf.value)}
+                          onChange={(e) => nf.onChange(e.target.value)}
+                          sx={{ mt: 1, maxWidth: 360 }}
+                        />
+                      )}
                     />
                   )}
                 </>

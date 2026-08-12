@@ -113,7 +113,10 @@ export function coerceQuestionForType(q: Question, type: QuestionType): Question
   } else {
     delete next.options;
     delete next.allowEtc;
+    delete next.allowOptionText;
   }
+  // 상세 텍스트 입력은 단일 선택(radio)에서만
+  if (type !== 'radio') delete next.allowOptionText;
   if (type === 'scale') {
     next.min = next.min ?? 0;
     next.max = next.max ?? 10;
