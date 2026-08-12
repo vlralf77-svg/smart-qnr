@@ -206,7 +206,9 @@ export default function OptionsEditor({ sectionId, question }: Props) {
         }
         label={
           <Typography variant="body2">
-            직접 입력(기타) 허용 — 선택 시 텍스트 입력 칸 표시
+            {question.type === 'radio'
+              ? '직접 입력(기타) 허용 — 선택 시 텍스트 입력 칸 표시'
+              : "'기타(직접입력)' 옵션 자동 추가"}
           </Typography>
         }
       />

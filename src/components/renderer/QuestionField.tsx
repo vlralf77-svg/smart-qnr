@@ -256,45 +256,15 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             control={control}
             rules={rules}
             defaultValue=""
-            render={({ field }) => {
-              const fixed = (q.options ?? []).map((o) => o.value);
-              const val = field.value == null ? '' : String(field.value);
-              const isEtc =
-                !!q.allowEtc && (val === ETC_VALUE || (val !== '' && !fixed.includes(val)));
-              return (
-                <>
-                  <TextField
-                    select
-                    size="small"
-                    error={!!err}
-                    helperText={isEtc ? undefined : errText}
-                    value={isEtc ? ETC_VALUE : val}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  >
-                    {options.map((o) => (
-                      <MenuItem key={o.id} value={o.value}>
-                        {optLabel(o)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  {isEtc && (
-                    <TextField
-                      size="small"
-                      fullWidth
-                      autoFocus
-                      placeholder="직접 입력"
-                      value={val === ETC_VALUE ? '' : val}
-                      onChange={(e) =>
-                        field.onChange(e.target.value === '' ? ETC_VALUE : e.target.value)
-                      }
-                      error={!!err}
-                      helperText={errText}
-                      sx={{ mt: 1, maxWidth: 360 }}
-                    />
-                  )}
-                </>
-              );
-            }}
+            render={({ field }) => (
+              <TextField {...field} select size="small" error={!!err} helperText={errText}>
+                {options.map((o) => (
+                  <MenuItem key={o.id} value={o.value}>
+                    {optLabel(o)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           />
         </FormControl>
       );
