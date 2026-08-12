@@ -46,6 +46,8 @@ export interface QuestionOption {
   color?: string;
   /** 채점 점수 — 이 선택지를 고르면 합산되는 점수(문항 채점 사용 시). 미지정=0점 */
   score?: number;
+  /** 이 선택지를 고르면 상세 텍스트 입력칸을 표시(단일 선택). */
+  allowText?: boolean;
 }
 
 /** 에디터 캔버스 상의 위치·크기 (12열 그리드 단위). 없으면 문항 순서대로 자동 배치. */
@@ -92,8 +94,6 @@ export interface Question {
   options?: QuestionOption[];
   /** '기타(직접입력)' 옵션 자동 추가 */
   allowEtc?: boolean;
-  /** 단일 선택(radio)에서 옵션 선택 시 상세 텍스트 입력칸 표시(예/아니오를 골라도 추가 입력 가능) */
-  allowOptionText?: boolean;
   /** number/scale 범위 */
   min?: number;
   max?: number;

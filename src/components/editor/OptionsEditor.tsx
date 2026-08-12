@@ -28,6 +28,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import FormatColorResetIcon from '@mui/icons-material/FormatColorReset';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
 import Tooltip from '@mui/material/Tooltip';
 import { Question } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
@@ -171,6 +172,25 @@ export default function OptionsEditor({ sectionId, question }: Props) {
                         </IconButton>
                       </Tooltip>
                     )}
+                    {question.type === 'radio' && (
+                      <Tooltip
+                        title={
+                          o.allowText
+                            ? '직접입력 켜짐 — 이 선택지를 고르면 입력칸 표시'
+                            : '이 선택지 선택 시 직접입력 허용'
+                        }
+                      >
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            updateOption(sectionId, question.id, o.id, { allowText: !o.allowText })
+                          }
+                          sx={{ color: o.allowText ? 'primary.main' : 'text.disabled' }}
+                        >
+                          <TextFieldsIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <IconButton
                       size="small"
                       onClick={() => removeOption(sectionId, question.id, o.id)}
@@ -206,26 +226,6 @@ export default function OptionsEditor({ sectionId, question }: Props) {
         }
         label={<Typography variant="body2">'기타(직접입력)' 옵션 자동 추가</Typography>}
       />
-
-      {question.type === 'radio' && (
-        <FormControlLabel
-          sx={{ display: 'block' }}
-          control={
-            <Checkbox
-              size="small"
-              checked={!!question.allowOptionText}
-              onChange={(e) =>
-                updateQuestion(sectionId, question.id, { allowOptionText: e.target.checked })
-              }
-            />
-          }
-          label={
-            <Typography variant="body2">
-              선택 시 텍스트 입력 허용 — 예/아니오 등을 골라도 상세 입력칸 표시
-            </Typography>
-          }
-        />
-      )}
     </Box>
   );
 }

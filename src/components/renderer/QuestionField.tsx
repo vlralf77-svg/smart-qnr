@@ -162,8 +162,9 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             defaultValue=""
             render={({ field }) => {
               const val = field.value == null ? '' : String(field.value);
-              // 선택 시 상세 텍스트 입력: 값이 선택되었고(비어있지 않음) 기타(직접입력)가 아닐 때
-              const showNote = !!q.allowOptionText && val !== '' && val !== ETC_VALUE;
+              // 선택된 선택지가 '직접입력 허용'이면 상세 텍스트 입력칸 표시
+              const selectedOpt = (q.options ?? []).find((o) => o.value === val);
+              const showNote = !!selectedOpt?.allowText;
               return (
                 <>
                   <RadioGroup {...field}>
