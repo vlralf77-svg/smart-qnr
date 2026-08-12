@@ -162,39 +162,40 @@ export default function QuestionField({ question: q, control, errors }: Props) {
             defaultValue=""
             render={({ field }) => {
               const val = field.value == null ? '' : String(field.value);
-              // 선택된 선택지가 '직접입력 허용'이면 상세 텍스트 입력칸 표시
-              const selectedOpt = (q.options ?? []).find((o) => o.value === val);
-              const showNote = !!selectedOpt?.allowText;
               return (
-                <>
-                  <RadioGroup {...field}>
-                    {options.map((o) => (
+                <RadioGroup {...field}>
+                  {options.map((o) => (
+                    <Box
+                      key={o.id}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
+                    >
                       <FormControlLabel
-                        key={o.id}
                         value={o.value}
                         control={<Radio />}
                         label={optLabel(o)}
+                        sx={{ mr: 0.5 }}
                       />
-                    ))}
-                  </RadioGroup>
-                  {showNote && (
-                    <Controller
-                      name={`${q.id}__text`}
-                      control={control}
-                      defaultValue=""
-                      render={({ field: nf }) => (
-                        <TextField
-                          size="small"
-                          fullWidth
-                          placeholder="상세 입력 (선택)"
-                          value={nf.value == null ? '' : String(nf.value)}
-                          onChange={(e) => nf.onChange(e.target.value)}
-                          sx={{ mt: 1, maxWidth: 360 }}
+                      {/* 직접입력 허용 선택지 — 선택 시 옆에 입력칸 표시 */}
+                      {o.allowText && val === o.value && (
+                        <Controller
+                          name={`${q.id}__text`}
+                          control={control}
+                          defaultValue=""
+                          render={({ field: nf }) => (
+                            <TextField
+                              size="small"
+                              autoFocus
+                              placeholder="직접 입력"
+                              value={nf.value == null ? '' : String(nf.value)}
+                              onChange={(e) => nf.onChange(e.target.value)}
+                              sx={{ minWidth: 160, flex: 1, maxWidth: 320 }}
+                            />
+                          )}
                         />
                       )}
-                    />
-                  )}
-                </>
+                    </Box>
+                  ))}
+                </RadioGroup>
               );
             }}
           />
