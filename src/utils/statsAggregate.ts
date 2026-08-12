@@ -1,5 +1,6 @@
 // 문진 응답 통계 집계 — 문진/문항/기간을 받아 문항 유형별로 결과를 계산.
 import { FormResponse, FormSchema, Question } from '@/types/schema';
+import { computeScore } from './scoring';
 
 export interface DistItem {
   key: string;
@@ -235,4 +236,61 @@ export function aggregateQuestion(question: Question, responses: FormResponse[])
     .map(([key, count]) => ({ key, label: key, count, pct: (count / answered) * 100 }))
     .sort((a, b) => b.count - a.count);
   return { kind: 'text', total, answered, items: all.slice(0, 12), distinct: all.length };
+}
+
+// ── 총점 분포(채점 문진) ────────────────────────────────────────
+export interface ScoreStats {
+  count: number; // 응답 수
+  avg: number; // 평균 총점
+  min: number; // 최소 총점
+  max: number; // 최대 총점
+  formMax: number; // 이 문진의 만점
+  bins: DistItem[]; // 총점 히스토그램(최대 12구간)
+  bands: DistItem[]; // 해석 구간(밴드)별 분포(밴드 없으면 빈 배열)
+}
+
+/** 기간(호출부에서 필터)으로 추린 응답들의 총점 분포를 계산한다. */
+export function computeScoreStats(form: FormSchema, responses: FormResponse[]): ScoreStats {
+  const totals = responses.map((r) => computeScore(form, r.answers).total);
+  const count = totals.length;
+  const formMax = computeScore(form, {}).max;
+  const observedMax = count ? Math.max(...totals) : 0;
+  const upper = Math.max(formMax, observedMax, 1);
+  const sum = totals.reduce((a, b) => a + b, 0);
+  const avg = count ? sum / count : 0;
+  const min = count ? Math.min(...totals) : 0;
+  const max = observedMax;
+
+  // 히스토그램(최대 12구간)
+  const nBins = Math.min(12, upper + 1);
+  const binSize = Math.max(1, Math.ceil((upper + 1) / nBins));
+  const buckets: { lo: number; hi: number; count: number }[] = [];
+  for (let lo = 0; lo <= upper; lo += binSize) {
+    buckets.push({ lo, hi: Math.min(upper, lo + binSize - 1), count: 0 });
+  }
+  for (const t of totals) {
+    const idx = Math.min(buckets.length - 1, Math.max(0, Math.floor(t / binSize)));
+    buckets[idx].count += 1;
+  }
+  const bins: DistItem[] = buckets.map((b, i) => ({
+    key: `bin-${i}`,
+    label: b.lo === b.hi ? `${b.lo}점` : `${b.lo}–${b.hi}점`,
+    count: b.count,
+    pct: count ? (b.count / count) * 100 : 0,
+  }));
+
+  // 해석 구간(밴드)별 분포
+  const bandDefs = form.scoring?.bands ?? [];
+  const bands: DistItem[] = bandDefs.map((bd, i) => {
+    const c = totals.filter((t) => t >= bd.min && t <= bd.max).length;
+    return {
+      key: `band-${i}`,
+      label: bd.label || `${bd.min}–${bd.max}`,
+      count: c,
+      pct: count ? (c / count) * 100 : 0,
+      color: bd.color,
+    };
+  });
+
+  return { count, avg, min, max, formMax, bins, bands };
 }

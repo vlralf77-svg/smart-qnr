@@ -45,16 +45,18 @@ import dayjs, { Dayjs } from 'dayjs';
 import { FormResponse, Question, QUESTION_TYPE_META } from '@/types/schema';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
-import { useStatsStore, StatItem } from '@/store/useStatsStore';
+import { useStatsStore, StatItem, StatMeasure } from '@/store/useStatsStore';
 import ThemeSettingsButton from '@/components/ThemeSettingsButton';
 import {
   aggregateQuestion,
   inputQuestions,
   withinRange,
   responseMatchesFilters,
+  computeScoreStats,
   StatResult,
   DistItem,
 } from '@/utils/statsAggregate';
+import { isScoringEnabled } from '@/utils/scoring';
 import { uid } from '@/utils/id';
 
 const FMT = 'YYYY-MM-DD';
@@ -551,6 +553,10 @@ function StatCard({ item }: { item: StatItem }) {
   // 선택된 문항들(문진에 정의된 순서 유지)
   const selectedQuestions = questions.filter((q) => item.questionIds.includes(q.id));
 
+  // 채점(설문) 문진이면 '총점 분포' 모드를 제공
+  const scored = form ? isScoringEnabled(form) : false;
+  const measure: StatMeasure = scored ? (item.measure ?? 'question') : 'question';
+
   const filters = item.filters ?? [];
   // 조건 편집 헬퍼
   const setFilters = (next: StatFilter[]) => updateItem(item.id, { filters: next });
@@ -582,6 +588,12 @@ function StatCard({ item }: { item: StatItem }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [item.questionIds.join(','), matched, form?.id],
   );
+  // 총점 분포(채점 문진) — 기간·조건으로 추린 응답들의 총점 집계
+  const scoreStats = useMemo(
+    () => (form && measure === 'score' ? computeScoreStats(form, matched) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form?.id, measure, matched],
+  );
 
   return (
     <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
@@ -607,6 +619,30 @@ function StatCard({ item }: { item: StatItem }) {
         </Tooltip>
       </Stack>
 
+      {/* 통계 종류(채점 문진일 때만) */}
+      {scored && (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={measure}
+            onChange={(_e, v) => v && updateItem(item.id, { measure: v as StatMeasure })}
+          >
+            <ToggleButton value="question" sx={{ px: 1.5, py: 0.3, textTransform: 'none' }}>
+              문항별 분포
+            </ToggleButton>
+            <ToggleButton value="score" sx={{ px: 1.5, py: 0.3, textTransform: 'none' }}>
+              총점 분포
+            </ToggleButton>
+          </ToggleButtonGroup>
+          {measure === 'score' && (
+            <Typography variant="caption" color="text.secondary">
+              기간 내 응답들의 총점(채점) 분포
+            </Typography>
+          )}
+        </Stack>
+      )}
+
       {/* 구성(필터) */}
       <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
         <TextField
@@ -628,55 +664,57 @@ function StatCard({ item }: { item: StatItem }) {
             </MenuItem>
           ))}
         </TextField>
-        <Autocomplete
-          multiple
-          disableCloseOnSelect
-          size="small"
-          options={questions}
-          value={selectedQuestions}
-          disabled={!form}
-          getOptionLabel={(q: Question) => q.label || '(제목 없음)'}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          onChange={(_e, val) =>
-            updateItem(item.id, { questionIds: (val as Question[]).map((q) => q.id) })
-          }
-          renderOption={(props, q, { selected }) => (
-            <li {...props} key={q.id}>
-              <Checkbox
-                icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                checkedIcon={<CheckBoxIcon fontSize="small" />}
-                checked={selected}
-                sx={{ mr: 1, p: 0.5 }}
+        {measure !== 'score' && (
+          <Autocomplete
+            multiple
+            disableCloseOnSelect
+            size="small"
+            options={questions}
+            value={selectedQuestions}
+            disabled={!form}
+            getOptionLabel={(q: Question) => q.label || '(제목 없음)'}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onChange={(_e, val) =>
+              updateItem(item.id, { questionIds: (val as Question[]).map((q) => q.id) })
+            }
+            renderOption={(props, q, { selected }) => (
+              <li {...props} key={q.id}>
+                <Checkbox
+                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                  checkedIcon={<CheckBoxIcon fontSize="small" />}
+                  checked={selected}
+                  sx={{ mr: 1, p: 0.5 }}
+                />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" noWrap>
+                    {q.label || '(제목 없음)'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {QUESTION_TYPE_META[q.type]?.label}
+                  </Typography>
+                </Box>
+              </li>
+            )}
+            renderTags={(value, getTagProps) =>
+              value.map((q, index) => (
+                <Chip
+                  size="small"
+                  label={q.label || '(제목 없음)'}
+                  {...getTagProps({ index })}
+                  key={q.id}
+                />
+              ))
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="문항 (여러 개 선택)"
+                placeholder={selectedQuestions.length ? '' : '문항 선택'}
               />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" noWrap>
-                  {q.label || '(제목 없음)'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {QUESTION_TYPE_META[q.type]?.label}
-                </Typography>
-              </Box>
-            </li>
-          )}
-          renderTags={(value, getTagProps) =>
-            value.map((q, index) => (
-              <Chip
-                size="small"
-                label={q.label || '(제목 없음)'}
-                {...getTagProps({ index })}
-                key={q.id}
-              />
-            ))
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="문항 (여러 개 선택)"
-              placeholder={selectedQuestions.length ? '' : '문항 선택'}
-            />
-          )}
-          sx={{ minWidth: 240, flex: 2 }}
-        />
+            )}
+            sx={{ minWidth: 240, flex: 2 }}
+          />
+        )}
         <DateRangeField
           from={item.from}
           to={item.to}
@@ -810,12 +848,72 @@ function StatCard({ item }: { item: StatItem }) {
       <Divider sx={{ mb: 2 }} />
 
       {/* 결과 */}
-      {!form || selectedQuestions.length === 0 ? (
+      {!form ? (
         <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
           <QueryStatsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
-          <Typography variant="body2">
-            문진과 문항(1개 이상)을 선택하면 통계가 표시됩니다.
-          </Typography>
+          <Typography variant="body2">문진을 선택하면 통계가 표시됩니다.</Typography>
+        </Box>
+      ) : measure === 'score' ? (
+        scoreStats ? (
+          <>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mb: 2 }}
+            >
+              <Chip
+                size="small"
+                label={`응답 ${scoreStats.count}건`}
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  color: 'primary.dark',
+                }}
+              />
+              <Chip size="small" variant="outlined" label={`평균 ${scoreStats.avg.toFixed(1)}점`} />
+              <Chip
+                size="small"
+                variant="outlined"
+                label={`범위 ${scoreStats.min}–${scoreStats.max}점 · 만점 ${scoreStats.formMax}`}
+              />
+              {hasActiveFilter && (
+                <Typography variant="caption" color="text.secondary">
+                  (기간 {filtered.length}건 중 조건 일치)
+                </Typography>
+              )}
+            </Stack>
+            {scoreStats.count === 0 ? (
+              <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
+                <Typography variant="body2">해당 기간에 응답이 없습니다.</Typography>
+              </Box>
+            ) : (
+              <Stack spacing={2.5}>
+                {scoreStats.bands.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                      해석 구간별 분포
+                    </Typography>
+                    <DistributionBars items={scoreStats.bands} answered={scoreStats.count} />
+                  </Box>
+                )}
+                <Box>
+                  {scoreStats.bands.length > 0 && <Divider sx={{ mb: 2 }} />}
+                  <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
+                    총점 분포
+                  </Typography>
+                  <DistributionBars items={scoreStats.bins} answered={scoreStats.count} />
+                </Box>
+              </Stack>
+            )}
+          </>
+        ) : null
+      ) : selectedQuestions.length === 0 ? (
+        <Box sx={{ py: 4, textAlign: 'center', color: 'text.disabled' }}>
+          <QueryStatsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.5 }} />
+          <Typography variant="body2">문항(1개 이상)을 선택하면 통계가 표시됩니다.</Typography>
         </Box>
       ) : (
         <>

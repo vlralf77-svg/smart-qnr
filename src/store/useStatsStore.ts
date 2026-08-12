@@ -14,6 +14,9 @@ export interface StatFilter {
   value: string;
 }
 
+// 통계 종류: 문항별 분포 / 총점 분포(채점 문진)
+export type StatMeasure = 'question' | 'score';
+
 export interface StatItem {
   id: string;
   title: string;
@@ -23,6 +26,8 @@ export interface StatItem {
   from: string; // YYYY-MM-DD ('' = 제한 없음)
   to: string; // YYYY-MM-DD ('' = 제한 없음)
   chart: ChartKind;
+  /** 'question'=문항별 분포, 'score'=기간 내 총점 분포(채점 문진). 미지정=question */
+  measure?: StatMeasure;
 }
 
 interface StatsState {
@@ -43,6 +48,7 @@ function blank(preset?: Partial<StatItem>): StatItem {
     from: '',
     to: '',
     chart: 'donut',
+    measure: 'question',
     ...preset,
   };
 }
