@@ -11,6 +11,7 @@ import {
   InputAdornment,
   Menu,
   MenuItem,
+  Pagination,
   Paper,
   Stack,
   Switch,
@@ -279,6 +280,8 @@ export default function FormList() {
   const [sortKey, setSortKey] = useState<'recent' | 'created' | 'title'>('recent');
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
   const SORT_LABEL: Record<'recent' | 'created' | 'title', string> = {
     recent: '최근 수정순',
     created: '최근 등록순',
@@ -353,8 +356,21 @@ export default function FormList() {
     return arr;
   }, [filtered, sortKey]);
 
-  // 선택(체크박스)
-  const allSelected = sorted.length > 0 && sorted.every((f) => selected.has(f.id));
+  // 페이징(페이지당 15개) — 필터·정렬 변경 시 1페이지로, 개수 변화 시 현재 페이지 보정
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  useEffect(() => {
+    setPage(1);
+  }, [query, catFilter, statusFilter, sortKey]);
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+  const paged = useMemo(
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page],
+  );
+
+  // 선택(체크박스) — 헤더 전체선택은 현재 페이지 기준
+  const allSelected = paged.length > 0 && paged.every((f) => selected.has(f.id));
   const toggleSel = (id: string) =>
     setSelected((s) => {
       const n = new Set(s);
@@ -362,7 +378,13 @@ export default function FormList() {
       else n.add(id);
       return n;
     });
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(sorted.map((f) => f.id)));
+  const toggleAll = () =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (allSelected) paged.forEach((f) => n.delete(f.id));
+      else paged.forEach((f) => n.add(f.id));
+      return n;
+    });
   const bulkDelete = () => {
     selected.forEach((id) => void deleteForm(id).catch(() => {}));
     setSelected(new Set());
@@ -1043,7 +1065,7 @@ export default function FormList() {
                 </Box>
 
                 {/* 데이터 행 */}
-                {sorted.map((f) => {
+                {paged.map((f) => {
                   const qCount = f.sections.reduce((a, s) => a + s.questions.length, 0);
                   const st = STATUS_LABEL[f.status] ?? STATUS_LABEL.draft;
                   const sel = selected.has(f.id);
@@ -1211,15 +1233,29 @@ export default function FormList() {
             <Box
               sx={{
                 px: 0.5,
-                pt: 1.25,
+                pt: 1.5,
                 display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
+                gap: 1.5,
+                flexWrap: 'wrap',
                 color: 'text.secondary',
               }}
             >
               <Typography variant="caption">
-                {sorted.length}개 표시 · 총 {forms.length}개
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} · 총{' '}
+                {sorted.length}개{sorted.length !== forms.length ? ` (전체 ${forms.length}개)` : ''}
               </Typography>
+              {pageCount > 1 && (
+                <Pagination
+                  count={pageCount}
+                  page={page}
+                  onChange={(_, p) => setPage(p)}
+                  size="small"
+                  color="primary"
+                  shape="rounded"
+                />
+              )}
               <Typography variant="caption">v{APP_VERSION}</Typography>
             </Box>
           )}
