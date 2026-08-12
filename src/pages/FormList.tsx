@@ -26,7 +26,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
@@ -1170,13 +1169,6 @@ export default function FormList() {
                         justifyContent="flex-end"
                         sx={{ whiteSpace: 'nowrap' }}
                       >
-                        {canView && (
-                          <Tooltip title="내용 보기">
-                            <IconButton size="small" onClick={() => setPreviewForm(f)}>
-                              <VisibilityOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
                         {canEdit && (
                           <Tooltip title="편집">
                             <IconButton size="small" onClick={() => navigate(`/editor/${f.id}`)}>
