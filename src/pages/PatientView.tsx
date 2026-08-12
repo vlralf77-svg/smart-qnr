@@ -19,6 +19,12 @@ import {
 import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import {
+  buildResponseImageDataUrl,
+  downloadDataUrl,
+  sanitizeFilename,
+} from '@/utils/responseExport';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
@@ -123,6 +129,22 @@ export default function PatientView() {
   const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
   const isMobile = useIsMobileLayout();
+
+  // 작성 내용을 이미지(PNG)로 다운로드 — 원래는 병원 서버 전송용(서버 확정 후 교체)
+  const handleDownload = () => {
+    if (!form) return;
+    const url = buildResponseImageDataUrl(form, answers, {
+      patientName: patientName ?? undefined,
+      // 주민등록번호 로그인 시 식별번호는 파일에 넣지 않음(이름만)
+      patientNo: patientIdType === 'rrn' ? undefined : (patientNo ?? undefined),
+      submittedAt: response?.submittedAt,
+    });
+    if (!url) return;
+    const base = sanitizeFilename(
+      `${form.title || '문진'}_${patientName || patientNo || ''}_${(response?.submittedAt || '').slice(0, 10)}`,
+    );
+    downloadDataUrl(url, `${base}.png`);
+  };
   // 순서 = 섹션 순서 → 섹션 내 읽기순서. 그 순서대로 전체 질문 번호 매김(안내문 제외)
   const qNo: Record<string, number> = {};
   if (form) {
@@ -180,6 +202,15 @@ export default function PatientView() {
           <Box sx={{ mr: response ? 1 : 0 }}>
             <DisplayModeToggle />
           </Box>
+          {response && form && (
+            <Button
+              color="inherit"
+              startIcon={<FileDownloadOutlinedIcon />}
+              onClick={handleDownload}
+            >
+              저장
+            </Button>
+          )}
           {response && (
             <Button
               color="inherit"
