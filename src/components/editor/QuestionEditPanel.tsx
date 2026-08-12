@@ -313,7 +313,8 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
 
           <FormControlLabel
             // 세로 Stack에서 전체 폭으로 늘어나 옆 빈 공간까지 눌리는 것 방지 — 콘텐츠 폭만 차지
-            sx={{ alignSelf: 'flex-start', mr: 0 }}
+            // 아래 '채점' 토글과 시작점을 맞추기 위해 기본 음수 좌측 여백(-11px) 제거
+            sx={{ alignSelf: 'flex-start', ml: 0, mr: 0 }}
             control={
               <Switch
                 checked={!!question.required}
@@ -329,7 +330,7 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
           {SCORABLE_TYPES.includes(question.type) && (
             <Box sx={{ alignSelf: 'flex-start' }}>
               <FormControlLabel
-                sx={{ mr: 0 }}
+                sx={{ ml: 0, mr: 0 }}
                 control={
                   <Switch
                     checked={!!question.scored}
