@@ -297,9 +297,9 @@ export default function PatientForms() {
             {forms.map((f) => {
               const done = responses[f.id];
               const accent = done ? '#2e9d6e' : '#5b7cfa';
-              const tint = done ? '#eaf7f0' : '#eef4ff';
-              const tintStrong = done ? '#d7efe2' : '#dfe8ff';
-              const ring = done ? 'rgba(46,157,110,0.22)' : 'rgba(91,124,250,0.22)';
+              const tint = done ? '#dcf1e7' : '#e4ecff';
+              const tintStrong = done ? '#c2e8d5' : '#ccd9ff';
+              const ring = done ? 'rgba(46,157,110,0.38)' : 'rgba(91,124,250,0.38)';
               return (
                 <Card
                   key={f.id}
@@ -319,19 +319,26 @@ export default function PatientForms() {
                       left: 0,
                       top: 0,
                       bottom: 0,
-                      width: 5,
+                      width: 9,
                       bgcolor: 'transparent',
                       transition: 'background-color .12s',
                     },
-                    '&:hover': { borderColor: accent, bgcolor: tint },
+                    '&:hover': {
+                      borderColor: accent,
+                      bgcolor: tint,
+                      boxShadow: `0 0 0 2px ${ring}`,
+                    },
                     '&:focus-within': {
                       borderColor: accent,
                       bgcolor: tint,
                       boxShadow: `0 0 0 3px ${ring}`,
                     },
                     '&:hover::before, &:focus-within::before': { bgcolor: accent },
-                    // 내용(제목)도 강조색으로
-                    '&:hover .pf-title, &:focus-within .pf-title': { color: accent },
+                    // 내용(제목)도 강조색·굵게
+                    '&:hover .pf-title, &:focus-within .pf-title': {
+                      color: accent,
+                      fontWeight: 800,
+                    },
                     '& .MuiCardActionArea-root:active': { bgcolor: tintStrong },
                   }}
                 >
@@ -453,8 +460,8 @@ export default function PatientForms() {
               <TableBody>
                 {forms.map((f) => {
                   const done = responses[f.id];
-                  const rowTint = done ? '#eaf7f0' : '#eef4ff';
-                  const rowActive = done ? '#d7efe2' : '#dfe8ff';
+                  const rowTint = done ? '#dcf1e7' : '#e4ecff';
+                  const rowActive = done ? '#c2e8d5' : '#ccd9ff';
                   const rowAccent = done ? '#2e9d6e' : '#5b7cfa';
                   return (
                     <TableRow
@@ -474,7 +481,7 @@ export default function PatientForms() {
                         },
                         // 내용 표시: 왼쪽 강조 바 + 제목 색 강조
                         '&:hover td:first-of-type, &:focus-visible td:first-of-type': {
-                          boxShadow: `inset 5px 0 0 ${rowAccent}`,
+                          boxShadow: `inset 9px 0 0 ${rowAccent}`,
                         },
                         '&:hover .pf-title, &:focus-visible .pf-title': {
                           color: rowAccent,
