@@ -305,17 +305,33 @@ export default function PatientForms() {
                   key={f.id}
                   elevation={0}
                   sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
                     borderRadius: 3.5,
                     border: '1px solid rgba(15,23,42,0.06)',
                     boxShadow:
                       '0 1px 2px rgba(15,23,42,0.04), 0 12px 24px -18px rgba(15,23,42,0.16)',
                     transition: 'background-color .12s, border-color .12s, box-shadow .12s',
+                    // 왼쪽 강조 바(선택 표시) — 기본 숨김, 상호작용 시 색 표시
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 5,
+                      bgcolor: 'transparent',
+                      transition: 'background-color .12s',
+                    },
                     '&:hover': { borderColor: accent, bgcolor: tint },
                     '&:focus-within': {
                       borderColor: accent,
                       bgcolor: tint,
                       boxShadow: `0 0 0 3px ${ring}`,
                     },
+                    '&:hover::before, &:focus-within::before': { bgcolor: accent },
+                    // 내용(제목)도 강조색으로
+                    '&:hover .pf-title, &:focus-within .pf-title': { color: accent },
                     '& .MuiCardActionArea-root:active': { bgcolor: tintStrong },
                   }}
                 >
@@ -358,7 +374,14 @@ export default function PatientForms() {
                     </Stack>
 
                     <Typography
-                      sx={{ fontSize: 16, fontWeight: 700, color: '#12213a', lineHeight: 1.35 }}
+                      className="pf-title"
+                      sx={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#12213a',
+                        lineHeight: 1.35,
+                        transition: 'color .12s',
+                      }}
                     >
                       {f.title}
                     </Typography>
@@ -449,6 +472,14 @@ export default function PatientForms() {
                           outlineColor: rowAccent,
                           outlineOffset: '-2px',
                         },
+                        // 내용 표시: 왼쪽 강조 바 + 제목 색 강조
+                        '&:hover td:first-of-type, &:focus-visible td:first-of-type': {
+                          boxShadow: `inset 5px 0 0 ${rowAccent}`,
+                        },
+                        '&:hover .pf-title, &:focus-visible .pf-title': {
+                          color: rowAccent,
+                          fontWeight: 800,
+                        },
                         '&:last-child td': { borderBottom: 'none' },
                         '& td': { borderBottom: '1px solid rgba(15,23,42,0.05)', py: 1.5 },
                       }}
@@ -475,7 +506,11 @@ export default function PatientForms() {
                             )}
                           </Box>
                           <Box sx={{ minWidth: 0 }}>
-                            <Typography sx={{ fontWeight: 700, color: '#12213a' }} noWrap>
+                            <Typography
+                              className="pf-title"
+                              sx={{ fontWeight: 700, color: '#12213a', transition: 'color .12s' }}
+                              noWrap
+                            >
                               {f.title}
                             </Typography>
                             {f.description && (
