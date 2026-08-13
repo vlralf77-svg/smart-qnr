@@ -49,6 +49,14 @@ function fmtDate(ts?: string): string {
   }
 }
 
+// 서술 문장용 날짜(시간 제외) — '2026년 8월 13일'
+function fmtDateWords(ts?: string): string {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts;
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
 // 받침 유무 판별 → 조사(이/가, 은/는) 자동 선택 — 서술 문장을 자연스럽게 잇기 위함
 function hasJong(word: string): boolean {
   const ch = (word || '').trim().slice(-1);
@@ -240,10 +248,11 @@ export default function PatientView() {
   //  답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용해
   //  질문+답 나열이 아닌 하나의 의학적 서술 문장으로 잇는다.
   const findings: { label: string; color: string }[] = [];
-  // 그 외 응답 서술 — 색 강조가 없는 답변도 '약물 알레르기가 없으며' 식의
-  //  자연스러운 문장 조각으로 만들어 소견 뒤에 이어 서술한다.
-  //  kind: exist=있/없 서술(…으며/…음), plain=명사 서술(…이며/…임)
-  const etcFrags: { base: string; kind: 'exist' | 'plain' }[] = [];
+  // 그 외 응답 — 문장이 부드럽게 이어지도록 있음/없음 항목은 묶어서,
+  //  나머지는 '…이고 / …이며'를 번갈아 연결한다.
+  const posLabels: string[] = [];
+  const negLabels: string[] = [];
+  const plains: { label: string; text: string }[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
@@ -268,20 +277,38 @@ export default function PatientView() {
             .map((p) => p.label)
             .join(', ')
             .trim();
-          if (/^(아니오|없음|무)$/.test(t))
-            etcFrags.push({ base: `${qLabel}${iGa(qLabel)} 없`, kind: 'exist' });
-          else if (/^(예|있음|유|해당|해당됨)$/.test(t))
-            etcFrags.push({ base: `${qLabel}${iGa(qLabel)} 있`, kind: 'exist' });
-          else etcFrags.push({ base: `${qLabel}${eunNeun(qLabel)} ${t}`, kind: 'plain' });
+          if (/^(아니오|없음|무)$/.test(t)) negLabels.push(qLabel);
+          else if (/^(예|있음|유|해당|해당됨)$/.test(t)) posLabels.push(qLabel);
+          else plains.push({ label: qLabel, text: t });
         });
     });
   }
-  // 주요 소견과 같은 서술 문체로 연결 — '상기 환자는 … 없으며, … 인 것으로 확인됨.'
-  const etcSentence = etcFrags
-    .map((f, i) => {
-      const last = i === etcFrags.length - 1;
-      if (f.kind === 'exist') return f.base + (last ? '는 것으로 확인됨.' : '으며, ');
-      return f.base + (last ? '인 것으로 확인됨.' : '이며, ');
+  // 'A, B 및 C' 형태로 명사 나열
+  const joinKo = (arr: string[]) =>
+    arr.length <= 1 ? (arr[0] ?? '') : `${arr.slice(0, -1).join(', ')} 및 ${arr[arr.length - 1]}`;
+  // 절 구성: 있음 묶음 → 없음 묶음 → 개별 서술 순
+  const etcClauses: { base: string; kind: 'exist' | 'plain' }[] = [];
+  if (posLabels.length)
+    etcClauses.push({
+      base: `${joinKo(posLabels)}${iGa(posLabels[posLabels.length - 1])} 있`,
+      kind: 'exist',
+    });
+  if (negLabels.length)
+    etcClauses.push({
+      base: `${joinKo(negLabels)}${iGa(negLabels[negLabels.length - 1])} 없`,
+      kind: 'exist',
+    });
+  plains.forEach((p) =>
+    etcClauses.push({ base: `${p.label}${eunNeun(p.label)} ${p.text}`, kind: 'plain' }),
+  );
+  // '…이고, …이며' 를 번갈아 이어 마지막은 '…인 것으로 확인됨.'
+  const etcSentence = etcClauses
+    .map((c, i) => {
+      const last = i === etcClauses.length - 1;
+      if (last) return c.base + (c.kind === 'exist' ? '는 것으로 확인됨.' : '인 것으로 확인됨.');
+      const smooth = i % 2 === 0;
+      if (c.kind === 'exist') return c.base + (smooth ? '고, ' : '으며, ');
+      return c.base + (smooth ? '이고, ' : '이며, ');
     })
     .join('');
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
@@ -735,7 +762,7 @@ export default function PatientView() {
               }}
             >
               상기 내원환자{patientName ? `(${patientName})` : ''}는
-              {response?.submittedAt ? ` ${fmtDate(response.submittedAt)}` : ''} 「
+              {response?.submittedAt ? ` ${fmtDateWords(response.submittedAt)}` : ''} 「
               {form?.title ?? '문진'}」 문진을 시행하였으며, 그 결과는 하기와 같음.
               {score && form
                 ? ` 문진 평가 결과 총점 ${score.max}점 만점에 ${score.total}점으로 평가되었으며${
