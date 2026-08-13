@@ -33,6 +33,7 @@ import {
 } from '@/utils/responseExport';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
+import { answerParts, cleanLabel, collectFindings } from '@/utils/findings';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
@@ -65,54 +66,6 @@ function hasJong(word: string): boolean {
 }
 const iGa = (w: string) => (hasJong(w) ? '이' : '가');
 const eunNeun = (w: string) => (hasJong(w) ? '은' : '는');
-
-// 질문형 문항 라벨을 명사구로 정리 — '현재 복용 중인 약이 있습니까?' → '현재 복용 중인 약'
-//  기록지 서술 문장('…이 없으며, …는 0이며')이 자연스럽게 읽히도록 어미·요청문을 제거한다.
-function cleanLabel(raw: string): string {
-  let s = (raw || '').trim().replace(/[?？!.。]+\s*$/g, '');
-  // '…이 있다면/있으시면/있을 경우 ~' 꼬리 제거 (예: '통증이 있다면 정도를 선택해 주세요' → '통증')
-  s = s.replace(/\s*(이|가)?\s*있(다면|으시다면|으시면|을\s*경우|는\s*경우)[\s\S]*$/, '');
-  // '…이/가 있습니까' → 명사만
-  s = s.replace(/\s*(이|가)\s*있(습니까|나요|으신가요|는지요)\s*$/, '');
-  // '…을/를 선택/입력/기입/작성/체크(해 주세요…)' 요청문 제거
-  s = s.replace(
-    /\s*(을|를)?\s*(선택|입력|기입|작성|체크|표시)\s*(해\s*주세요|해주세요|해\s*주십시오|하세요|하십시오|바랍니다)?\s*$/,
-    '',
-  );
-  // '…을/를 하십니까' → 명사만 (예: '흡연을 하십니까' → '흡연')
-  s = s.replace(/\s*(을|를)\s*(하십니까|하시나요|합니까|하나요)\s*$/, '');
-  // 남은 의문/청유 어미 제거
-  s = s.replace(
-    /\s*(하십니까|하시나요|합니까|하나요|입니까|인가요|습니까|됩니까|되십니까)\s*$/,
-    '',
-  );
-  s = s.replace(/\s*(해\s*주세요|해주세요|하세요|하십시오|바랍니다|주세요)\s*$/, '');
-  // 꼬리에 조사만 남으면 제거
-  s = s.replace(/\s*(을|를|은|는|이|가|의)\s*$/, '').trim();
-  return s || (raw || '').trim();
-}
-
-/** 응답 값을 (라벨, 강조색) 조각으로 분해 — 다중 선택은 선택지마다 개별 색 적용 */
-interface AnsPart {
-  label: string;
-  color?: string;
-}
-function answerParts(q: Question, v: AnswerValue): AnsPart[] {
-  if (v === null || v === undefined || v === '') return [{ label: '(미응답)' }];
-  if (q.type === 'boolean') return [{ label: v === true || v === 'true' ? '예' : '아니오' }];
-  if (q.type === 'radio' || q.type === 'select') {
-    const opt = q.options?.find((o) => o.value === v);
-    return [{ label: opt?.label ?? String(v), color: opt?.color }];
-  }
-  if (q.type === 'checkbox') {
-    const arr = Array.isArray(v) ? v : [v];
-    return arr.map((x) => {
-      const o = q.options?.find((oo) => oo.value === x);
-      return { label: o?.label ?? String(x), color: o?.color };
-    });
-  }
-  return [{ label: String(v) }];
-}
 
 /** 응답 값 표시 — 강조색이 지정된 선택지만 색으로 강조(다중 선택 시 해당 항목만). */
 function AnswerContent({
@@ -247,7 +200,7 @@ export default function PatientView() {
   // 기록지 주요 소견 — 색상 강조된 답변을 '소견 용어' 목록으로 정리.
   //  답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용해
   //  질문+답 나열이 아닌 하나의 의학적 서술 문장으로 잇는다.
-  const findings: { label: string; color: string }[] = [];
+  const findings = form ? collectFindings(form, answers) : [];
   // 그 외 응답 — 문장이 부드럽게 이어지도록 있음/없음 항목은 묶어서,
   //  나머지는 '…이고 / …이며'를 번갈아 연결한다.
   const posLabels: string[] = [];
@@ -261,12 +214,6 @@ export default function PatientView() {
           const parts = answerParts(q, answers[q.id] ?? null);
           const colored = parts.filter((p) => p.color);
           const qLabel = cleanLabel(q.label);
-          colored.forEach((p) => {
-            const bare = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/.test(p.label.trim());
-            const label = bare ? qLabel : p.label;
-            if (!findings.some((f) => f.label === label))
-              findings.push({ label, color: p.color as string });
-          });
           // 색 강조 문항은 주요 소견에서 서술하므로 중복 제외
           if (colored.length) return;
           const v = answers[q.id];

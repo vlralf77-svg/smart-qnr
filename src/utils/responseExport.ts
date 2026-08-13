@@ -4,6 +4,7 @@
 import { AnswerValue, FormSchema, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from './questionOrder';
 import { computeScore, isScoringEnabled, scoringLabel } from './scoring';
+import { collectFindings } from './findings';
 
 export interface ResponseMeta {
   patientName?: string;
@@ -124,6 +125,17 @@ export function buildResponseImageDataUrl(
     if (s.band) line += `  · ${s.band.label}`;
     block(line, 16, '#124a86', { bold: true, gap: 2 });
   }
+  rule();
+
+  // 주요 소견(요약) — 색상 강조된 소견을 상단에 먼저 배치
+  const findings = collectFindings(form, answers);
+  block('■ 주요 소견', 14, '#9b2c2c', { bold: true, gap: 2 });
+  if (findings.length) {
+    for (const f of findings) block(`· ${f.label}`, 15, f.color, { bold: true, indent: 10 });
+  } else {
+    block('· 문진상 특이 소견 없음', 14, '#64738d', { indent: 10 });
+  }
+  y += 8;
   rule();
 
   // 문항별 답변
