@@ -38,6 +38,20 @@ mvn -P oracle clean package     # ojdbc11 포함
 mvn clean package               # 미포함(PostgreSQL 등만)
 ```
 
+> Maven 이 설치돼 있지 않으면 저장소에 포함된 **Maven Wrapper** 를 쓴다(JDK 만 있으면 됨).
+>
+> ```powershell
+> cd server
+> .\mvnw.cmd -P oracle spring-boot:run    # Windows PowerShell
+> ```
+>
+> ```bash
+> cd server
+> ./mvnw -P oracle spring-boot:run        # macOS / Linux
+> ```
+>
+> JDK 도 없다면 도커로 실행하는 것이 가장 간단하다: `docker compose up -d --build`
+
 드라이버가 없는 빌드(구버전 이미지 포함)에서 Oracle URL 로 실행하면 다음 안내가 반환된다.
 
 ```
