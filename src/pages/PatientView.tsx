@@ -50,6 +50,14 @@ function fmtDate(ts?: string): string {
   }
 }
 
+// 받침 유무로 은/는 조사 선택 — 서술 문장을 자연스럽게 잇기 위함
+function eunNeun(word: string): string {
+  const ch = (word || '').trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  const hasJong = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+  return hasJong ? '은' : '는';
+}
+
 /** 응답 값을 (라벨, 강조색) 조각으로 분해 — 다중 선택은 선택지마다 개별 색 적용 */
 interface AnsPart {
   label: string;
@@ -765,24 +773,23 @@ export default function PatientView() {
               </Typography>
             </Box>
 
-            {/* 전체 응답 서술(섹션 구분 없이 간략하게) */}
+            {/* 전체 응답 서술 — 질문/답 나열이 아니라 하나의 문장으로 이어서 */}
             <Typography
               component="div"
               sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
             >
-              {answeredList.length ? (
-                <>
-                  {answeredList.map((q, i) => (
-                    <Box component="span" key={q.id}>
-                      {i > 0 ? ', ' : ''}‘{q.label}’{' '}
-                      <AnswerInline q={q} v={answers[q.id] ?? null} />
-                    </Box>
-                  ))}
-                  {' (으)로 응답하였다.'}
-                </>
-              ) : (
-                '응답한 항목이 없다.'
-              )}
+              {answeredList.length
+                ? answeredList.map((q, i) => {
+                    const last = i === answeredList.length - 1;
+                    return (
+                      <Box component="span" key={q.id}>
+                        {q.label}
+                        {eunNeun(q.label)} <AnswerInline q={q} v={answers[q.id] ?? null} />
+                        {last ? '이다.' : '이며, '}
+                      </Box>
+                    );
+                  })
+                : '응답한 항목이 없다.'}
             </Typography>
 
             {/* 확인(서명) */}
