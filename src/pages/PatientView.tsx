@@ -148,24 +148,44 @@ function AnswerContent({
   );
 }
 
-// 기록지(서식) 표 공통 스타일 — 실선 테두리 + 라벨 셀 음영
-const sheetTableSx = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  tableLayout: 'fixed',
-  '& th, & td': {
-    border: '1px solid #c9d2dd',
-    px: 1.25,
-    py: 0.85,
-    fontSize: 13,
-    lineHeight: 1.5,
-    verticalAlign: 'top',
-    textAlign: 'left',
-    wordBreak: 'break-word',
-    color: '#1f2937',
-  },
-  '& th': { bgcolor: '#eef2f7', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' },
-} as const;
+// 서술형 기록지에서 답변을 문장 안에 인라인으로 — 강조색 지정 답변은 색으로 표시
+function AnswerInline({ q, v }: { q: Question; v: AnswerValue }) {
+  const parts = answerParts(q, v);
+  if (parts.length === 1 && parts[0].label === '(미응답)') {
+    return (
+      <Box component="span" sx={{ color: '#94a3b8', fontStyle: 'italic' }}>
+        미응답
+      </Box>
+    );
+  }
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Box component="span" key={i}>
+          {i > 0 ? ', ' : ''}
+          {p.color ? (
+            <Box
+              component="span"
+              sx={{
+                fontWeight: 800,
+                color: p.color,
+                bgcolor: alpha(p.color, 0.13),
+                px: 0.4,
+                borderRadius: 0.5,
+              }}
+            >
+              {p.label}
+            </Box>
+          ) : (
+            <Box component="span" sx={{ fontWeight: 700 }}>
+              {p.label}
+            </Box>
+          )}
+        </Box>
+      ))}
+    </>
+  );
+}
 
 export default function PatientView() {
   const { formId } = useParams();
@@ -642,21 +662,21 @@ export default function PatientView() {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ bgcolor: '#eef1f5', p: { xs: 1.5, sm: 2.5 } }}>
-          {/* 기록지(서식) 문서 — 흰 용지 위에 표 형태로 기록 */}
+          {/* 기록지(서식) 문서 — 서술형 기록 */}
           <Box
             sx={{
               bgcolor: '#fff',
               color: '#1f2937',
               border: '1px solid #c9d2dd',
               borderRadius: 1,
-              p: { xs: 1.75, sm: 2.75 },
+              p: { xs: 2, sm: 3.25 },
               maxWidth: 760,
               mx: 'auto',
               boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
             }}
           >
             {/* 제목 */}
-            <Box sx={{ textAlign: 'center', mb: 2 }}>
+            <Box sx={{ textAlign: 'center', mb: 2.25 }}>
               <Typography sx={{ fontSize: 19, fontWeight: 800, letterSpacing: '0.14em' }}>
                 문 진 기 록 지
               </Typography>
@@ -675,153 +695,119 @@ export default function PatientView() {
               />
             </Box>
 
-            {/* 환자·작성 정보 */}
-            <Box component="table" sx={sheetTableSx}>
-              <tbody>
-                <tr>
-                  <th style={{ width: 88 }}>성명</th>
-                  <td>{patientName || '-'}</td>
-                  <th style={{ width: 88 }}>작성일시</th>
-                  <td>{response?.submittedAt ? fmtDate(response.submittedAt) : '-'}</td>
-                </tr>
-                <tr>
-                  <th>문진명</th>
-                  {score && form ? (
-                    <>
-                      <td>{form.title || '-'}</td>
-                      <th>{scoringLabel(form)}</th>
-                      <td>
-                        <b style={{ color: '#124a86' }}>{score.total}</b> / {score.max}점
-                        {score.band ? (
-                          <Box
-                            component="span"
-                            sx={{
-                              ml: 0.75,
-                              px: 0.75,
-                              py: '1px',
-                              borderRadius: 1,
-                              fontSize: 11.5,
-                              fontWeight: 800,
-                              color: '#fff',
-                              bgcolor: score.band.color ?? '#124a86',
-                            }}
-                          >
-                            {score.band.label}
-                          </Box>
-                        ) : null}
-                      </td>
-                    </>
-                  ) : (
-                    <td colSpan={3}>{form?.title || '-'}</td>
-                  )}
-                </tr>
-              </tbody>
-            </Box>
+            {/* 개요 서술 */}
+            <Typography
+              component="div"
+              sx={{
+                fontSize: 14,
+                lineHeight: 2.05,
+                color: '#1f2937',
+                mb: 1.75,
+                textAlign: 'justify',
+              }}
+            >
+              {patientName ? `${patientName} 님이 ` : ''}작성한 「{form?.title ?? '문진'}」 문진의
+              응답 내용을 아래와 같이 정리하였다.
+              {response?.submittedAt ? ` 작성일시는 ${fmtDate(response.submittedAt)}이다.` : ''}
+              {score && form
+                ? ` 평가 결과 총 ${score.max}점 중 ${score.total}점으로 확인되었으며${
+                    score.band ? `, 판정 구간은 ‘${score.band.label}’이다.` : '.'
+                  }`
+                : ''}
+            </Typography>
 
-            {/* 주요 소견(색상 강조 항목) — 요청: 색표시 강조 내용이 꼭 포함 */}
-            <Box sx={{ mt: 2, border: '1px solid #c9d2dd', borderRadius: 0.5 }}>
-              <Box
-                sx={{
-                  px: 1.25,
-                  py: 0.7,
-                  bgcolor: '#fdecec',
-                  borderBottom: '1px solid #c9d2dd',
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  color: '#9b2c2c',
-                  letterSpacing: '0.02em',
-                }}
+            {/* 주요 소견 서술(색상 강조가 꼭 포함되도록) */}
+            <Box
+              sx={{
+                mb: 1.75,
+                p: 1.5,
+                borderLeft: '4px solid #d64545',
+                bgcolor: '#fdf3f3',
+                borderRadius: '0 6px 6px 0',
+              }}
+            >
+              <Typography
+                component="div"
+                sx={{ fontSize: 14, lineHeight: 2.05, color: '#1f2937', textAlign: 'justify' }}
               >
-                주요 소견 (강조 항목)
-              </Box>
-              <Box sx={{ p: 1.25 }}>
-                {highlights.length ? (
-                  <Stack spacing={0.85}>
-                    {highlights.map(({ q, parts }) => (
-                      <Box
-                        key={q.id}
-                        sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'baseline' }}
-                      >
-                        <Typography
-                          sx={{ fontSize: 12.5, fontWeight: 700, color: '#334155', minWidth: 140 }}
-                        >
-                          {q.label}
-                        </Typography>
-                        <Box sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {parts.map((p, i) => (
+                <Box component="span" sx={{ fontWeight: 800, color: '#9b2c2c' }}>
+                  주요 소견 —{' '}
+                </Box>
+                {highlights.length
+                  ? highlights.map((h, i) => (
+                      <Box component="span" key={h.q.id}>
+                        {i > 0 ? ' 또한 ' : ''}‘{h.q.label}’ 항목에서{' '}
+                        {h.parts.map((p, j) => (
+                          <Box component="span" key={j}>
+                            {j > 0 ? ', ' : ''}
                             <Box
-                              key={i}
                               component="span"
                               sx={{
-                                fontSize: 13,
                                 fontWeight: 800,
                                 color: p.color,
-                                px: 0.9,
-                                py: 0.2,
-                                borderRadius: 1,
-                                bgcolor: alpha(p.color as string, 0.12),
-                                border: `1px solid ${alpha(p.color as string, 0.35)}`,
+                                bgcolor: alpha(p.color as string, 0.13),
+                                px: 0.4,
+                                borderRadius: 0.5,
                               }}
                             >
                               {p.label}
                             </Box>
-                          ))}
-                        </Box>
+                          </Box>
+                        ))}{' '}
+                        소견이 확인되었다.
                       </Box>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>
-                    특이 강조 사항 없음
-                  </Typography>
-                )}
-              </Box>
+                    ))
+                  : '색상으로 강조된 특이 소견은 확인되지 않았다.'}
+              </Typography>
             </Box>
 
-            {/* 섹션별 기록(항목 | 기록) */}
+            {/* 섹션별 서술 기록 */}
             {form?.sections.map((section) => {
               const qs = orderedQuestions(section).filter((q) => !NON_INPUT_TYPES.includes(q.type));
               if (qs.length === 0) return null;
               return (
                 <Box key={section.id} sx={{ mt: 2 }}>
-                  <Box
+                  <Typography
                     sx={{
-                      px: 1.25,
-                      py: 0.6,
-                      bgcolor: '#334155',
-                      color: '#fff',
-                      fontSize: 12.5,
+                      fontSize: 13.5,
                       fontWeight: 800,
-                      borderRadius: '3px 3px 0 0',
-                      letterSpacing: '0.02em',
+                      color: '#334155',
+                      mb: 0.6,
+                      pb: 0.4,
+                      borderBottom: '1.5px solid #cbd5e1',
                     }}
                   >
                     {section.title || '문항'}
-                  </Box>
-                  <Box component="table" sx={sheetTableSx}>
-                    <tbody>
-                      {qs.map((q) => (
-                        <tr key={q.id}>
-                          <th style={{ width: '36%', whiteSpace: 'normal' }}>{q.label}</th>
-                          <td>
-                            <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={13.5} />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Box>
+                  </Typography>
+                  <Typography
+                    component="div"
+                    sx={{ fontSize: 14, lineHeight: 2.05, color: '#1f2937', textAlign: 'justify' }}
+                  >
+                    {qs.map((q) => (
+                      <Box component="span" key={q.id}>
+                        ‘{q.label}’ 항목은 <AnswerInline q={q} v={answers[q.id] ?? null} />
+                        (으)로 확인되었다.{' '}
+                      </Box>
+                    ))}
+                  </Typography>
                 </Box>
               );
             })}
 
-            {/* 서명/확인란 */}
-            <Box component="table" sx={{ ...sheetTableSx, mt: 2 }}>
-              <tbody>
-                <tr>
-                  <th style={{ width: 88 }}>확인(서명)</th>
-                  <td style={{ height: 44 }}> </td>
-                </tr>
-              </tbody>
+            {/* 확인(서명) */}
+            <Box
+              sx={{
+                mt: 3,
+                pt: 1,
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'flex-end',
+                gap: 1,
+              }}
+            >
+              <Typography sx={{ fontSize: 12.5, color: '#64748b' }}>확인(서명)</Typography>
+              <Box sx={{ width: 170, borderBottom: '1px solid #94a3b8', height: 20 }} />
             </Box>
           </Box>
         </DialogContent>
