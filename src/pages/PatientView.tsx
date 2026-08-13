@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   Paper,
   Stack,
@@ -149,6 +148,25 @@ function AnswerContent({
   );
 }
 
+// 기록지(서식) 표 공통 스타일 — 실선 테두리 + 라벨 셀 음영
+const sheetTableSx = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  tableLayout: 'fixed',
+  '& th, & td': {
+    border: '1px solid #c9d2dd',
+    px: 1.25,
+    py: 0.85,
+    fontSize: 13,
+    lineHeight: 1.5,
+    verticalAlign: 'top',
+    textAlign: 'left',
+    wordBreak: 'break-word',
+    color: '#1f2937',
+  },
+  '& th': { bgcolor: '#eef2f7', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' },
+} as const;
+
 export default function PatientView() {
   const { formId } = useParams();
   const navigate = useNavigate();
@@ -203,15 +221,13 @@ export default function PatientView() {
   // 채점 총점(문진에 채점 문항/설정이 있을 때만)
   const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
 
-  // 요약용 데이터 — 색상 강조(선택지 color)가 걸린 답변을 모아 한눈에 확인
+  // 기록지 요약 — 색상 강조(선택지 color)가 걸린 답변만 모아 '주요 소견'으로 표시
   const highlights: { q: Question; parts: AnsPart[] }[] = [];
-  const summaryAll: { q: Question; section: string }[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
         .filter((q) => !NON_INPUT_TYPES.includes(q.type))
         .forEach((q) => {
-          summaryAll.push({ q, section: s.title || '' });
           const colored = answerParts(q, answers[q.id] ?? null).filter((p) => p.color);
           if (colored.length) highlights.push({ q, parts: colored });
         });
@@ -603,7 +619,7 @@ export default function PatientView() {
       <Dialog
         open={summaryOpen}
         onClose={() => setSummaryOpen(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
         scroll="paper"
         PaperProps={{ sx: { borderRadius: 3 } }}
@@ -612,7 +628,7 @@ export default function PatientView() {
           <SummarizeOutlinedIcon color="primary" />
           <Box sx={{ minWidth: 0 }}>
             <Typography sx={{ fontSize: 17, fontWeight: 800, lineHeight: 1.2 }} noWrap>
-              문진 요약
+              문진 기록지
             </Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
               {form?.title}
@@ -625,160 +641,189 @@ export default function PatientView() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers>
-          {/* 환자·제출 */}
-          {(patientName || response?.submittedAt) && (
-            <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mb: 1.5 }}>
-              {[patientName, response?.submittedAt ? fmtDate(response.submittedAt) : '']
-                .filter(Boolean)
-                .join('  ·  ')}
-            </Typography>
-          )}
-
-          {/* 총점 */}
-          {score && form && (
-            <Box
-              sx={{
-                mb: 2,
-                p: 1.5,
-                borderRadius: 2,
-                bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{scoringLabel(form)}</Typography>
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'primary.dark' }}>
-                {score.total}
-                <Box
-                  component="span"
-                  sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary' }}
-                >
-                  {' '}
-                  / {score.max}점
-                </Box>
-              </Typography>
-              {score.band && (
-                <Box
-                  sx={{
-                    ml: 'auto',
-                    px: 1,
-                    py: 0.3,
-                    borderRadius: 1.5,
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: '#fff',
-                    bgcolor: score.band.color ?? 'primary.main',
-                  }}
-                >
-                  {score.band.label}
-                </Box>
-              )}
-            </Box>
-          )}
-
-          {/* 강조(색상 표시) 항목 — 요청: 색표시 강조 내용이 꼭 포함되도록 */}
-          <Typography
+        <DialogContent dividers sx={{ bgcolor: '#eef1f5', p: { xs: 1.5, sm: 2.5 } }}>
+          {/* 기록지(서식) 문서 — 흰 용지 위에 표 형태로 기록 */}
+          <Box
             sx={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              letterSpacing: '0.04em',
-              color: 'text.secondary',
-              mb: 0.75,
+              bgcolor: '#fff',
+              color: '#1f2937',
+              border: '1px solid #c9d2dd',
+              borderRadius: 1,
+              p: { xs: 1.75, sm: 2.75 },
+              maxWidth: 760,
+              mx: 'auto',
+              boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
             }}
           >
-            강조 항목
-          </Typography>
-          {highlights.length ? (
-            <Stack spacing={1} sx={{ mb: 2 }}>
-              {highlights.map(({ q, parts }) => (
-                <Box key={q.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                  <Typography
+            {/* 제목 */}
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Typography sx={{ fontSize: 19, fontWeight: 800, letterSpacing: '0.14em' }}>
+                문 진 기 록 지
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: '#64748b', mt: 0.25 }}>
+                {form?.title}
+              </Typography>
+              <Box
+                sx={{
+                  mt: 1,
+                  height: 2.5,
+                  width: 54,
+                  mx: 'auto',
+                  bgcolor: '#334155',
+                  borderRadius: 2,
+                }}
+              />
+            </Box>
+
+            {/* 환자·작성 정보 */}
+            <Box component="table" sx={sheetTableSx}>
+              <tbody>
+                <tr>
+                  <th style={{ width: 88 }}>성명</th>
+                  <td>{patientName || '-'}</td>
+                  <th style={{ width: 88 }}>작성일시</th>
+                  <td>{response?.submittedAt ? fmtDate(response.submittedAt) : '-'}</td>
+                </tr>
+                <tr>
+                  <th>문진명</th>
+                  {score && form ? (
+                    <>
+                      <td>{form.title || '-'}</td>
+                      <th>{scoringLabel(form)}</th>
+                      <td>
+                        <b style={{ color: '#124a86' }}>{score.total}</b> / {score.max}점
+                        {score.band ? (
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 0.75,
+                              px: 0.75,
+                              py: '1px',
+                              borderRadius: 1,
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              color: '#fff',
+                              bgcolor: score.band.color ?? '#124a86',
+                            }}
+                          >
+                            {score.band.label}
+                          </Box>
+                        ) : null}
+                      </td>
+                    </>
+                  ) : (
+                    <td colSpan={3}>{form?.title || '-'}</td>
+                  )}
+                </tr>
+              </tbody>
+            </Box>
+
+            {/* 주요 소견(색상 강조 항목) — 요청: 색표시 강조 내용이 꼭 포함 */}
+            <Box sx={{ mt: 2, border: '1px solid #c9d2dd', borderRadius: 0.5 }}>
+              <Box
+                sx={{
+                  px: 1.25,
+                  py: 0.7,
+                  bgcolor: '#fdecec',
+                  borderBottom: '1px solid #c9d2dd',
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: '#9b2c2c',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                주요 소견 (강조 항목)
+              </Box>
+              <Box sx={{ p: 1.25 }}>
+                {highlights.length ? (
+                  <Stack spacing={0.85}>
+                    {highlights.map(({ q, parts }) => (
+                      <Box
+                        key={q.id}
+                        sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'baseline' }}
+                      >
+                        <Typography
+                          sx={{ fontSize: 12.5, fontWeight: 700, color: '#334155', minWidth: 140 }}
+                        >
+                          {q.label}
+                        </Typography>
+                        <Box sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {parts.map((p, i) => (
+                            <Box
+                              key={i}
+                              component="span"
+                              sx={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: p.color,
+                                px: 0.9,
+                                py: 0.2,
+                                borderRadius: 1,
+                                bgcolor: alpha(p.color as string, 0.12),
+                                border: `1px solid ${alpha(p.color as string, 0.35)}`,
+                              }}
+                            >
+                              {p.label}
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography sx={{ fontSize: 13, color: '#94a3b8' }}>
+                    특이 강조 사항 없음
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+
+            {/* 섹션별 기록(항목 | 기록) */}
+            {form?.sections.map((section) => {
+              const qs = orderedQuestions(section).filter((q) => !NON_INPUT_TYPES.includes(q.type));
+              if (qs.length === 0) return null;
+              return (
+                <Box key={section.id} sx={{ mt: 2 }}>
+                  <Box
                     sx={{
-                      fontSize: 11,
+                      px: 1.25,
+                      py: 0.6,
+                      bgcolor: '#334155',
+                      color: '#fff',
+                      fontSize: 12.5,
                       fontWeight: 800,
-                      color: 'text.disabled',
-                      mt: '4px',
-                      minWidth: 18,
-                      fontVariantNumeric: 'tabular-nums',
+                      borderRadius: '3px 3px 0 0',
+                      letterSpacing: '0.02em',
                     }}
                   >
-                    {pad2(qNo[q.id])}
-                  </Typography>
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-                      {q.label}
-                    </Typography>
-                    <Box sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5, mt: 0.4 }}>
-                      {parts.map((p, i) => (
-                        <Box
-                          key={i}
-                          component="span"
-                          sx={{
-                            fontSize: 13.5,
-                            fontWeight: 800,
-                            color: p.color,
-                            px: 1,
-                            py: 0.3,
-                            borderRadius: 1.5,
-                            bgcolor: alpha(p.color as string, 0.12),
-                            border: `1px solid ${alpha(p.color as string, 0.35)}`,
-                          }}
-                        >
-                          {p.label}
-                        </Box>
+                    {section.title || '문항'}
+                  </Box>
+                  <Box component="table" sx={sheetTableSx}>
+                    <tbody>
+                      {qs.map((q) => (
+                        <tr key={q.id}>
+                          <th style={{ width: '36%', whiteSpace: 'normal' }}>{q.label}</th>
+                          <td>
+                            <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={13.5} />
+                          </td>
+                        </tr>
                       ))}
-                    </Box>
+                    </tbody>
                   </Box>
                 </Box>
-              ))}
-            </Stack>
-          ) : (
-            <Typography sx={{ fontSize: 13, color: 'text.disabled', mb: 2 }}>
-              색상으로 강조된 항목이 없습니다.
-            </Typography>
-          )}
+              );
+            })}
 
-          <Divider sx={{ my: 1.5 }} />
-
-          {/* 전체 응답 요약 */}
-          <Typography
-            sx={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              letterSpacing: '0.04em',
-              color: 'text.secondary',
-              mb: 0.75,
-            }}
-          >
-            전체 응답
-          </Typography>
-          <Stack divider={<Divider flexItem />} spacing={1}>
-            {summaryAll.map(({ q }) => (
-              <Box key={q.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                <Typography
-                  sx={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: 'text.disabled',
-                    mt: '3px',
-                    minWidth: 18,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {pad2(qNo[q.id])}
-                </Typography>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.2 }}>
-                    {q.label}
-                  </Typography>
-                  <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={14} />
-                </Box>
-              </Box>
-            ))}
-          </Stack>
+            {/* 서명/확인란 */}
+            <Box component="table" sx={{ ...sheetTableSx, mt: 2 }}>
+              <tbody>
+                <tr>
+                  <th style={{ width: 88 }}>확인(서명)</th>
+                  <td style={{ height: 44 }}> </td>
+                </tr>
+              </tbody>
+            </Box>
+          </Box>
         </DialogContent>
       </Dialog>
     </Box>
