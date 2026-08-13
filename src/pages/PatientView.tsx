@@ -250,12 +250,12 @@ export default function PatientView() {
         });
     });
   }
-  // 조각을 '~(으)며, ~(이)ㅁ.' 으로 연결한 서술문
+  // 주요 소견과 같은 서술 문체로 연결 — '상기 환자는 … 없으며, … 인 것으로 확인됨.'
   const etcSentence = etcFrags
     .map((f, i) => {
       const last = i === etcFrags.length - 1;
-      if (f.kind === 'exist') return f.base + (last ? '음.' : '으며, ');
-      return f.base + (last ? '임.' : '이며, ');
+      if (f.kind === 'exist') return f.base + (last ? '는 것으로 확인됨.' : '으며, ');
+      return f.base + (last ? '인 것으로 확인됨.' : '이며, ');
     })
     .join('');
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
@@ -766,13 +766,13 @@ export default function PatientView() {
               </Typography>
             </Box>
 
-            {/* 그 외 문진 내용 서술 — 색 강조 외 응답도 자연 문장으로 */}
+            {/* 그 외 문진 내용 — 주요 소견과 동일한 서술 문체 */}
             {etcSentence && (
               <Typography
                 component="div"
                 sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
               >
-                그 외 문진상 {etcSentence}
+                아울러 상기 환자는 문진상 {etcSentence}
               </Typography>
             )}
 
