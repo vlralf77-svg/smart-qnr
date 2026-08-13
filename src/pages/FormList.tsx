@@ -14,7 +14,6 @@ import {
   Pagination,
   Paper,
   Stack,
-  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -37,12 +36,9 @@ import StorageIcon from '@mui/icons-material/Storage';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import LinkIcon from '@mui/icons-material/Link';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useFormsStore } from '@/store/useFormsStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCategoriesStore } from '@/store/useCategoriesStore';
-import { useUiPrefs } from '@/store/useUiPrefs';
 import { CATEGORY_SEP, splitCategory } from '@/store/useCategoriesStore';
 import { SAMPLE_FORM } from '@/data/sampleForm';
 import { APP_VERSION } from '@/version';
@@ -292,13 +288,8 @@ export default function FormList() {
     );
   };
 
-  // 상단 메뉴/기본버튼 액션 정의
-  const primaryKey = useUiPrefs((s) => s.primaryAction);
-  const setPrimaryAction = useUiPrefs((s) => s.setPrimaryAction);
-
-  // 더보기 메뉴 항목 사용여부(관리자 설정 → 사용자 메뉴 반영)
+  // 메뉴 항목 사용여부(관리자 설정 → 사용자 메뉴 반영)
   const menuEnabled = useMenuConfig((s) => s.enabled);
-  const toggleMenu = useMenuConfig((s) => s.toggle);
   const isMenuEnabled = (key: string) => menuEnabled[key] !== false;
 
   interface Action {
@@ -424,11 +415,6 @@ export default function FormList() {
   const available = actions.filter(
     (a) => a.allowed && (canManage || !a.userConfigurable || isMenuEnabled(a.key)),
   );
-  // 앞에 고정할 기본 액션(권한 없으면 새 문진 → 첫 번째로 폴백)
-  const primary =
-    available.find((a) => a.key === primaryKey) ??
-    available.find((a) => a.key === 'new') ??
-    available[0];
   const SECTIONS: Action['section'][] = ['만들기', '환자', '관리'];
 
   return (
@@ -497,20 +483,6 @@ export default function FormList() {
             },
           }}
         >
-          {canManage && (
-            <Typography
-              sx={{
-                px: 1.25,
-                pt: 0.5,
-                pb: 0.5,
-                fontSize: 10.5,
-                color: 'text.disabled',
-                lineHeight: 1.5,
-              }}
-            >
-              📌 = 앞에 고정 · 스위치 = 사용자 메뉴 표시
-            </Typography>
-          )}
           {SECTIONS.map((section) => {
             const items = available.filter((a) => a.section === section);
             if (items.length === 0) return null;
@@ -526,46 +498,6 @@ export default function FormList() {
                     title={a.title}
                     desc={a.desc}
                     onClick={() => a.run()}
-                    dimmed={canManage && a.userConfigurable && !isMenuEnabled(a.key)}
-                    trailing={
-                      <Stack direction="row" alignItems="center" spacing={0.25}>
-                        {canManage && a.userConfigurable && (
-                          <Tooltip
-                            title={
-                              isMenuEnabled(a.key)
-                                ? '사용자에게 표시됨 (끄면 숨김)'
-                                : '사용자에게 숨김'
-                            }
-                          >
-                            <Switch
-                              size="small"
-                              checked={isMenuEnabled(a.key)}
-                              onClick={(e) => e.stopPropagation()}
-                              onChange={() => toggleMenu(a.key)}
-                            />
-                          </Tooltip>
-                        )}
-                        <Tooltip title={a.key === primaryKey ? '기본 액션(고정됨)' : '앞에 고정'}>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPrimaryAction(a.key);
-                            }}
-                            sx={{ ml: 0.25 }}
-                          >
-                            {a.key === primaryKey ? (
-                              <PushPinIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                            ) : (
-                              <PushPinOutlinedIcon
-                                fontSize="small"
-                                sx={{ color: 'text.disabled' }}
-                              />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    }
                   />
                 ))}
               </Box>
@@ -633,20 +565,6 @@ export default function FormList() {
               등록된 문진 {forms.length}개 · 확정 {counts.published} · 임시저장 {counts.draft}
             </Typography>
           </Box>
-          {/* 앞에 고정된 기본 액션(좌측 메뉴에서 고정) */}
-          <Stack direction="row" spacing={1} alignItems="center">
-            {primary && (
-              <Button
-                variant="contained"
-                disableElevation
-                startIcon={primary.icon}
-                onClick={primary.run}
-                sx={{ borderRadius: 2, fontWeight: 700 }}
-              >
-                {primary.title}
-              </Button>
-            )}
-          </Stack>
         </Box>
 
         {/* 툴바(조회 조건): 검색 · 상태 · 분류 · 정렬 */}
