@@ -312,7 +312,8 @@ public class DbLinkService {
   static Object jsonSafe(Object v) {
     if (v == null) return "";
     if (v instanceof Number || v instanceof Boolean || v instanceof String) return v;
-    if (v instanceof byte[] b) return "(binary " + b.length + "B)";
+    // 배열 타입 패턴(instanceof byte[] b)은 일부 javac 에서 거부되므로 캐스팅으로 처리
+    if (v instanceof byte[]) return "(binary " + ((byte[]) v).length + "B)";
     return String.valueOf(v);
   }
 
