@@ -1059,9 +1059,7 @@ export default function FormList() {
                   <Typography className="col">상태</Typography>
                   <Typography className="col">문항 · 버전</Typography>
                   <Typography className="col">등록 · 수정</Typography>
-                  <Typography className="col" sx={{ textAlign: 'right' }}>
-                    관리
-                  </Typography>
+                  <Typography className="col">관리</Typography>
                 </Box>
 
                 {/* 데이터 행 */}
@@ -1188,7 +1186,7 @@ export default function FormList() {
                       <Stack
                         direction="row"
                         spacing={0.25}
-                        justifyContent="flex-end"
+                        justifyContent="flex-start"
                         sx={{ whiteSpace: 'nowrap' }}
                       >
                         {canEdit && (
