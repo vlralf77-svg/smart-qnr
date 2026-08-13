@@ -774,22 +774,6 @@ export default function PatientView() {
                 아울러 상기 환자는 문진상 {etcSentence}
               </Typography>
             )}
-
-            {/* 확인(서명) */}
-            <Box
-              sx={{
-                mt: 3,
-                pt: 1,
-                borderTop: '1px solid #e2e8f0',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                alignItems: 'flex-end',
-                gap: 1,
-              }}
-            >
-              <Typography sx={{ fontSize: 12.5, color: '#64748b' }}>확인(서명)</Typography>
-              <Box sx={{ width: 170, borderBottom: '1px solid #94a3b8', height: 20 }} />
-            </Box>
           </Box>
         </DialogContent>
       </Dialog>
