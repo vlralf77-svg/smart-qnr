@@ -33,7 +33,7 @@ import {
 } from '@/utils/responseExport';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
-import { answerParts, cleanLabel, collectFindings, joinKo } from '@/utils/findings';
+import { answerParts, cleanLabel, collectFindings, isSurveyForm, joinKo } from '@/utils/findings';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
@@ -327,7 +327,8 @@ export default function PatientView() {
             목록
           </Button>
           <Box sx={{ flex: 1 }} />
-          {response && form && (
+          {/* 설문조사는 진료 소견 개념이 없어 요약을 제공하지 않음 */}
+          {response && form && !isSurveyForm(form) && (
             <Button
               color="inherit"
               startIcon={<SummarizeOutlinedIcon />}

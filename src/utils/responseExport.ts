@@ -4,7 +4,7 @@
 import { AnswerValue, FormSchema, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from './questionOrder';
 import { computeScore, isScoringEnabled, scoringLabel } from './scoring';
-import { collectFindings, findingsSentence } from './findings';
+import { collectFindings, findingsSentence, isSurveyForm } from './findings';
 
 export interface ResponseMeta {
   patientName?: string;
@@ -178,13 +178,16 @@ export function buildResponseImageDataUrl(
   }
   rule();
 
-  // 주요 소견(요약) — 요약본과 동일한 서술 문장으로 상단에 배치
-  block('■ 주요 소견', 13.5, '#9b2c2c', { bold: true, gap: 2 });
-  paragraph(findingsSentence(collectFindings(form, answers)), 14.5, '#1f2937', {
-    indent: 10,
-    gap: 6,
-  });
-  rule();
+  // 주요 소견(요약) — 요약본과 동일한 서술 문장으로 상단에 배치.
+  //  설문조사는 진료 소견 개념이 없으므로 생략한다.
+  if (!isSurveyForm(form)) {
+    block('■ 주요 소견', 13.5, '#9b2c2c', { bold: true, gap: 2 });
+    paragraph(findingsSentence(collectFindings(form, answers)), 14.5, '#1f2937', {
+      indent: 10,
+      gap: 6,
+    });
+    rule();
+  }
 
   // 문항별 답변
   for (const section of form.sections) {

@@ -58,6 +58,14 @@ export function cleanLabel(raw: string): string {
 /** 답변 자체로는 의미가 없는(예/아니오 등) 단답 여부 */
 const BARE_ANSWER = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/;
 
+/**
+ * 설문조사 문진 여부 — 분류(카테고리)에 '설문'이 포함되면 설문으로 본다.
+ * 설문조사는 진료 소견 개념이 없으므로 요약(주요 소견)을 제공하지 않는다.
+ */
+export function isSurveyForm(form?: Pick<FormSchema, 'category'>): boolean {
+  return !!form?.category && form.category.includes('설문');
+}
+
 /** 'A, B 및 C' 형태로 명사 나열 */
 export function joinKo(arr: string[]): string {
   if (arr.length <= 1) return arr[0] ?? '';
