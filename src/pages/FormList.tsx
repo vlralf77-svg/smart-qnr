@@ -168,7 +168,6 @@ export default function FormList() {
   const [excelOpen, setExcelOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const responsesAll = useFormsStore((s) => s.responses);
   const [sortKey, setSortKey] = useState<'recent' | 'created' | 'title'>('recent');
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -238,15 +237,6 @@ export default function FormList() {
   // 분류 건수 — 대분류는 하위(경로) 문진까지 합산
   const catCount = (c: string) =>
     forms.filter((f) => f.category === c || f.category?.startsWith(c + CATEGORY_SEP)).length;
-
-  // 문진별 응답 수
-  const respCount = useMemo(() => {
-    const m: Record<string, number> = {};
-    responsesAll.forEach((r) => {
-      m[r.formId] = (m[r.formId] ?? 0) + 1;
-    });
-    return m;
-  }, [responsesAll]);
 
   // 정렬 적용
   const sorted = useMemo(() => {
@@ -983,11 +973,6 @@ export default function FormList() {
                             />
                           )}
                         </Stack>
-                        {respCount[f.id] ? (
-                          <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary' }}>
-                            응답 {respCount[f.id]}
-                          </Typography>
-                        ) : null}
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         {cat ? (
