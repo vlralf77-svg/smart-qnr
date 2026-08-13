@@ -973,6 +973,15 @@ export default function FormList() {
                             />
                           )}
                         </Stack>
+                        {/* 설명이 있을 때만 둘째 줄로 — 없으면 행 높이가 늘지 않는다 */}
+                        {f.description?.trim() && (
+                          <Typography
+                            noWrap
+                            sx={{ fontSize: 11.5, color: 'text.secondary', mt: 0.15 }}
+                          >
+                            {f.description}
+                          </Typography>
+                        )}
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
                         {cat ? (
