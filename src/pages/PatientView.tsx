@@ -243,6 +243,8 @@ export default function PatientView() {
 
   // 기록지 요약 — 색상 강조(선택지 color)가 걸린 답변만 모아 '주요 소견'으로 표시
   const highlights: { q: Question; parts: AnsPart[] }[] = [];
+  // 전체 서술용 — 응답한 문항만(간략)
+  const answeredList: Question[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
@@ -250,6 +252,10 @@ export default function PatientView() {
         .forEach((q) => {
           const colored = answerParts(q, answers[q.id] ?? null).filter((p) => p.color);
           if (colored.length) highlights.push({ q, parts: colored });
+          const v = answers[q.id];
+          const empty =
+            v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
+          if (!empty) answeredList.push(q);
         });
     });
   }
@@ -695,24 +701,22 @@ export default function PatientView() {
               />
             </Box>
 
-            {/* 개요 서술 */}
+            {/* 개요 서술(간략) */}
             <Typography
               component="div"
               sx={{
                 fontSize: 14,
-                lineHeight: 2.05,
+                lineHeight: 1.95,
                 color: '#1f2937',
-                mb: 1.75,
+                mb: 1.5,
                 textAlign: 'justify',
               }}
             >
-              {patientName ? `${patientName} 님이 ` : ''}작성한 「{form?.title ?? '문진'}」 문진의
-              응답 내용을 아래와 같이 정리하였다.
-              {response?.submittedAt ? ` 작성일시는 ${fmtDate(response.submittedAt)}이다.` : ''}
+              {patientName ? `${patientName} 님이 ` : ''}작성한 「{form?.title ?? '문진'}」 문진
+              응답 요약이다.
+              {response?.submittedAt ? ` (작성일시 ${fmtDate(response.submittedAt)})` : ''}
               {score && form
-                ? ` 평가 결과 총 ${score.max}점 중 ${score.total}점으로 확인되었으며${
-                    score.band ? `, 판정 구간은 ‘${score.band.label}’이다.` : '.'
-                  }`
+                ? ` 총 ${score.max}점 중 ${score.total}점${score.band ? ` · ${score.band.label}` : ''}.`
                 : ''}
             </Typography>
 
@@ -761,38 +765,25 @@ export default function PatientView() {
               </Typography>
             </Box>
 
-            {/* 섹션별 서술 기록 */}
-            {form?.sections.map((section) => {
-              const qs = orderedQuestions(section).filter((q) => !NON_INPUT_TYPES.includes(q.type));
-              if (qs.length === 0) return null;
-              return (
-                <Box key={section.id} sx={{ mt: 2 }}>
-                  <Typography
-                    sx={{
-                      fontSize: 13.5,
-                      fontWeight: 800,
-                      color: '#334155',
-                      mb: 0.6,
-                      pb: 0.4,
-                      borderBottom: '1.5px solid #cbd5e1',
-                    }}
-                  >
-                    {section.title || '문항'}
-                  </Typography>
-                  <Typography
-                    component="div"
-                    sx={{ fontSize: 14, lineHeight: 2.05, color: '#1f2937', textAlign: 'justify' }}
-                  >
-                    {qs.map((q) => (
-                      <Box component="span" key={q.id}>
-                        ‘{q.label}’ 항목은 <AnswerInline q={q} v={answers[q.id] ?? null} />
-                        (으)로 확인되었다.{' '}
-                      </Box>
-                    ))}
-                  </Typography>
-                </Box>
-              );
-            })}
+            {/* 전체 응답 서술(섹션 구분 없이 간략하게) */}
+            <Typography
+              component="div"
+              sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
+            >
+              {answeredList.length ? (
+                <>
+                  {answeredList.map((q, i) => (
+                    <Box component="span" key={q.id}>
+                      {i > 0 ? ', ' : ''}‘{q.label}’{' '}
+                      <AnswerInline q={q} v={answers[q.id] ?? null} />
+                    </Box>
+                  ))}
+                  {' (으)로 응답하였다.'}
+                </>
+              ) : (
+                '응답한 항목이 없다.'
+              )}
+            </Typography>
 
             {/* 확인(서명) */}
             <Box
