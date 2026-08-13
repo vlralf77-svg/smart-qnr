@@ -709,7 +709,7 @@ export default function PatientView() {
               />
             </Box>
 
-            {/* 개요 서술(간략) */}
+            {/* 개요 — 공식 서식(의무기록) 문체 */}
             <Typography
               component="div"
               sx={{
@@ -720,11 +720,13 @@ export default function PatientView() {
                 textAlign: 'justify',
               }}
             >
-              {patientName ? `${patientName} 님이 ` : ''}작성한 「{form?.title ?? '문진'}」 문진
-              응답 요약이다.
-              {response?.submittedAt ? ` (작성일시 ${fmtDate(response.submittedAt)})` : ''}
+              상기 내원환자{patientName ? `(${patientName})` : ''}는
+              {response?.submittedAt ? ` ${fmtDate(response.submittedAt)}` : ''} 「
+              {form?.title ?? '문진'}」 문진을 시행하였으며, 그 결과는 하기와 같음.
               {score && form
-                ? ` 총 ${score.max}점 중 ${score.total}점${score.band ? ` · ${score.band.label}` : ''}.`
+                ? ` 문진 평가 결과 총점 ${score.max}점 만점에 ${score.total}점으로 평가되었으며${
+                    score.band ? `, ‘${score.band.label}’ 구간에 해당함.` : '.'
+                  }`
                 : ''}
             </Typography>
 
@@ -745,10 +747,13 @@ export default function PatientView() {
                 <Box component="span" sx={{ fontWeight: 800, color: '#9b2c2c' }}>
                   주요 소견 —{' '}
                 </Box>
-                {highlights.length
-                  ? highlights.map((h, i) => (
+                {highlights.length ? (
+                  <>
+                    상기 환자는 문진상{' '}
+                    {highlights.map((h, i) => (
                       <Box component="span" key={h.q.id}>
-                        {i > 0 ? ' 또한 ' : ''}‘{h.q.label}’ 항목에서{' '}
+                        {i > 0 ? ' 아울러 ' : ''}
+                        {h.q.label} 항목에서{' '}
                         {h.parts.map((p, j) => (
                           <Box component="span" key={j}>
                             {j > 0 ? ', ' : ''}
@@ -766,30 +771,40 @@ export default function PatientView() {
                             </Box>
                           </Box>
                         ))}{' '}
-                        소견이 확인되었다.
+                        소견이 확인되어 진료 시 참고를 요함.
                       </Box>
-                    ))
-                  : '색상으로 강조된 특이 소견은 확인되지 않았다.'}
+                    ))}
+                  </>
+                ) : (
+                  '문진상 특이 소견은 확인되지 않음.'
+                )}
               </Typography>
             </Box>
 
-            {/* 전체 응답 서술 — 질문/답 나열이 아니라 하나의 문장으로 이어서 */}
+            {/* 전체 응답 — 공식 서식 문체의 이어지는 서술 */}
             <Typography
               component="div"
               sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
             >
-              {answeredList.length
-                ? answeredList.map((q, i) => {
+              {answeredList.length ? (
+                <>
+                  상기 환자는 문진에서{' '}
+                  {answeredList.map((q, i) => {
                     const last = i === answeredList.length - 1;
                     return (
                       <Box component="span" key={q.id}>
                         {q.label}
                         {eunNeun(q.label)} <AnswerInline q={q} v={answers[q.id] ?? null} />
-                        {last ? '이다.' : '이며, '}
+                        {last
+                          ? ' (으)로 응답하였으며, 상기와 같이 문진 결과를 보고함.'
+                          : '(으)로, '}
                       </Box>
                     );
-                  })
-                : '응답한 항목이 없다.'}
+                  })}
+                </>
+              ) : (
+                '응답한 항목이 확인되지 않음.'
+              )}
             </Typography>
 
             {/* 확인(서명) */}
