@@ -1021,7 +1021,6 @@ export default function FormList() {
                         }}
                       >
                         문항 {qCount} · v{f.version}
-                        {f.history && f.history.length ? ` · 이력 ${f.history.length}` : ''}
                       </Typography>
                       <Box sx={{ fontVariantNumeric: 'tabular-nums' }}>
                         <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
