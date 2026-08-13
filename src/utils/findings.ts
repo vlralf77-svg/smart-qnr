@@ -72,32 +72,145 @@ export function joinKo(arr: string[]): string {
   return `${arr.slice(0, -1).join(', ')} 및 ${arr[arr.length - 1]}`;
 }
 
+/** 강조된 소견 1건 — 문항명(qLabel)과 답변 용어(term)를 함께 보관해 서술 문장을 만든다. */
+export interface Finding {
+  /** 소견 용어(강조 표시 대상) — 단답(예/있음)이면 문항명이 들어간다 */
+  label: string;
+  color: string;
+  /** 문항명(명사구로 정리된 것) */
+  qLabel: string;
+  /** 답변이 예/있음처럼 그 자체로 의미가 없는지 */
+  bare: boolean;
+}
+
+/** 목적격 조사 을/를 */
+const eulReul = (w: string) => (hasJong(w) ? '을' : '를');
+/** 주격 조사 이/가 */
+const iGa = (w: string) => (hasJong(w) ? '이' : '가');
+/** 주제 조사 은/는 */
+const eunNeun = (w: string) => (hasJong(w) ? '은' : '는');
+
+/** 받침 유무 판별 */
+function hasJong(word: string): boolean {
+  const ch = (word || '').trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+}
+
+type Run = { text: string; color?: string };
+/** 소견 1건의 서술 절 — runs(강조 포함) + 중간/마지막 어미 */
+interface Clause {
+  runs: Run[];
+  mid: string;
+  last: string;
+}
+
+/** 문항 주제 분류 — 같은 주제의 중복 서술(있음 + 구체 답)을 정리하는 데 사용 */
+function findingTopic(qLabel: string): string | null {
+  if (/복용/.test(qLabel)) return '복용';
+  if (/흡연|담배/.test(qLabel)) return '흡연';
+  if (/음주|술/.test(qLabel)) return '음주';
+  if (/알레르기|알러지/.test(qLabel)) return '알레르기';
+  if (/진단|질환|병력/.test(qLabel)) return '진단';
+  if (/수술|시술/.test(qLabel)) return '수술';
+  if (/임신|수유/.test(qLabel)) return '임신';
+  return null;
+}
+
+/**
+ * 소견 1건을 자연스러운 서술 절로 변환.
+ * 흔한 문진 문항(복용 약물·흡연·알레르기·진단·수술·음주 등)은 의학 기록 문체의
+ * 서술어로 바꾸고, 그 외에는 '문항명은 답변' 형태로 일반화한다.
+ */
+function findingClause(f: Finding): Clause {
+  const { label, color, qLabel, bare } = f;
+  const hl = (t: string): Run => ({ text: t, color });
+  const now = /현재/.test(qLabel) ? '현재 ' : '';
+
+  // 복용 중인 약 — 약 이름만 적힌 경우 '~약을 복용 중'으로 다듬는다('혈압' → '혈압약을 복용 중')
+  if (/복용/.test(qLabel)) {
+    if (bare)
+      return { runs: [{ text: now }, hl('약물')], mid: '을 복용 중이며, ', last: '을 복용 중임.' };
+    const suffix = /(약|제|정|캡슐|주사)$/.test(label) ? '' : '약';
+    const tail = suffix || label;
+    return {
+      runs: [{ text: now }, hl(label)],
+      mid: `${suffix}${eulReul(tail)} 복용 중이며, `,
+      last: `${suffix}${eulReul(tail)} 복용 중임.`,
+    };
+  }
+  // 흡연
+  if (/흡연|담배/.test(qLabel)) {
+    const extra = bare ? '' : `(${label})`;
+    return { runs: [{ text: now }, hl('흡연'), { text: extra }], mid: ' 중이며, ', last: ' 중임.' };
+  }
+  // 음주
+  if (/음주|술/.test(qLabel)) {
+    if (bare)
+      return { runs: [{ text: now }, hl('음주')], mid: '력이 있으며, ', last: '력이 있음.' };
+    return { runs: [{ text: now }, hl('음주'), { text: ` ${label}` }], mid: '이며, ', last: '임.' };
+  }
+  // 알레르기
+  if (/알레르기|알러지/.test(qLabel)) {
+    const term = bare ? qLabel : `${label} 알레르기`;
+    return { runs: [hl(term)], mid: `${iGa(term)} 있으며, `, last: `${iGa(term)} 있음.` };
+  }
+  // 진단·질환
+  if (/진단|질환|병력/.test(qLabel)) {
+    if (bare)
+      return { runs: [hl(qLabel)], mid: `${iGa(qLabel)} 있으며, `, last: `${iGa(qLabel)} 있음.` };
+    return {
+      runs: [hl(label)],
+      mid: `${eulReul(label)} 진단받았으며, `,
+      last: `${eulReul(label)} 진단받았음.`,
+    };
+  }
+  // 수술·시술 이력
+  if (/수술|시술/.test(qLabel)) {
+    const term = bare ? '수술 이력' : `${label} 수술 이력`;
+    return { runs: [hl(term)], mid: '이 있으며, ', last: '이 있음.' };
+  }
+  // 임신·수유
+  if (/임신|수유/.test(qLabel)) {
+    const term = bare ? qLabel : label;
+    return { runs: [{ text: now }, hl(term)], mid: ' 중이며, ', last: ' 중임.' };
+  }
+  // 기본 — 단답이면 '…이 확인되며', 값이 있으면 '문항명은 값이며'
+  if (bare)
+    return { runs: [hl(label)], mid: `${iGa(label)} 확인되며, `, last: `${iGa(label)} 확인됨.` };
+  return {
+    runs: [{ text: `${qLabel}${eunNeun(qLabel)} ` }, hl(label)],
+    mid: '이며, ',
+    last: '임.',
+  };
+}
+
 /**
  * 주요 소견 서술문 조각 — 색상 강조 용어는 color 를 유지해 문장 안에 색으로 표시할 수 있게 한다.
- * 예) 상기 환자는 문진상 [당뇨], [고혈압] 소견이 확인되는 환자로, 진료 시 …
+ * 예) 상기 환자는 문진상 [혈압약]을 복용 중이며, [현재 흡연] 중임. 진료 시 …
  */
-export function findingsSentence(
-  findings: { label: string; color: string }[],
-): { text: string; color?: string }[] {
-  if (!findings.length) return [{ text: '문진상 특이 소견은 확인되지 않음.' }];
-  const segs: { text: string; color?: string }[] = [{ text: '상기 환자는 문진상 ' }];
-  findings.forEach((f, i) => {
-    if (i > 0) segs.push({ text: i === findings.length - 1 ? ' 및 ' : ', ' });
-    segs.push({ text: f.label, color: f.color });
+export function findingsSentence(findings: Finding[]): Run[] {
+  // 같은 주제에 구체적인 답(약 이름 등)이 있으면 '있음'만 표시된 항목은 생략해
+  //  '약물을 복용 중이며, 혈압약을 복용 중이며' 식의 중복을 없앤다.
+  const specific = new Set(findings.filter((f) => !f.bare).map((f) => findingTopic(f.qLabel)));
+  const list = findings.filter((f) => !(f.bare && specific.has(findingTopic(f.qLabel))));
+  if (!list.length) return [{ text: '문진상 특이 소견은 확인되지 않음.' }];
+  const segs: Run[] = [{ text: '상기 환자는 문진상 ' }];
+  list.forEach((f, i) => {
+    const c = findingClause(f);
+    segs.push(...c.runs);
+    segs.push({ text: i === list.length - 1 ? c.last : c.mid });
   });
-  segs.push({ text: ' 소견이 확인되는 환자로, 진료 시 상기 소견에 대한 확인 및 참고를 요함.' });
+  segs.push({ text: ' 진료 시 상기 소견에 대한 확인 및 참고를 요함.' });
   return segs;
 }
 
 /**
- * 주요 소견 — 색상 강조된 답변을 소견 용어 목록으로 정리.
+ * 주요 소견 — 색상 강조된 답변을 소견 목록으로 정리.
  * 답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용한다.
  */
-export function collectFindings(
-  form: FormSchema,
-  answers: Record<string, AnswerValue>,
-): { label: string; color: string }[] {
-  const out: { label: string; color: string }[] = [];
+export function collectFindings(form: FormSchema, answers: Record<string, AnswerValue>): Finding[] {
+  const out: Finding[] = [];
   form.sections.forEach((s) => {
     orderedQuestions(s)
       .filter((q) => !NON_INPUT_TYPES.includes(q.type))
@@ -106,8 +219,10 @@ export function collectFindings(
         answerParts(q, answers[q.id] ?? null)
           .filter((p) => p.color)
           .forEach((p) => {
-            const label = BARE_ANSWER.test(p.label.trim()) ? qLabel : p.label;
-            if (!out.some((f) => f.label === label)) out.push({ label, color: p.color as string });
+            const bare = BARE_ANSWER.test(p.label.trim());
+            const label = bare ? qLabel : p.label;
+            if (!out.some((f) => f.label === label && f.qLabel === qLabel))
+              out.push({ label, color: p.color as string, qLabel, bare });
           });
       });
   });

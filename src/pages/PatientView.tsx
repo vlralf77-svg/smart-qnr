@@ -33,7 +33,14 @@ import {
 } from '@/utils/responseExport';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
-import { answerParts, cleanLabel, collectFindings, isSurveyForm, joinKo } from '@/utils/findings';
+import {
+  answerParts,
+  cleanLabel,
+  collectFindings,
+  findingsSentence,
+  isSurveyForm,
+  joinKo,
+} from '@/utils/findings';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
@@ -733,30 +740,27 @@ export default function PatientView() {
                 <Box component="span" sx={{ fontWeight: 800, color: '#9b2c2c' }}>
                   주요 소견 —{' '}
                 </Box>
-                {findings.length ? (
-                  <>
-                    상기 환자는 문진상{' '}
-                    {findings.map((f, i) => (
-                      <Box component="span" key={f.label}>
-                        {i > 0 ? (i === findings.length - 1 ? ' 및 ' : ', ') : ''}
-                        <Box
-                          component="span"
-                          sx={{
-                            fontWeight: 800,
-                            color: f.color,
-                            bgcolor: alpha(f.color, 0.13),
-                            px: 0.4,
-                            borderRadius: 0.5,
-                          }}
-                        >
-                          {f.label}
-                        </Box>
-                      </Box>
-                    ))}{' '}
-                    소견이 확인되는 환자로, 진료 시 상기 소견에 대한 확인 및 참고를 요함.
-                  </>
-                ) : (
-                  '문진상 특이 소견은 확인되지 않음.'
+                {/* 이미지(PNG) 저장과 같은 문장을 사용 — findingsSentence 공용 */}
+                {findingsSentence(findings).map((r, i) =>
+                  r.color ? (
+                    <Box
+                      component="span"
+                      key={i}
+                      sx={{
+                        fontWeight: 800,
+                        color: r.color,
+                        bgcolor: alpha(r.color, 0.13),
+                        px: 0.4,
+                        borderRadius: 0.5,
+                      }}
+                    >
+                      {r.text}
+                    </Box>
+                  ) : (
+                    <Box component="span" key={i}>
+                      {r.text}
+                    </Box>
+                  ),
                 )}
               </Typography>
             </Box>
