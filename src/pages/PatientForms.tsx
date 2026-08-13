@@ -206,10 +206,14 @@ export default function PatientForms() {
       </AppBar>
 
       <Container maxWidth="md" sx={{ py: { xs: 3, sm: 4 } }}>
-        {/* 환자·진료 정보 — 한 줄로(작게) 표시, 좁으면 가로 스크롤 */}
+        {/* 환자·진료 정보 — 한 줄로(작게) 표시, 좁으면 가로 스크롤.
+            스크롤해도 항상 보이도록 상단 바(AppBar) 아래에 고정(sticky) */}
         <Paper
           elevation={0}
           sx={{
+            position: 'sticky',
+            top: { xs: 56, sm: 64 },
+            zIndex: (t) => t.zIndex.appBar - 1,
             px: { xs: 1.5, sm: 2 },
             py: 1,
             mb: { xs: 2, sm: 2.5 },
