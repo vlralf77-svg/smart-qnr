@@ -1,5 +1,5 @@
 // 환자용 문진 목록 — 테스트 대상(testFlag) 문진만. 작성 완료 표시·일시 노출.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -160,6 +160,15 @@ export default function PatientForms() {
   }, []);
 
   const doneCount = forms.filter((f) => responses[f.id]).length;
+  // 작성 전 문진을 위로, 작성 완료 문진을 아래로 정렬(같은 그룹은 기존 순서 유지)
+  const sortedForms = useMemo(
+    () =>
+      forms
+        .map((f, i) => ({ f, i, done: !!responses[f.id] }))
+        .sort((a, b) => (a.done === b.done ? a.i - b.i : a.done ? 1 : -1))
+        .map((x) => x.f),
+    [forms, responses],
+  );
   // 모바일과 PC 는 완전히 다른 레이아웃(모바일=카드 리스트, PC=테이블) — 표시 모드 반영
   const isMobile = useIsMobileLayout();
   const goto = (f: FormSchema) =>
@@ -294,7 +303,7 @@ export default function PatientForms() {
         ) : isMobile ? (
           /* ───────── 모바일: 카드 리스트(터치 친화) ───────── */
           <Stack spacing={1.75}>
-            {forms.map((f) => {
+            {sortedForms.map((f) => {
               const done = responses[f.id];
               const accent = done ? '#2e9d6e' : '#5b7cfa';
               const tint = done ? '#dcf1e7' : '#e4ecff';
@@ -458,7 +467,7 @@ export default function PatientForms() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {forms.map((f) => {
+                {sortedForms.map((f) => {
                   const done = responses[f.id];
                   const rowTint = done ? '#dcf1e7' : '#e4ecff';
                   const rowActive = done ? '#c2e8d5' : '#ccd9ff';
