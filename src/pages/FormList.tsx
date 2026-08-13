@@ -186,6 +186,16 @@ export default function FormList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 내용 보기(전체화면 미리보기)는 히스토리 항목을 하나 쌓아두고, 뒤로가기 시
+  // 편집/다른 화면으로 이동하지 않고 미리보기만 닫히도록 한다.
+  useEffect(() => {
+    if (!previewForm) return;
+    window.history.pushState({ smqrPreview: true }, '');
+    const onPop = () => setPreviewForm(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [previewForm]);
+
   // 필터에 노출할 분류: 관리 목록 + 실제 문진에 쓰인 값(합집합)
   const filterCategories = useMemo(() => {
     const set = new Set<string>(managedCategories);
@@ -1144,7 +1154,7 @@ export default function FormList() {
         }}
       />
       {previewForm && (
-        <PreviewDialog open schema={previewForm} onClose={() => setPreviewForm(null)} />
+        <PreviewDialog open schema={previewForm} onClose={() => window.history.back()} />
       )}
       <CreateFormDialog
         open={createOpen}
