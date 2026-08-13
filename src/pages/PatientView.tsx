@@ -50,14 +50,6 @@ function fmtDate(ts?: string): string {
   }
 }
 
-// 받침 유무로 은/는 조사 선택 — 서술 문장을 자연스럽게 잇기 위함
-function eunNeun(word: string): string {
-  const ch = (word || '').trim().slice(-1);
-  const code = ch.charCodeAt(0);
-  const hasJong = code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
-  return hasJong ? '은' : '는';
-}
-
 /** 응답 값을 (라벨, 강조색) 조각으로 분해 — 다중 선택은 선택지마다 개별 색 적용 */
 interface AnsPart {
   label: string;
@@ -156,45 +148,6 @@ function AnswerContent({
   );
 }
 
-// 서술형 기록지에서 답변을 문장 안에 인라인으로 — 강조색 지정 답변은 색으로 표시
-function AnswerInline({ q, v }: { q: Question; v: AnswerValue }) {
-  const parts = answerParts(q, v);
-  if (parts.length === 1 && parts[0].label === '(미응답)') {
-    return (
-      <Box component="span" sx={{ color: '#94a3b8', fontStyle: 'italic' }}>
-        미응답
-      </Box>
-    );
-  }
-  return (
-    <>
-      {parts.map((p, i) => (
-        <Box component="span" key={i}>
-          {i > 0 ? ', ' : ''}
-          {p.color ? (
-            <Box
-              component="span"
-              sx={{
-                fontWeight: 800,
-                color: p.color,
-                bgcolor: alpha(p.color, 0.13),
-                px: 0.4,
-                borderRadius: 0.5,
-              }}
-            >
-              {p.label}
-            </Box>
-          ) : (
-            <Box component="span" sx={{ fontWeight: 700 }}>
-              {p.label}
-            </Box>
-          )}
-        </Box>
-      ))}
-    </>
-  );
-}
-
 export default function PatientView() {
   const { formId } = useParams();
   const navigate = useNavigate();
@@ -251,8 +204,6 @@ export default function PatientView() {
 
   // 기록지 요약 — 색상 강조(선택지 color)가 걸린 답변만 모아 '주요 소견'으로 표시
   const highlights: { q: Question; parts: AnsPart[] }[] = [];
-  // 전체 서술용 — 응답한 문항만(간략)
-  const answeredList: Question[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
@@ -260,10 +211,6 @@ export default function PatientView() {
         .forEach((q) => {
           const colored = answerParts(q, answers[q.id] ?? null).filter((p) => p.color);
           if (colored.length) highlights.push({ q, parts: colored });
-          const v = answers[q.id];
-          const empty =
-            v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
-          if (!empty) answeredList.push(q);
         });
     });
   }
@@ -780,32 +727,6 @@ export default function PatientView() {
                 )}
               </Typography>
             </Box>
-
-            {/* 전체 응답 — 공식 서식 문체의 이어지는 서술 */}
-            <Typography
-              component="div"
-              sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
-            >
-              {answeredList.length ? (
-                <>
-                  상기 환자는 문진에서{' '}
-                  {answeredList.map((q, i) => {
-                    const last = i === answeredList.length - 1;
-                    return (
-                      <Box component="span" key={q.id}>
-                        {q.label}
-                        {eunNeun(q.label)} <AnswerInline q={q} v={answers[q.id] ?? null} />
-                        {last
-                          ? ' (으)로 응답하였으며, 상기와 같이 문진 결과를 보고함.'
-                          : '(으)로, '}
-                      </Box>
-                    );
-                  })}
-                </>
-              ) : (
-                '응답한 항목이 확인되지 않음.'
-              )}
-            </Typography>
 
             {/* 확인(서명) */}
             <Box
