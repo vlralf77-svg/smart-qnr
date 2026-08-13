@@ -8,10 +8,10 @@ EMR REST API 없이 **병원 DB(Oracle 등)에 직접 SELECT** 해서 문진 대
 
 ## 동작 모드
 
-| 모드 | 조건 | 테스트 버튼 동작 |
-| --- | --- | --- |
-| 백엔드 연동 | `VITE_USE_BACKEND=1` (도커 웹 빌드) | **실제 DB 접속·SELECT 실행** |
-| 오프라인(데스크톱) | 기본값 | 내장 샘플로 파이프라인만 시뮬레이션 |
+| 모드               | 조건                                | 테스트 버튼 동작                    |
+| ------------------ | ----------------------------------- | ----------------------------------- |
+| 백엔드 연동        | `VITE_USE_BACKEND=1` (도커 웹 빌드) | **실제 DB 접속·SELECT 실행**        |
+| 오프라인(데스크톱) | 기본값                              | 내장 샘플로 파이프라인만 시뮬레이션 |
 
 화면 상단 배지로 현재 어느 모드인지 표시된다(`실제 DB 실행` / `시뮬레이션`).
 
@@ -42,11 +42,11 @@ Oracle JDBC 드라이버가 없습니다. 서버를 -P oracle 프로파일로 �
 
 접속 방식별로 생성되는 JDBC URL:
 
-| 모드 | 입력 | JDBC URL |
-| --- | --- | --- |
-| EZConnect | 호스트/포트/서비스명 | `jdbc:oracle:thin:@//db.hospital.local:1521/ORCLPDB1` |
-| TNS 별칭 | 별칭 + TNS_ADMIN | `jdbc:oracle:thin:@EMRDB` (`oracle.net.tns_admin` 전달) |
-| JDBC URL | URL 직접 입력 | 입력값 그대로 |
+| 모드      | 입력                 | JDBC URL                                                |
+| --------- | -------------------- | ------------------------------------------------------- |
+| EZConnect | 호스트/포트/서비스명 | `jdbc:oracle:thin:@//db.hospital.local:1521/ORCLPDB1`   |
+| TNS 별칭  | 별칭 + TNS_ADMIN     | `jdbc:oracle:thin:@EMRDB` (`oracle.net.tns_admin` 전달) |
+| JDBC URL  | URL 직접 입력        | 입력값 그대로                                           |
 
 ## 로컬에서 실제 연동 테스트 (PostgreSQL)
 
