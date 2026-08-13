@@ -7,6 +7,11 @@ import {
   Box,
   Button,
   Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
   Paper,
   Stack,
   Table,
@@ -20,6 +25,8 @@ import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import SummarizeOutlinedIcon from '@mui/icons-material/SummarizeOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   buildResponseImageDataUrl,
   downloadDataUrl,
@@ -153,6 +160,7 @@ export default function PatientView() {
   const [form, setForm] = useState<FormSchema | undefined>();
   const [response, setResponse] = useState<FormResponse | undefined>();
   const [loading, setLoading] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +202,21 @@ export default function PatientView() {
   const answers = response?.answers ?? {};
   // 채점 총점(문진에 채점 문항/설정이 있을 때만)
   const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
+
+  // 요약용 데이터 — 색상 강조(선택지 color)가 걸린 답변을 모아 한눈에 확인
+  const highlights: { q: Question; parts: AnsPart[] }[] = [];
+  const summaryAll: { q: Question; section: string }[] = [];
+  if (form) {
+    form.sections.forEach((s) => {
+      orderedQuestions(s)
+        .filter((q) => !NON_INPUT_TYPES.includes(q.type))
+        .forEach((q) => {
+          summaryAll.push({ q, section: s.title || '' });
+          const colored = answerParts(q, answers[q.id] ?? null).filter((p) => p.color);
+          if (colored.length) highlights.push({ q, parts: colored });
+        });
+    });
+  }
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
   const isMobile = useIsMobileLayout();
 
@@ -269,6 +292,15 @@ export default function PatientView() {
           <Box sx={{ mr: response ? 1 : 0 }}>
             <DisplayModeToggle />
           </Box>
+          {response && form && (
+            <Button
+              color="inherit"
+              startIcon={<SummarizeOutlinedIcon />}
+              onClick={() => setSummaryOpen(true)}
+            >
+              요약
+            </Button>
+          )}
           {response && form && (
             <Button
               color="inherit"
@@ -566,6 +598,189 @@ export default function PatientView() {
           </>
         )}
       </Container>
+
+      {/* 요약 — 전반 내용 한눈에 + 색상 강조(중요) 항목 모아보기 */}
+      <Dialog
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.25, pr: 6 }}>
+          <SummarizeOutlinedIcon color="primary" />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: 17, fontWeight: 800, lineHeight: 1.2 }} noWrap>
+              문진 요약
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: 'text.secondary' }} noWrap>
+              {form?.title}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={() => setSummaryOpen(false)}
+            sx={{ position: 'absolute', top: 12, right: 12 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {/* 환자·제출 */}
+          {(patientName || response?.submittedAt) && (
+            <Typography sx={{ fontSize: 12.5, color: 'text.secondary', mb: 1.5 }}>
+              {[patientName, response?.submittedAt ? fmtDate(response.submittedAt) : '']
+                .filter(Boolean)
+                .join('  ·  ')}
+            </Typography>
+          )}
+
+          {/* 총점 */}
+          {score && form && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{scoringLabel(form)}</Typography>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'primary.dark' }}>
+                {score.total}
+                <Box
+                  component="span"
+                  sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary' }}
+                >
+                  {' '}
+                  / {score.max}점
+                </Box>
+              </Typography>
+              {score.band && (
+                <Box
+                  sx={{
+                    ml: 'auto',
+                    px: 1,
+                    py: 0.3,
+                    borderRadius: 1.5,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: '#fff',
+                    bgcolor: score.band.color ?? 'primary.main',
+                  }}
+                >
+                  {score.band.label}
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* 강조(색상 표시) 항목 — 요청: 색표시 강조 내용이 꼭 포함되도록 */}
+          <Typography
+            sx={{
+              fontSize: 11.5,
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              color: 'text.secondary',
+              mb: 0.75,
+            }}
+          >
+            강조 항목
+          </Typography>
+          {highlights.length ? (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              {highlights.map(({ q, parts }) => (
+                <Box key={q.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                  <Typography
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: 'text.disabled',
+                      mt: '4px',
+                      minWidth: 18,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {pad2(qNo[q.id])}
+                  </Typography>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+                      {q.label}
+                    </Typography>
+                    <Box sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5, mt: 0.4 }}>
+                      {parts.map((p, i) => (
+                        <Box
+                          key={i}
+                          component="span"
+                          sx={{
+                            fontSize: 13.5,
+                            fontWeight: 800,
+                            color: p.color,
+                            px: 1,
+                            py: 0.3,
+                            borderRadius: 1.5,
+                            bgcolor: alpha(p.color as string, 0.12),
+                            border: `1px solid ${alpha(p.color as string, 0.35)}`,
+                          }}
+                        >
+                          {p.label}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Typography sx={{ fontSize: 13, color: 'text.disabled', mb: 2 }}>
+              색상으로 강조된 항목이 없습니다.
+            </Typography>
+          )}
+
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* 전체 응답 요약 */}
+          <Typography
+            sx={{
+              fontSize: 11.5,
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              color: 'text.secondary',
+              mb: 0.75,
+            }}
+          >
+            전체 응답
+          </Typography>
+          <Stack divider={<Divider flexItem />} spacing={1}>
+            {summaryAll.map(({ q }) => (
+              <Box key={q.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: 'text.disabled',
+                    mt: '3px',
+                    minWidth: 18,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {pad2(qNo[q.id])}
+                </Typography>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary', mb: 0.2 }}>
+                    {q.label}
+                  </Typography>
+                  <AnswerContent q={q} v={answers[q.id] ?? null} fontSize={14} />
+                </Box>
+              </Box>
+            ))}
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
