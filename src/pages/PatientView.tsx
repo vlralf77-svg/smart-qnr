@@ -39,7 +39,6 @@ import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
 import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
-import DisplayModeToggle from '@/components/DisplayModeToggle';
 
 function fmtDate(ts?: string): string {
   if (!ts) return '';
@@ -357,9 +356,6 @@ export default function PatientView() {
             목록
           </Button>
           <Box sx={{ flex: 1 }} />
-          <Box sx={{ mr: response ? 1 : 0 }}>
-            <DisplayModeToggle />
-          </Box>
           {response && form && (
             <Button
               color="inherit"
