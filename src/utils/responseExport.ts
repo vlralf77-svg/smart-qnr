@@ -4,7 +4,7 @@
 import { AnswerValue, FormSchema, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from './questionOrder';
 import { computeScore, isScoringEnabled, scoringLabel } from './scoring';
-import { collectFindings } from './findings';
+import { collectFindings, findingsSentence } from './findings';
 
 export interface ResponseMeta {
   patientName?: string;
@@ -107,6 +107,57 @@ export function buildResponseImageDataUrl(
     y += 14;
   };
 
+  /**
+   * 서술 문단 — 색이 다른 조각(runs)을 한 문장처럼 이어서 줄바꿈 배치.
+   *  강조 용어는 자기 색·굵기를 유지하면서 문장 흐름은 끊기지 않는다.
+   */
+  const paragraph = (
+    runs: { text: string; color?: string }[],
+    size: number,
+    baseColor: string,
+    opts?: { indent?: number; gap?: number },
+  ) => {
+    const indent = opts?.indent ?? 0;
+    const lh = size * 1.6;
+    const avail = maxW - indent;
+    let x = PAD + indent;
+    for (const run of runs) {
+      const bold = !!run.color; // 강조 용어만 굵게
+      const font = `${bold ? 'bold ' : ''}${size}px ${FONT}`;
+      const color = run.color || baseColor;
+      meas.font = font;
+      // 공백 단위로 잘라 넘치면 줄바꿈(한글은 글자 단위로도 보정)
+      for (const token of run.text.split(/(\s+)/)) {
+        if (!token) continue;
+        let t = token;
+        while (t) {
+          let fit = t;
+          while (fit && x - PAD - indent + meas.measureText(fit).width > avail) {
+            fit = fit.slice(0, -1);
+          }
+          if (!fit) {
+            // 현재 줄에 한 글자도 못 넣으면 줄바꿈
+            y += lh;
+            x = PAD + indent;
+            continue;
+          }
+          if (/^\s+$/.test(fit) && x === PAD + indent) {
+            t = t.slice(fit.length);
+            continue; // 줄 앞 공백 제거
+          }
+          cmds.push({ x, y: y + size, text: fit, font, color });
+          x += meas.measureText(fit).width;
+          t = t.slice(fit.length);
+          if (t) {
+            y += lh;
+            x = PAD + indent;
+          }
+        }
+      }
+    }
+    y += lh + (opts?.gap ?? 0);
+  };
+
   // 헤더
   block(form.title || '문진', 24, '#12213a', { bold: true, gap: 4 });
   const metaLine = [
@@ -127,15 +178,12 @@ export function buildResponseImageDataUrl(
   }
   rule();
 
-  // 주요 소견(요약) — 색상 강조된 소견을 상단에 먼저 배치
-  const findings = collectFindings(form, answers);
-  block('■ 주요 소견', 14, '#9b2c2c', { bold: true, gap: 2 });
-  if (findings.length) {
-    for (const f of findings) block(`· ${f.label}`, 15, f.color, { bold: true, indent: 10 });
-  } else {
-    block('· 문진상 특이 소견 없음', 14, '#64738d', { indent: 10 });
-  }
-  y += 8;
+  // 주요 소견(요약) — 요약본과 동일한 서술 문장으로 상단에 배치
+  block('■ 주요 소견', 13.5, '#9b2c2c', { bold: true, gap: 2 });
+  paragraph(findingsSentence(collectFindings(form, answers)), 14.5, '#1f2937', {
+    indent: 10,
+    gap: 6,
+  });
   rule();
 
   // 문항별 답변

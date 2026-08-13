@@ -33,7 +33,7 @@ import {
 } from '@/utils/responseExport';
 import { AnswerValue, FormSchema, FormResponse, Question, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from '@/utils/questionOrder';
-import { answerParts, cleanLabel, collectFindings } from '@/utils/findings';
+import { answerParts, cleanLabel, collectFindings, joinKo } from '@/utils/findings';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
@@ -230,9 +230,6 @@ export default function PatientView() {
         });
     });
   }
-  // 'A, B 및 C' 형태로 명사 나열
-  const joinKo = (arr: string[]) =>
-    arr.length <= 1 ? (arr[0] ?? '') : `${arr.slice(0, -1).join(', ')} 및 ${arr[arr.length - 1]}`;
   // 절 구성: 있음 묶음 → 없음 묶음 → 개별 서술 순
   const etcClauses: { base: string; kind: 'exist' | 'plain' }[] = [];
   if (posLabels.length)

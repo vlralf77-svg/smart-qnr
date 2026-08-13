@@ -57,6 +57,29 @@ export function cleanLabel(raw: string): string {
 /** 답변 자체로는 의미가 없는(예/아니오 등) 단답 여부 */
 const BARE_ANSWER = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/;
 
+/** 'A, B 및 C' 형태로 명사 나열 */
+export function joinKo(arr: string[]): string {
+  if (arr.length <= 1) return arr[0] ?? '';
+  return `${arr.slice(0, -1).join(', ')} 및 ${arr[arr.length - 1]}`;
+}
+
+/**
+ * 주요 소견 서술문 조각 — 색상 강조 용어는 color 를 유지해 문장 안에 색으로 표시할 수 있게 한다.
+ * 예) 상기 환자는 문진상 [당뇨], [고혈압] 소견이 확인되는 환자로, 진료 시 …
+ */
+export function findingsSentence(
+  findings: { label: string; color: string }[],
+): { text: string; color?: string }[] {
+  if (!findings.length) return [{ text: '문진상 특이 소견은 확인되지 않음.' }];
+  const segs: { text: string; color?: string }[] = [{ text: '상기 환자는 문진상 ' }];
+  findings.forEach((f, i) => {
+    if (i > 0) segs.push({ text: i === findings.length - 1 ? ' 및 ' : ', ' });
+    segs.push({ text: f.label, color: f.color });
+  });
+  segs.push({ text: ' 소견이 확인되는 환자로, 진료 시 상기 소견에 대한 확인 및 참고를 요함.' });
+  return segs;
+}
+
 /**
  * 주요 소견 — 색상 강조된 답변을 소견 용어 목록으로 정리.
  * 답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용한다.
