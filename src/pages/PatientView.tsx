@@ -50,6 +50,15 @@ function fmtDate(ts?: string): string {
   }
 }
 
+// 받침 유무 판별 → 조사(이/가, 은/는) 자동 선택 — 서술 문장을 자연스럽게 잇기 위함
+function hasJong(word: string): boolean {
+  const ch = (word || '').trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+}
+const iGa = (w: string) => (hasJong(w) ? '이' : '가');
+const eunNeun = (w: string) => (hasJong(w) ? '은' : '는');
+
 /** 응답 값을 (라벨, 강조색) 조각으로 분해 — 다중 선택은 선택지마다 개별 색 적용 */
 interface AnsPart {
   label: string;
@@ -206,22 +215,49 @@ export default function PatientView() {
   //  답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용해
   //  질문+답 나열이 아닌 하나의 의학적 서술 문장으로 잇는다.
   const findings: { label: string; color: string }[] = [];
+  // 그 외 응답 서술 — 색 강조가 없는 답변도 '약물 알레르기가 없으며' 식의
+  //  자연스러운 문장 조각으로 만들어 소견 뒤에 이어 서술한다.
+  //  kind: exist=있/없 서술(…으며/…음), plain=명사 서술(…이며/…임)
+  const etcFrags: { base: string; kind: 'exist' | 'plain' }[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
         .filter((q) => !NON_INPUT_TYPES.includes(q.type))
         .forEach((q) => {
-          answerParts(q, answers[q.id] ?? null)
-            .filter((p) => p.color)
-            .forEach((p) => {
-              const bare = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/.test(p.label.trim());
-              const label = bare ? q.label : p.label;
-              if (!findings.some((f) => f.label === label))
-                findings.push({ label, color: p.color as string });
-            });
+          const parts = answerParts(q, answers[q.id] ?? null);
+          const colored = parts.filter((p) => p.color);
+          colored.forEach((p) => {
+            const bare = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/.test(p.label.trim());
+            const label = bare ? q.label : p.label;
+            if (!findings.some((f) => f.label === label))
+              findings.push({ label, color: p.color as string });
+          });
+          // 색 강조 문항은 주요 소견에서 서술하므로 중복 제외
+          if (colored.length) return;
+          const v = answers[q.id];
+          const empty =
+            v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
+          if (empty) return;
+          const t = parts
+            .map((p) => p.label)
+            .join(', ')
+            .trim();
+          if (/^(아니오|없음|무)$/.test(t))
+            etcFrags.push({ base: `${q.label}${iGa(q.label)} 없`, kind: 'exist' });
+          else if (/^(예|있음|유|해당|해당됨)$/.test(t))
+            etcFrags.push({ base: `${q.label}${iGa(q.label)} 있`, kind: 'exist' });
+          else etcFrags.push({ base: `${q.label}${eunNeun(q.label)} ${t}`, kind: 'plain' });
         });
     });
   }
+  // 조각을 '~(으)며, ~(이)ㅁ.' 으로 연결한 서술문
+  const etcSentence = etcFrags
+    .map((f, i) => {
+      const last = i === etcFrags.length - 1;
+      if (f.kind === 'exist') return f.base + (last ? '음.' : '으며, ');
+      return f.base + (last ? '임.' : '이며, ');
+    })
+    .join('');
   // 모바일=카드 리스트 / PC=리포트 테이블 로 완전히 분리 — 표시 모드 반영
   const isMobile = useIsMobileLayout();
 
@@ -729,6 +765,16 @@ export default function PatientView() {
                 )}
               </Typography>
             </Box>
+
+            {/* 그 외 문진 내용 서술 — 색 강조 외 응답도 자연 문장으로 */}
+            {etcSentence && (
+              <Typography
+                component="div"
+                sx={{ fontSize: 14, lineHeight: 1.95, color: '#1f2937', textAlign: 'justify' }}
+              >
+                그 외 문진상 {etcSentence}
+              </Typography>
+            )}
 
             {/* 확인(서명) */}
             <Box
