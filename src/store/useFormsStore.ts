@@ -161,7 +161,12 @@ export const useFormsStore = create<FormsState>()(
 
         responsesByForm: (formId) => get().responses.filter((r) => r.formId === formId),
       }),
-      { name: 'smartqnr-forms' },
+      {
+        // 저장 키를 모드별로 분리한다.
+        //  백엔드 모드에서는 서버 목록을 그대로 상태에 넣는데, 키가 같으면 그 결과가
+        //  오프라인(로컬) 문진을 덮어써 데이터가 사라진다. 키를 나눠 서로 영향을 주지 않게 함.
+        name: isBackendEnabled ? 'smartqnr-forms-api' : 'smartqnr-forms',
+      },
     ),
     { name: 'forms' },
   ),
