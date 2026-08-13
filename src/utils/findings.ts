@@ -23,7 +23,8 @@ export function answerParts(q: Question, v: AnswerValue): AnsPart[] {
       return { label: o?.label ?? String(x), color: o?.color };
     });
   }
-  return [{ label: String(v) }];
+  // 단답형·서술형·숫자 등 직접 입력 문항 — 문항에 지정한 답변 강조색 적용
+  return [{ label: String(v), color: q.answerColor }];
 }
 
 /**

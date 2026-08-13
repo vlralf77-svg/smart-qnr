@@ -108,6 +108,11 @@ export interface Question {
   fontSize?: number;
   /** 글자 색상(CSS color, 예: #d32f2f). 라벨·입력 텍스트에 적용 */
   color?: string;
+  /**
+   * 답변 강조 색(단답형·서술형·숫자 문항). 지정하면 환자가 입력한 내용이 있을 때
+   * 조회·요약·이미지에서 그 답변을 이 색으로 강조한다. (선택형은 선택지별 color 사용)
+   */
+  answerColor?: string;
   /** 참고 이미지(type='image')의 이미지 데이터 URL */
   image?: string;
   /** 채점 대상 문항 여부. true 면 이 문항의 응답이 총점 계산에 포함된다. (선택형·척도·숫자만) */

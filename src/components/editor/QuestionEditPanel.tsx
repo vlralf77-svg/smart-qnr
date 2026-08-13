@@ -311,6 +311,69 @@ export default function QuestionEditPanel({ sectionId, question }: Props) {
             />
           )}
 
+          {/* 답변 강조 색(직접 입력 문항) — 입력 내용이 있으면 조회·요약·이미지에서 색으로 강조 */}
+          {(question.type === 'text' ||
+            question.type === 'textarea' ||
+            question.type === 'number') && (
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Typography variant="body2" color="text.secondary">
+                  답변 강조 색
+                </Typography>
+                <Box sx={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
+                  <Box
+                    component="input"
+                    type="color"
+                    value={question.answerColor ?? '#d32f2f'}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateQuestion(sectionId, question.id, { answerColor: e.target.value })
+                    }
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      pointerEvents: 'none',
+                      width: 34,
+                      height: 34,
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: question.answerColor ? question.answerColor : 'divider',
+                      bgcolor: question.answerColor ?? 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 11,
+                      color: 'text.disabled',
+                    }}
+                  >
+                    {!question.answerColor && '색'}
+                  </Box>
+                </Box>
+                {question.answerColor && (
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      updateQuestion(sectionId, question.id, { answerColor: undefined })
+                    }
+                  >
+                    지우기
+                  </Button>
+                )}
+              </Stack>
+              <Typography variant="caption" color="text.secondary" display="block">
+                색을 지정하면 환자가 입력한 답변이 조회·요약·이미지에서 강조되고 주요 소견에
+                포함됩니다.
+              </Typography>
+            </Box>
+          )}
+
           <FormControlLabel
             // 세로 Stack에서 전체 폭으로 늘어나 옆 빈 공간까지 눌리는 것 방지 — 콘텐츠 폭만 차지
             // 아래 '채점' 토글과 시작점을 맞추기 위해 기본 음수 좌측 여백(-11px) 제거
