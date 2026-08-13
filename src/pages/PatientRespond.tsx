@@ -20,7 +20,6 @@ import { useFormsStore } from '@/store/useFormsStore';
 import { usePatientStore } from '@/store/usePatientStore';
 import { uid } from '@/utils/id';
 import FormRenderer from '@/components/renderer/FormRenderer';
-import DisplayModeToggle from '@/components/DisplayModeToggle';
 import FontScaleToggle from '@/components/FontScaleToggle';
 import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
 import { useFontScale, FONT_ZOOM } from '@/store/useFontScale';
@@ -113,7 +112,6 @@ export default function PatientRespond() {
           <Box sx={{ flex: 1 }} />
           <Stack direction="row" spacing={1} alignItems="center">
             <FontScaleToggle />
-            <DisplayModeToggle />
           </Stack>
         </Toolbar>
       </AppBar>
