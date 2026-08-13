@@ -202,15 +202,23 @@ export default function PatientView() {
   // 채점 총점(문진에 채점 문항/설정이 있을 때만)
   const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
 
-  // 기록지 요약 — 색상 강조(선택지 color)가 걸린 답변만 모아 '주요 소견'으로 표시
-  const highlights: { q: Question; parts: AnsPart[] }[] = [];
+  // 기록지 주요 소견 — 색상 강조된 답변을 '소견 용어' 목록으로 정리.
+  //  답이 예/아니오처럼 그 자체로 의미가 없으면 문항명을 소견 용어로 사용해
+  //  질문+답 나열이 아닌 하나의 의학적 서술 문장으로 잇는다.
+  const findings: { label: string; color: string }[] = [];
   if (form) {
     form.sections.forEach((s) => {
       orderedQuestions(s)
         .filter((q) => !NON_INPUT_TYPES.includes(q.type))
         .forEach((q) => {
-          const colored = answerParts(q, answers[q.id] ?? null).filter((p) => p.color);
-          if (colored.length) highlights.push({ q, parts: colored });
+          answerParts(q, answers[q.id] ?? null)
+            .filter((p) => p.color)
+            .forEach((p) => {
+              const bare = /^(예|아니오|있음|없음|해당|해당됨|유|무)$/.test(p.label.trim());
+              const label = bare ? q.label : p.label;
+              if (!findings.some((f) => f.label === label))
+                findings.push({ label, color: p.color as string });
+            });
         });
     });
   }
@@ -694,33 +702,27 @@ export default function PatientView() {
                 <Box component="span" sx={{ fontWeight: 800, color: '#9b2c2c' }}>
                   주요 소견 —{' '}
                 </Box>
-                {highlights.length ? (
+                {findings.length ? (
                   <>
                     상기 환자는 문진상{' '}
-                    {highlights.map((h, i) => (
-                      <Box component="span" key={h.q.id}>
-                        {i > 0 ? ' 아울러 ' : ''}
-                        {h.q.label} 항목에서{' '}
-                        {h.parts.map((p, j) => (
-                          <Box component="span" key={j}>
-                            {j > 0 ? ', ' : ''}
-                            <Box
-                              component="span"
-                              sx={{
-                                fontWeight: 800,
-                                color: p.color,
-                                bgcolor: alpha(p.color as string, 0.13),
-                                px: 0.4,
-                                borderRadius: 0.5,
-                              }}
-                            >
-                              {p.label}
-                            </Box>
-                          </Box>
-                        ))}{' '}
-                        소견이 확인되어 진료 시 참고를 요함.
+                    {findings.map((f, i) => (
+                      <Box component="span" key={f.label}>
+                        {i > 0 ? (i === findings.length - 1 ? ' 및 ' : ', ') : ''}
+                        <Box
+                          component="span"
+                          sx={{
+                            fontWeight: 800,
+                            color: f.color,
+                            bgcolor: alpha(f.color, 0.13),
+                            px: 0.4,
+                            borderRadius: 0.5,
+                          }}
+                        >
+                          {f.label}
+                        </Box>
                       </Box>
-                    ))}
+                    ))}{' '}
+                    소견이 확인되는 환자로, 진료 시 상기 소견에 대한 확인 및 참고를 요함.
                   </>
                 ) : (
                   '문진상 특이 소견은 확인되지 않음.'
