@@ -80,44 +80,39 @@ export const useAuthStore = create<AuthState>()(
       busy: false,
       login: async (id, pw) => {
         set({ busy: true, error: '' });
+        const uid = id.trim();
 
-        // 백엔드 모드: 서버 인증(현재 서버는 admin 단일) → 전체 권한
+        // 백엔드 모드: 우선 서버 인증(관리자) 시도. 서버가 거부하면(예: 하위 계정)
+        // 아래의 로컬 계정 인증으로 폴백한다. (하위 계정은 프론트 관리 기능)
         if (isBackendEnabled) {
           try {
-            await api.login(id, pw);
-            const s: Session = { user: id, name: id, permissions: ALL_PERMISSIONS };
-            applySession(set, s);
+            await api.login(uid, pw);
+            applySession(set, { user: uid, name: uid, permissions: ALL_PERMISSIONS });
             set({ busy: false });
             return true;
-          } catch (e) {
-            set({ error: (e as Error).message || '로그인에 실패했습니다.', busy: false });
-            return false;
+          } catch {
+            /* 서버 인증 실패 → 로컬 계정으로 폴백 */
           }
         }
 
-        // 오프라인: 내장 admin
-        if (id.trim().toLowerCase() === FIXED_ID && pw === FIXED_PW) {
-          const s: Session = { user: FIXED_ID, name: '관리자', permissions: ALL_PERMISSIONS };
-          applySession(set, s);
+        // 내장 admin(고정 자격) — 오프라인/백엔드 공통 폴백
+        if (uid.toLowerCase() === FIXED_ID && pw === FIXED_PW) {
+          applySession(set, { user: FIXED_ID, name: '관리자', permissions: ALL_PERMISSIONS });
           set({ busy: false });
           return true;
         }
 
-        // 오프라인: 하위 계정
-        const acc = useAccountsStore.getState().findByUsername(id);
-        if (acc) {
-          const hash = await hashPassword(pw);
-          if (hash === acc.passwordHash) {
-            const s: Session = {
-              user: acc.username,
-              name: acc.displayName || acc.username,
-              department: acc.department,
-              permissions: acc.permissions,
-            };
-            applySession(set, s);
-            set({ busy: false });
-            return true;
-          }
+        // 하위 계정(로컬 관리 계정)
+        const acc = useAccountsStore.getState().findByUsername(uid);
+        if (acc && (await hashPassword(pw)) === acc.passwordHash) {
+          applySession(set, {
+            user: acc.username,
+            name: acc.displayName || acc.username,
+            department: acc.department,
+            permissions: acc.permissions,
+          });
+          set({ busy: false });
+          return true;
         }
 
         set({ error: '아이디 또는 비밀번호가 올바르지 않습니다.', busy: false });
