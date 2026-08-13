@@ -34,7 +34,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import { APP_FIELDS, PURPOSE_LABELS, type ApiPurpose } from '@/store/useApiConfigStore';
 import { buildJdbcUrl, useDbLinkStore, type DbConnMode } from '@/store/useDbLinkStore';
 import { simulateDbQuery, type SimResult } from '@/utils/dbLinkSim';
-import { api, isBackendEnabled } from '@/api/client';
+import { api, ApiError, isBackendEnabled } from '@/api/client';
 
 const MODE_LABELS: Record<DbConnMode, string> = {
   ezconnect: 'EZConnect (호스트/포트/서비스)',
@@ -86,7 +86,17 @@ export default function DbLinkConfig() {
       setResult(r);
     } catch (e) {
       setResult(null);
-      setError((e as Error).message || '실행에 실패했습니다.');
+      // 404 = 서버에 DB 연동 엔드포인트가 없음(구버전 백엔드) → 재배포 안내
+      if (e instanceof ApiError && e.status === 404) {
+        setError(
+          '서버에 DB 연동 기능(/api/db-link/test)이 없습니다. 백엔드를 최신 버전으로 다시 빌드·배포하세요. ' +
+            'Oracle 대상이면 서버를 -P oracle 프로파일로 빌드해야 드라이버가 포함됩니다.',
+        );
+      } else if (e instanceof ApiError && e.status === 401) {
+        setError('인증이 만료되었습니다. 다시 로그인한 뒤 실행하세요.');
+      } else {
+        setError((e as Error).message || '실행에 실패했습니다.');
+      }
     } finally {
       setBusy(false);
     }

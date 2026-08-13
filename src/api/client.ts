@@ -39,6 +39,16 @@ function setToken(t: string | null) {
   }
 }
 
+/** API 오류 — HTTP 상태 코드를 함께 전달해 호출부가 상황별 안내를 할 수 있게 한다. */
+export class ApiError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!isBackendEnabled) throw new Error('백엔드 연동이 비활성화되어 있습니다.');
   const headers = new Headers(init.headers);
@@ -52,7 +62,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = text ? JSON.parse(text) : undefined;
   if (!res.ok) {
     const msg = (data && (data.error || data.message)) || `요청 실패(${res.status})`;
-    throw new Error(msg);
+    throw new ApiError(msg, res.status);
   }
   return data as T;
 }
