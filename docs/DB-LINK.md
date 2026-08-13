@@ -27,14 +27,18 @@ EMR REST API 없이 **병원 DB(Oracle 등)에 직접 SELECT** 해서 문진 대
 
 ## Oracle 대상 (드라이버 포함 빌드)
 
-Oracle JDBC(`ojdbc11`)는 Oracle 라이선스(OTN) 동의가 필요해 **기본 빌드에 포함하지 않는다.** `oracle` 프로파일로 빌드한다.
+Oracle JDBC(`ojdbc11`)는 `oracle` Maven 프로파일에 분리해 두었다.
+
+- **도커 이미지(운영 배포)**: `server/Dockerfile` 의 `MAVEN_PROFILES` 기본값이 `oracle` 이라 **드라이버가 포함된 채로 빌드**된다(CI 도 동일하게 전달). 제외하려면 `--build-arg MAVEN_PROFILES=` (빈 값).
+- **로컬 빌드**: 기본 빌드에는 포함되지 않으므로 프로파일을 명시한다.
 
 ```bash
 cd server
 mvn -P oracle clean package     # ojdbc11 포함
+mvn clean package               # 미포함(PostgreSQL 등만)
 ```
 
-드라이버가 없는 빌드에서 Oracle URL 로 실행하면 다음 안내가 반환된다.
+드라이버가 없는 빌드(구버전 이미지 포함)에서 Oracle URL 로 실행하면 다음 안내가 반환된다.
 
 ```
 Oracle JDBC 드라이버가 없습니다. 서버를 -P oracle 프로파일로 빌드하거나 ojdbc11 을 클래스패스에 추가하세요.

@@ -2,11 +2,14 @@
 # 1) Maven 으로 jar 빌드 → 2) JRE 런타임만 담아 경량화
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /app
+# Maven 프로파일 — 기본 oracle: DB 쿼리 연동(병원 Oracle EMR)용 ojdbc11 을 포함한다.
+#   드라이버 없이 빌드하려면 --build-arg MAVEN_PROFILES= (빈 값) 으로 넘긴다.
+ARG MAVEN_PROFILES=oracle
 # 의존성 캐시(레이어 재사용): pom 먼저 복사 후 오프라인 준비
 COPY pom.xml .
-RUN mvn -q -B dependency:go-offline
+RUN mvn -q -B ${MAVEN_PROFILES:+-P${MAVEN_PROFILES}} dependency:go-offline
 COPY src ./src
-RUN mvn -q -B -DskipTests package
+RUN mvn -q -B ${MAVEN_PROFILES:+-P${MAVEN_PROFILES}} -DskipTests package
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
