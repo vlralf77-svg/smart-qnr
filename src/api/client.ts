@@ -131,7 +131,41 @@ export const api = {
   serverLogs(limit = 200): Promise<ServerLogEntry[]> {
     return request<ServerLogEntry[]>(`/api/logs?limit=${limit}`);
   },
+
+  /** DB 쿼리 연동 테스트 — 서버가 실제 DB 에 접속해 SELECT 를 실행한다 */
+  dbLinkTest(body: DbLinkTestRequest): Promise<DbLinkTestResult> {
+    return request<DbLinkTestResult>('/api/db-link/test', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
 };
+
+/** 서버로 보내는 DB 연동 테스트 요청(접속 정보 + 쿼리 + 파라미터) */
+export interface DbLinkTestRequest {
+  mode: string;
+  host?: string;
+  port?: string;
+  serviceName?: string;
+  tnsAlias?: string;
+  tnsAdmin?: string;
+  jdbcUrl?: string;
+  user?: string;
+  password?: string;
+  query: string;
+  params: { key: string; value: string }[];
+  runtime: Record<string, string>;
+  limit?: number;
+}
+
+/** 서버 실행 결과 — 프론트 시뮬레이션(SimResult)과 같은 모양 */
+export interface DbLinkTestResult {
+  columns: string[];
+  rows: Record<string, string | number>[];
+  matched: number;
+  effective: Record<string, string>;
+  note: string;
+}
 
 export interface ServerLogEntry {
   ts?: string | number;

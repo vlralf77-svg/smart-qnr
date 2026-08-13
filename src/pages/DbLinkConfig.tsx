@@ -1,5 +1,7 @@
 // DB(쿼리) 연동 설정 — 병원 DB(Oracle 등)에 직접 쿼리해서 데이터를 받아온다.
-//  · 실제 접속·실행은 백엔드에서 수행(프론트는 DB 직접 접속 불가) → 여기서는 설정만 저장.
+//  · 실제 접속·실행은 백엔드에서 수행(프론트는 DB 직접 접속 불가).
+//    - 백엔드 연동 모드: /api/db-link/test 로 서버가 실제 DB 에 접속해 SELECT 실행
+//    - 오프라인(데스크톱): 내장 샘플로 파이프라인만 시뮬레이션
 //  · 접속 정보(TNS/JDBC) · 읽기전용 쿼리 · 바인드 파라미터 · 컬럼→앱필드 매핑.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +34,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import { APP_FIELDS, PURPOSE_LABELS, type ApiPurpose } from '@/store/useApiConfigStore';
 import { buildJdbcUrl, useDbLinkStore, type DbConnMode } from '@/store/useDbLinkStore';
 import { simulateDbQuery, type SimResult } from '@/utils/dbLinkSim';
+import { api, isBackendEnabled } from '@/api/client';
 
 const MODE_LABELS: Record<DbConnMode, string> = {
   ezconnect: 'EZConnect (호스트/포트/서비스)',
@@ -47,14 +50,47 @@ export default function DbLinkConfig() {
   const jdbcPreview = useMemo(() => buildJdbcUrl(c), [c]);
   const appFields = APP_FIELDS[c.purpose];
 
-  // 테스트(시뮬레이션): 값이 비어 있는 파라미터는 실행 시 입력받는다
+  // 테스트: 값이 비어 있는 파라미터는 실행 시 입력받는다
   const runtimeKeys = useMemo(
     () => c.params.filter((p) => p.key && !(p.value ?? '').trim()).map((p) => p.key),
     [c.params],
   );
   const [runtime, setRuntime] = useState<Record<string, string>>({});
   const [result, setResult] = useState<SimResult | null>(null);
-  const runTest = () => setResult(simulateDbQuery(c, runtime));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  // 백엔드 연동 모드면 서버가 실제 DB 에 접속해 실행, 오프라인이면 샘플 시뮬레이션
+  const runTest = async () => {
+    setError('');
+    if (!isBackendEnabled) {
+      setResult(simulateDbQuery(c, runtime));
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await api.dbLinkTest({
+        mode: c.mode,
+        host: c.host,
+        port: c.port,
+        serviceName: c.serviceName,
+        tnsAlias: c.tnsAlias,
+        tnsAdmin: c.tnsAdmin,
+        jdbcUrl: c.jdbcUrl,
+        user: c.user,
+        password: c.password,
+        query: c.query,
+        params: c.params,
+        runtime,
+        limit: 50,
+      });
+      setResult(r);
+    } catch (e) {
+      setResult(null);
+      setError((e as Error).message || '실행에 실패했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const setParam = (i: number, patch: Partial<{ key: string; value: string }>) =>
     update({ params: c.params.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) });
@@ -406,18 +442,32 @@ export default function DbLinkConfig() {
             </Stack>
           </Paper>
 
-          {/* 테스트(시뮬레이션) */}
+          {/* 테스트 — 백엔드 연동 시 실제 실행, 오프라인은 시뮬레이션 */}
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
             <Stack direction="row" alignItems="center" spacing={1} mb={1}>
               <Typography variant="subtitle2" fontWeight={800}>
                 테스트
               </Typography>
-              <Chip size="small" label="시뮬레이션" color="warning" variant="outlined" />
+              {isBackendEnabled ? (
+                <Chip size="small" label="실제 DB 실행" color="success" variant="outlined" />
+              ) : (
+                <Chip size="small" label="시뮬레이션" color="warning" variant="outlined" />
+              )}
             </Stack>
             <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
-              내장 샘플 데이터에 <b>파라미터(WHERE)</b>와 <b>컬럼 매핑</b>을 적용해 결과를 미리
-              봅니다. (실제 접속은 백엔드 배포 후 동일 화면에서 실제 값으로 실행)
-              {c.purpose === 'patientForms' && ' 예: patientNo = 10001'}
+              {isBackendEnabled ? (
+                <>
+                  서버가 위 접속 정보로 <b>실제 DB 에 접속</b>해 쿼리를 실행합니다. 조회(SELECT)
+                  전용이며 읽기전용 커넥션·타임아웃·최대 50행 제한이 적용됩니다. Oracle 대상은
+                  서버를 <code>-P oracle</code> 프로파일로 빌드해야 드라이버가 포함됩니다.
+                </>
+              ) : (
+                <>
+                  내장 샘플 데이터에 <b>파라미터(WHERE)</b>와 <b>컬럼 매핑</b>을 적용해 결과를 미리
+                  봅니다. (실제 접속은 백엔드 연동 모드에서 실행)
+                  {c.purpose === 'patientForms' && ' 예: patientNo = 10001'}
+                </>
+              )}
             </Typography>
 
             {runtimeKeys.length > 0 && (
@@ -435,9 +485,20 @@ export default function DbLinkConfig() {
               </Stack>
             )}
 
-            <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={runTest}>
-              테스트 실행
+            <Button
+              variant="contained"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => void runTest()}
+              disabled={busy}
+            >
+              {busy ? '실행 중…' : '테스트 실행'}
             </Button>
+
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
 
             {result && (
               <Box sx={{ mt: 2 }}>

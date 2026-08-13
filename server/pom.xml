@@ -21,6 +21,8 @@
     <java.version>25</java.version>
     <jjwt.version>0.12.6</jjwt.version>
     <springdoc.version>3.1.0</springdoc.version>
+    <!-- DB 쿼리 연동(Oracle)용 드라이버 버전 — oracle 프로파일에서만 사용 -->
+    <ojdbc.version>23.6.0.24.10</ojdbc.version>
   </properties>
 
   <dependencies>
@@ -95,4 +97,25 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      DB 쿼리 연동에서 Oracle 을 대상으로 할 때만 사용한다.
+        빌드: mvn -P oracle clean package
+      Oracle JDBC(ojdbc11)는 Oracle 무료 라이선스(OTN) 적용 대상이므로
+      기본 빌드에는 포함하지 않는다(동의 후 이 프로파일로 빌드).
+      PostgreSQL·H2 등은 기본 빌드로 바로 연동 테스트가 가능하다.
+    -->
+    <profile>
+      <id>oracle</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle.database.jdbc</groupId>
+          <artifactId>ojdbc11</artifactId>
+          <version>${ojdbc.version}</version>
+          <scope>runtime</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
