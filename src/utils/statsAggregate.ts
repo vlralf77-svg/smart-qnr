@@ -41,7 +41,8 @@ export function inputQuestions(form: FormSchema): Question[] {
 // 제출일이 [from, to] (YYYY-MM-DD, 포함) 범위 안인지
 export function withinRange(iso: string, from?: string, to?: string): boolean {
   const d = (iso || '').slice(0, 10);
-  if (!d) return false;
+  // 제출일이 없는 응답(외부 반입 등)은 기간을 지정하지 않았을 때만 포함
+  if (!d) return !from && !to;
   if (from && d < from) return false;
   if (to && d > to) return false;
   return true;
