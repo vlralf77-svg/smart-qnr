@@ -35,14 +35,28 @@ export function extractVars(...strings: string[]): string[] {
   return [...set];
 }
 
-/** 'a.b.c' 경로로 값 꺼내기 */
+/**
+ * 'a.b.c' 경로로 값 꺼내기.
+ *  - 숫자는 배열 인덱스로 쓴다(예: list.0.name).
+ *  - 배열인데 다음 키가 숫자가 아니면 첫 항목에서 찾는다(예: return.returncd).
+ */
 export function getByPath(obj: unknown, path: string): unknown {
   if (!path) return obj;
   return path.split('.').reduce<unknown>((o, key) => {
     if (o == null) return undefined;
     const k = key.trim();
-    return (o as Record<string, unknown>)[k];
+    const cur = Array.isArray(o) && !/^\d+$/.test(k) ? (o as unknown[])[0] : o;
+    if (cur == null) return undefined;
+    return (cur as Record<string, unknown>)[k];
   }, obj);
+}
+
+/** '$.' 로 시작하면 행(항목)이 아니라 응답 전체에서 값을 찾는다. */
+const ABS = '$.';
+function pickValue(item: unknown, whole: unknown, source: string): unknown {
+  return source.startsWith(ABS)
+    ? getByPath(whole, source.slice(ABS.length))
+    : getByPath(item, source);
 }
 
 /** 응답 → 매핑된 행 배열 */
@@ -56,7 +70,7 @@ export function extractRows(
   return list.map((item) => {
     const row: Record<string, unknown> = {};
     for (const m of mappings) {
-      if (m.target) row[m.target] = getByPath(item, m.source);
+      if (m.target) row[m.target] = pickValue(item, data, m.source);
     }
     return row;
   });
@@ -76,7 +90,7 @@ export function extractRecord(
   else obj = data;
   const row: Record<string, unknown> = {};
   for (const m of mappings) {
-    if (m.target) row[m.target] = getByPath(obj, m.source);
+    if (m.target) row[m.target] = pickValue(obj, data, m.source);
   }
   return row;
 }

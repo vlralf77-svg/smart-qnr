@@ -933,6 +933,13 @@ function MappingTab({
         />
       )}
 
+      {!isDb && (
+        <Typography variant="caption" color="text.secondary">
+          경로는 <b>배열 항목 기준</b>입니다(예: <code>hngnm</code>). 배열 밖의 값은 <code>$.</code>{' '}
+          로 시작하는 <b>전체 경로</b>로 쓰세요 — 예: <code>$.root.return.returncd</code>
+        </Typography>
+      )}
+
       <Stack direction="row" alignItems="center" spacing={1}>
         <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
           {appFields.length > 0
@@ -1000,7 +1007,7 @@ function MappingTab({
             <TextField
               size="small"
               value={m.source}
-              placeholder={isDb ? '컬럼 별칭 (예: formId)' : 'FORM_ID 또는 form.id'}
+              placeholder={isDb ? '컬럼 별칭 (예: formId)' : 'hngnm 또는 $.root.return.returncd'}
               onChange={(e) => setMapping(i, { source: e.target.value })}
               InputProps={{ sx: { fontFamily: MONO, fontSize: 12.5 } }}
               sx={{ flex: 1 }}
