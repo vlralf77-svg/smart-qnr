@@ -22,8 +22,8 @@ export const MONO = 'ui-monospace, Menlo, Consolas, monospace';
 
 const cellSx = {
   px: 1.25,
-  py: 0.75,
-  fontSize: 12.5,
+  py: 0.6,
+  fontSize: 12,
   fontFamily: MONO,
   borderRight: '1px solid',
   borderColor: 'divider',
@@ -79,8 +79,8 @@ export function KeyValueTable({
             borderColor: 'divider',
             '& > *': {
               px: 1.25,
-              py: 0.75,
-              fontSize: 11.5,
+              py: 0.6,
+              fontSize: 11,
               fontWeight: 800,
               color: 'text.secondary',
               borderRight: '1px solid',
@@ -134,7 +134,7 @@ export function KeyValueTable({
                   value={r.key}
                   placeholder={blank ? keyPlaceholder : ''}
                   onChange={(e) => edit(i, { key: e.target.value })}
-                  sx={{ fontSize: 12.5, fontFamily: MONO }}
+                  sx={{ fontSize: 12, fontFamily: MONO }}
                 />
               </Stack>
               <Box sx={cellSx}>
@@ -143,7 +143,7 @@ export function KeyValueTable({
                   value={r.value}
                   placeholder={blank ? valuePlaceholder : ''}
                   onChange={(e) => edit(i, { value: e.target.value })}
-                  sx={{ fontSize: 12.5, fontFamily: MONO }}
+                  sx={{ fontSize: 12, fontFamily: MONO }}
                 />
               </Box>
               <Box sx={{ ...cellSx, fontFamily: 'inherit' }}>
@@ -152,7 +152,7 @@ export function KeyValueTable({
                   value={r.desc ?? ''}
                   placeholder={blank ? '설명' : ''}
                   onChange={(e) => edit(i, { desc: e.target.value })}
-                  sx={{ fontSize: 12.5 }}
+                  sx={{ fontSize: 12 }}
                 />
               </Box>
               <Box sx={{ display: 'grid', placeItems: 'center' }}>
@@ -251,7 +251,7 @@ export function CodeBox({
           borderColor: 'divider',
           borderRadius: 1.5,
           fontFamily: MONO,
-          fontSize: 12.5,
+          fontSize: 12,
           wordBreak: 'break-all',
           color: value ? 'text.primary' : 'text.disabled',
         }}

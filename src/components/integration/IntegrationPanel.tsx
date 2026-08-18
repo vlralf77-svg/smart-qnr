@@ -64,6 +64,19 @@ const BADGE_COLOR: Record<string, string> = {
 
 const badgeOf = (e: ApiEndpoint) => ((e.kind ?? 'api') === 'db' ? 'DB' : e.method);
 
+/** 탭 본문·응답 영역 공통 — 입력/라벨/도움말 글자를 한 단계 작게 */
+const COMPACT = {
+  '& .MuiInputBase-input': { fontSize: 12 },
+  '& .MuiInputLabel-root': { fontSize: 12.5 },
+  '& .MuiFormHelperText-root': { fontSize: 11, mt: 0.35 },
+  '& .MuiOutlinedInput-input:not(.MuiInputBase-inputMultiline)': { py: 0.85 },
+  '& .MuiButton-root': { fontSize: 12.5 },
+  '& .MuiTypography-caption': { fontSize: 11.5 },
+  '& .MuiAlert-message': { fontSize: 12 },
+  '& .MuiTableCell-root': { fontSize: 12, py: 0.6 },
+  '& code': { fontSize: 11.5 },
+} as const;
+
 /** 목록 행에 보여줄 한 줄 요약 */
 function summarize(e: ApiEndpoint): string {
   if ((e.kind ?? 'api') === 'db') {
@@ -518,7 +531,14 @@ function EndpointWorkspace({
           alignItems="center"
           flexWrap="wrap"
           useFlexGap
-          sx={{ px: 1.5, py: 1, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}
+          sx={{
+            px: 1.5,
+            py: 1,
+            bgcolor: 'action.hover',
+            borderBottom: 1,
+            borderColor: 'divider',
+            ...COMPACT,
+          }}
         >
           <Typography variant="caption" fontWeight={800} color="text.secondary">
             실행 값
@@ -555,7 +575,7 @@ function EndpointWorkspace({
         ))}
       </Tabs>
 
-      <Box sx={{ p: 2, minHeight: 240 }}>
+      <Box sx={{ p: 2, minHeight: 240, ...COMPACT }}>
         {active === 'conn' && <DbConnTab ep={ep} onChange={onChange} />}
         {active === 'query' && <DbQueryTab ep={ep} onChange={onChange} />}
 
@@ -746,7 +766,7 @@ function EndpointWorkspace({
             </Stack>
           )}
         </Stack>
-        <Box sx={{ px: 2, pb: 2, bgcolor: 'background.paper', pt: 1.5 }}>
+        <Box sx={{ px: 2, pb: 2, bgcolor: 'background.paper', pt: 1.5, ...COMPACT }}>
           {!result ? (
             <EmptyHint icon={<PlayArrowIcon />}>
               [실행]을 누르면 결과가 여기에 표시됩니다.
