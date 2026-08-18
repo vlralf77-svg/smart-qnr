@@ -114,7 +114,10 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
         cols={GRID_COLS}
         rowHeight={GRID_ROW_HEIGHT}
         margin={GRID_MARGIN}
-        compactType={null}
+        // 세로 압축 — 문항을 위로 붙여 빈 줄을 남기지 않는다.
+        //  압축이 없으면 위→아래로 옮길 때 아래 문항들이 밀려나기만 하고 비워진 윗줄이
+        //  그대로 남아, 화면 위쪽에 빈칸이 쌓이고 캔버스만 계속 길어진다.
+        compactType="vertical"
         isResizable
         isDraggable
         draggableCancel=".rgl-no-drag"
