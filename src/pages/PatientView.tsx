@@ -733,13 +733,22 @@ export default function PatientView() {
                 borderRadius: '0 6px 6px 0',
               }}
             >
+              {/* 제목은 한 줄 차지하고, 소견 문장은 그 아래 줄부터 시작 */}
+              <Typography
+                sx={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: '#9b2c2c',
+                  letterSpacing: '0.02em',
+                  mb: 0.4,
+                }}
+              >
+                주요 소견
+              </Typography>
               <Typography
                 component="div"
                 sx={{ fontSize: 14, lineHeight: 2.05, color: '#1f2937', textAlign: 'justify' }}
               >
-                <Box component="span" sx={{ fontWeight: 800, color: '#9b2c2c' }}>
-                  주요 소견 —{' '}
-                </Box>
                 {/* 이미지(PNG) 저장과 같은 문장을 사용 — findingsSentence 공용 */}
                 {findingsSentence(findings).map((r, i) =>
                   r.color ? (
