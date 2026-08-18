@@ -1,6 +1,7 @@
-// API 연동 설정 패널 — '연동 관리' 화면의 API 모드 본문(페이지 크롬 없음).
-//  API 등록(URL·헤더) + 응답 컬럼 매핑 + 테스트 호출.
-//  예) 환자 문진 대상 목록 API를 등록하고, 응답 필드를 formId/title/category 로 매핑한다.
+// 연동 관리 본문 — 좌측에서 연동 항목을 고르고, 우측에서 그 항목을 설정한다.
+//  항목마다 '연동 방식'(API 호출 / DB 쿼리)을 선택하며, 선택에 따라 아래 설정이 바뀐다.
+//   · API: 메서드·URL·본문·변수·헤더 + 응답 컬럼 매핑 + 호출 테스트
+//   · DB : 접속 정보(EZConnect/TNS/JDBC)·조회 쿼리·바인드 파라미터 + DB 컬럼 매핑 + 테스트
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -8,10 +9,15 @@ import {
   Button,
   Chip,
   Divider,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
   IconButton,
   Menu,
   MenuItem,
   Paper,
+  Radio,
+  RadioGroup,
   Stack,
   Switch,
   Table,
@@ -26,13 +32,18 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import ApiIcon from '@mui/icons-material/Api';
+import StorageIcon from '@mui/icons-material/Storage';
 import {
   ApiEndpoint,
   ApiPurpose,
   APP_FIELDS,
+  DEFAULT_DB,
+  type LinkKind,
   PURPOSE_LABELS,
   useApiConfigStore,
 } from '@/store/useApiConfigStore';
+import DbFields from './DbFields';
 import {
   callEndpoint,
   extractRows,
@@ -42,7 +53,7 @@ import {
   EmrFetchResult,
 } from '@/utils/emrFetch';
 
-export default function ApiPanel() {
+export default function IntegrationPanel() {
   const { endpoints, addEndpoint, updateEndpoint, removeEndpoint } = useApiConfigStore();
   const [selectedId, setSelectedId] = useState<string | null>(endpoints[0]?.id ?? null);
   const [addAnchor, setAddAnchor] = useState<null | HTMLElement>(null);
@@ -57,7 +68,7 @@ export default function ApiPanel() {
       >
         <Stack direction="row" alignItems="center" sx={{ px: 2, py: 1.5 }}>
           <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-            연동 API
+            연동 항목
           </Typography>
           <Button
             size="small"
@@ -72,7 +83,7 @@ export default function ApiPanel() {
               color="text.secondary"
               sx={{ px: 2, py: 0.5, display: 'block' }}
             >
-              연동할 화면 선택
+              연동 대상 선택 (방식은 등록 후 변경 가능)
             </Typography>
             {(Object.keys(PURPOSE_LABELS) as ApiPurpose[]).map((p) => (
               <MenuItem
@@ -90,7 +101,7 @@ export default function ApiPanel() {
         <Divider />
         {endpoints.length === 0 ? (
           <Typography variant="caption" color="text.secondary" sx={{ p: 2, display: 'block' }}>
-            등록된 연동이 없습니다. ‘추가’로 API를 등록하세요.
+            등록된 연동이 없습니다. ‘추가’로 연동 대상을 등록하세요.
           </Typography>
         ) : (
           endpoints.map((e) => (
@@ -110,10 +121,19 @@ export default function ApiPanel() {
                 <Typography variant="body2" fontWeight={700} noWrap sx={{ flex: 1 }}>
                   {e.name || '(이름 없음)'}
                 </Typography>
+                <Chip
+                  size="small"
+                  label={(e.kind ?? 'api') === 'db' ? 'DB' : 'API'}
+                  color={(e.kind ?? 'api') === 'db' ? 'warning' : 'info'}
+                  variant="outlined"
+                  sx={{ height: 18, fontSize: 10.5, fontWeight: 800 }}
+                />
                 {!e.enabled && <Chip size="small" label="꺼짐" variant="outlined" />}
               </Stack>
               <Typography variant="caption" color="text.secondary" noWrap display="block">
-                {e.method} {e.url || '(URL 미설정)'}
+                {(e.kind ?? 'api') === 'db'
+                  ? e.db?.query?.split('\n')[0] || '(쿼리 미설정)'
+                  : `${e.method} ${e.url || '(URL 미설정)'}`}
               </Typography>
             </Box>
           ))
@@ -156,6 +176,8 @@ function EndpointEditor({
   const [vars, setVars] = useState<Record<string, string>>({});
   const [result, setResult] = useState<EmrFetchResult | null>(null);
   const [busy, setBusy] = useState(false);
+  // 저장분 호환: kind 가 없으면 기존 방식(API)
+  const kind: LinkKind = ep.kind ?? 'api';
 
   const tokens = useMemo(() => extractVars(ep.url, ep.body), [ep.url, ep.body]);
   const varMap = useMemo(() => pairsToVars(ep.variables ?? []), [ep.variables]);
@@ -218,10 +240,51 @@ function EndpointEditor({
           </Tooltip>
         </Stack>
 
+        {/* 연동 방식 — 이 선택에 따라 아래 설정 항목이 바뀐다 */}
+        <FormControl sx={{ mb: 1.5 }}>
+          <FormLabel sx={{ fontSize: 12.5, fontWeight: 700, mb: 0.25 }}>연동 방식</FormLabel>
+          <RadioGroup
+            row
+            value={kind}
+            onChange={(e) => {
+              const next = e.target.value as LinkKind;
+              onChange(
+                next === 'db' ? { kind: next, db: ep.db ?? { ...DEFAULT_DB } } : { kind: next },
+              );
+            }}
+          >
+            <FormControlLabel
+              value="api"
+              control={<Radio size="small" />}
+              label={
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <ApiIcon fontSize="small" />
+                  <span>API 호출</span>
+                </Stack>
+              }
+            />
+            <FormControlLabel
+              value="db"
+              control={<Radio size="small" />}
+              label={
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <StorageIcon fontSize="small" />
+                  <span>DB 쿼리</span>
+                </Stack>
+              }
+            />
+          </RadioGroup>
+          <Typography variant="caption" color="text.secondary">
+            {kind === 'api'
+              ? 'EMR/외부 시스템의 REST API 를 호출해 데이터를 받아옵니다.'
+              : 'API 없이 병원 DB(Oracle 등)에 조회 쿼리를 실행해 데이터를 받아옵니다.'}
+          </Typography>
+        </FormControl>
+
         <Stack direction="row" spacing={1.5} mb={1.5}>
           <TextField
             select
-            label="연동 화면"
+            label="연동 대상"
             size="small"
             value={ep.purpose}
             onChange={(e) => {
@@ -249,174 +312,192 @@ function EndpointEditor({
               </MenuItem>
             ))}
           </TextField>
-          <TextField
-            select
-            label="메서드"
-            size="small"
-            value={ep.method}
-            onChange={(e) => onChange({ method: e.target.value as 'GET' | 'POST' })}
-            sx={{ width: 110 }}
-          >
-            <MenuItem value="GET">GET</MenuItem>
-            <MenuItem value="POST">POST</MenuItem>
-          </TextField>
+          {kind === 'api' && (
+            <TextField
+              select
+              label="메서드"
+              size="small"
+              value={ep.method}
+              onChange={(e) => onChange({ method: e.target.value as 'GET' | 'POST' })}
+              sx={{ width: 110 }}
+            >
+              <MenuItem value="GET">GET</MenuItem>
+              <MenuItem value="POST">POST</MenuItem>
+            </TextField>
+          )}
         </Stack>
 
-        <TextField
-          label="API URL"
-          size="small"
-          fullWidth
-          value={ep.url}
-          onChange={(e) => onChange({ url: e.target.value })}
-          placeholder="https://emr.hospital/api/forms?patientNo={patientNo}"
-          helperText="{변수} 로 실행 시 값을 넣을 자리를 표시할 수 있습니다. 예: {patientNo}"
-        />
+        {/* 아래 요청 설정은 API 방식에서만 사용 */}
+        {kind === 'api' && (
+          <>
+            <TextField
+              label="API URL"
+              size="small"
+              fullWidth
+              value={ep.url}
+              onChange={(e) => onChange({ url: e.target.value })}
+              placeholder="https://emr.hospital/api/forms?patientNo={patientNo}"
+              helperText="{변수} 로 실행 시 값을 넣을 자리를 표시할 수 있습니다. 예: {patientNo}"
+            />
 
-        {ep.method === 'POST' && (
-          <TextField
-            label="요청 본문(JSON, {변수} 가능)"
-            size="small"
-            fullWidth
-            multiline
-            minRows={2}
-            value={ep.body}
-            onChange={(e) => onChange({ body: e.target.value })}
-            sx={{ mt: 1.5 }}
-          />
+            {ep.method === 'POST' && (
+              <TextField
+                label="요청 본문(JSON, {변수} 가능)"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={ep.body}
+                onChange={(e) => onChange({ body: e.target.value })}
+                sx={{ mt: 1.5 }}
+              />
+            )}
+
+            {/* 변수 → URL 생성 */}
+            <Box sx={{ mt: 2 }}>
+              <Stack direction="row" alignItems="center" mb={0.5}>
+                <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
+                  변수
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() =>
+                    onChange({ variables: [...(ep.variables ?? []), { key: '', value: '' }] })
+                  }
+                >
+                  변수 추가
+                </Button>
+              </Stack>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                URL에 <code>{'{변수명}'}</code>이 있으면 그 값으로 치환되고, 없으면{' '}
+                <b>쿼리 파라미터 (변수명=값)로 자동으로 붙습니다.</b> 예: URL이{' '}
+                <code>…/.live?</code> 이고 변수 3개면 →
+                <code>…/.live?submit_id=…&business_id=…&instcd=…</code>
+              </Typography>
+              <Stack spacing={1}>
+                {(ep.variables ?? []).map((v, i) => (
+                  <Stack key={i} direction="row" spacing={1} alignItems="center">
+                    <TextField
+                      size="small"
+                      placeholder="변수명 (예: hospital)"
+                      value={v.key}
+                      onChange={(e) => setVariable(i, { key: e.target.value })}
+                      sx={{ width: 200 }}
+                    />
+                    <Typography variant="body2" color="text.disabled">
+                      =
+                    </Typography>
+                    <TextField
+                      size="small"
+                      placeholder="값 (예: H001)"
+                      value={v.value}
+                      onChange={(e) => setVariable(i, { value: e.target.value })}
+                      sx={{ flex: 1 }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() =>
+                        onChange({ variables: (ep.variables ?? []).filter((_, idx) => idx !== i) })
+                      }
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                ))}
+              </Stack>
+
+              {/* 생성된 URL 미리보기 */}
+              <Box sx={{ mt: 1.5 }}>
+                <Typography variant="caption" fontWeight={700} display="block" mb={0.5}>
+                  생성된 URL
+                </Typography>
+                <Box
+                  sx={{
+                    p: 1.25,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+                    fontSize: 12.5,
+                    wordBreak: 'break-all',
+                    color: ep.url ? 'text.primary' : 'text.disabled',
+                  }}
+                >
+                  {urlPreview || '(URL을 입력하세요)'}
+                </Box>
+                {runtimeTokens.length > 0 && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mt: 0.5 }}
+                  >
+                    실행 시 입력받을 변수: {runtimeTokens.map((t) => `{${t}}`).join(', ')}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </>
         )}
+      </Paper>
 
-        {/* 변수 → URL 생성 */}
-        <Box sx={{ mt: 2 }}>
-          <Stack direction="row" alignItems="center" mb={0.5}>
+      {/* DB 방식: 접속 정보·쿼리·파라미터·테스트 */}
+      {kind === 'db' && <DbFields ep={ep} onChange={onChange} />}
+
+      {/* 헤더 — API 방식 전용 */}
+      {kind === 'api' && (
+        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+          <Stack direction="row" alignItems="center" mb={1}>
             <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-              변수
+              헤더 (인증 토큰 등)
             </Typography>
             <Button
               size="small"
               startIcon={<AddIcon />}
-              onClick={() =>
-                onChange({ variables: [...(ep.variables ?? []), { key: '', value: '' }] })
-              }
+              onClick={() => onChange({ headers: [...ep.headers, { key: '', value: '' }] })}
             >
-              변수 추가
+              헤더 추가
             </Button>
           </Stack>
-          <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-            URL에 <code>{'{변수명}'}</code>이 있으면 그 값으로 치환되고, 없으면{' '}
-            <b>쿼리 파라미터 (변수명=값)로 자동으로 붙습니다.</b> 예: URL이 <code>…/.live?</code>{' '}
-            이고 변수 3개면 →<code>…/.live?submit_id=…&business_id=…&instcd=…</code>
-          </Typography>
           <Stack spacing={1}>
-            {(ep.variables ?? []).map((v, i) => (
-              <Stack key={i} direction="row" spacing={1} alignItems="center">
+            {ep.headers.map((h, i) => (
+              <Stack key={i} direction="row" spacing={1}>
                 <TextField
                   size="small"
-                  placeholder="변수명 (예: hospital)"
-                  value={v.key}
-                  onChange={(e) => setVariable(i, { key: e.target.value })}
+                  placeholder="Authorization"
+                  value={h.key}
+                  onChange={(e) => setHeader(i, { key: e.target.value })}
                   sx={{ width: 200 }}
                 />
-                <Typography variant="body2" color="text.disabled">
-                  =
-                </Typography>
                 <TextField
                   size="small"
-                  placeholder="값 (예: H001)"
-                  value={v.value}
-                  onChange={(e) => setVariable(i, { value: e.target.value })}
+                  placeholder="Bearer ..."
+                  value={h.value}
+                  onChange={(e) => setHeader(i, { value: e.target.value })}
                   sx={{ flex: 1 }}
                 />
                 <IconButton
                   size="small"
-                  onClick={() =>
-                    onChange({ variables: (ep.variables ?? []).filter((_, idx) => idx !== i) })
-                  }
+                  onClick={() => onChange({ headers: ep.headers.filter((_, idx) => idx !== i) })}
                 >
                   <DeleteOutlineIcon fontSize="small" />
                 </IconButton>
               </Stack>
             ))}
-          </Stack>
-
-          {/* 생성된 URL 미리보기 */}
-          <Box sx={{ mt: 1.5 }}>
-            <Typography variant="caption" fontWeight={700} display="block" mb={0.5}>
-              생성된 URL
-            </Typography>
-            <Box
-              sx={{
-                p: 1.25,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
-                fontSize: 12.5,
-                wordBreak: 'break-all',
-                color: ep.url ? 'text.primary' : 'text.disabled',
-              }}
-            >
-              {urlPreview || '(URL을 입력하세요)'}
-            </Box>
-            {runtimeTokens.length > 0 && (
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                실행 시 입력받을 변수: {runtimeTokens.map((t) => `{${t}}`).join(', ')}
+            {ep.headers.length === 0 && (
+              <Typography variant="caption" color="text.disabled">
+                헤더 없음
               </Typography>
             )}
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* 헤더 */}
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" mb={1}>
-          <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-            헤더 (인증 토큰 등)
-          </Typography>
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => onChange({ headers: [...ep.headers, { key: '', value: '' }] })}
-          >
-            헤더 추가
-          </Button>
-        </Stack>
-        <Stack spacing={1}>
-          {ep.headers.map((h, i) => (
-            <Stack key={i} direction="row" spacing={1}>
-              <TextField
-                size="small"
-                placeholder="Authorization"
-                value={h.key}
-                onChange={(e) => setHeader(i, { key: e.target.value })}
-                sx={{ width: 200 }}
-              />
-              <TextField
-                size="small"
-                placeholder="Bearer ..."
-                value={h.value}
-                onChange={(e) => setHeader(i, { value: e.target.value })}
-                sx={{ flex: 1 }}
-              />
-              <IconButton
-                size="small"
-                onClick={() => onChange({ headers: ep.headers.filter((_, idx) => idx !== i) })}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          ))}
-          {ep.headers.length === 0 && (
-            <Typography variant="caption" color="text.disabled">
-              헤더 없음
-            </Typography>
-          )}
-        </Stack>
-      </Paper>
+          </Stack>
+        </Paper>
+      )}
 
       {/* 컬럼 매핑 */}
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
         <Stack direction="row" alignItems="center" mb={0.5} spacing={1}>
           <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-            응답 컬럼 매핑
+            {kind === 'db' ? 'DB 컬럼 매핑' : '응답 컬럼 매핑'}
           </Typography>
           {appFields.length > 0 && (
             <Button
@@ -503,7 +584,7 @@ function EndpointEditor({
               <TextField
                 size="small"
                 value={m.source}
-                placeholder="FORM_ID 또는 form.id"
+                placeholder={kind === 'db' ? '컬럼 별칭 (예: formId)' : 'FORM_ID 또는 form.id'}
                 onChange={(e) => setMapping(i, { source: e.target.value })}
                 sx={{ flex: 1 }}
               />

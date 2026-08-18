@@ -1,6 +1,5 @@
-// DB 쿼리 연동 설정 패널 — '연동 관리' 화면의 DB 모드 본문(페이지 크롬 없음).
-//  · 실제 접속·실행은 백엔드에서 수행(프론트는 DB 직접 접속 불가) → 여기서는 설정만 저장.
-//  · 접속 정보(TNS/JDBC) · 읽기전용 쿼리 · 바인드 파라미터 · 컬럼→앱필드 매핑.
+// DB 쿼리 연동 설정 항목 — '연동 관리' 상세에서 연동 방식이 DB 일 때 표시되는 섹션.
+//  접속 정보(EZConnect/TNS/JDBC) · 읽기 전용 쿼리 · 바인드 파라미터 · 테스트(시뮬레이션).
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -11,7 +10,6 @@ import {
   MenuItem,
   Paper,
   Stack,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -23,8 +21,12 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { APP_FIELDS, PURPOSE_LABELS, type ApiPurpose } from '@/store/useApiConfigStore';
-import { buildJdbcUrl, useDbLinkStore, type DbConnMode } from '@/store/useDbLinkStore';
+import {
+  DEFAULT_DB,
+  type ApiEndpoint,
+  type DbConnMode,
+  type DbSettings,
+} from '@/store/useApiConfigStore';
 import { simulateDbQuery, type SimResult } from '@/utils/dbLinkSim';
 
 const MODE_LABELS: Record<DbConnMode, string> = {
@@ -33,70 +35,54 @@ const MODE_LABELS: Record<DbConnMode, string> = {
   jdbc: 'JDBC URL 직접 입력',
 };
 
-export default function DbPanel() {
-  const c = useDbLinkStore((s) => s.config);
-  const update = useDbLinkStore((s) => s.update);
+/** 접속 정보로 JDBC URL 생성(미리보기·백엔드 전달용) */
+function buildJdbcUrl(c: DbSettings): string {
+  if (c.mode === 'jdbc') return c.jdbcUrl.trim();
+  if (c.mode === 'tns') return c.tnsAlias.trim() ? `jdbc:oracle:thin:@${c.tnsAlias.trim()}` : '';
+  const host = c.host.trim();
+  const port = c.port.trim() || '1521';
+  const svc = c.serviceName.trim();
+  return host && svc ? `jdbc:oracle:thin:@//${host}:${port}/${svc}` : '';
+}
 
+export default function DbFields({
+  ep,
+  onChange,
+}: {
+  ep: ApiEndpoint;
+  onChange: (patch: Partial<ApiEndpoint>) => void;
+}) {
+  const c: DbSettings = ep.db ?? DEFAULT_DB;
+  const update = (patch: Partial<DbSettings>) => onChange({ db: { ...c, ...patch } });
   const jdbcPreview = useMemo(() => buildJdbcUrl(c), [c]);
-  const appFields = APP_FIELDS[c.purpose];
 
-  // 테스트(시뮬레이션): 값이 비어 있는 파라미터는 실행 시 입력받는다
+  // 값이 비어 있는 파라미터는 테스트 실행 시 입력받는다
   const runtimeKeys = useMemo(
     () => c.params.filter((p) => p.key && !(p.value ?? '').trim()).map((p) => p.key),
     [c.params],
   );
   const [runtime, setRuntime] = useState<Record<string, string>>({});
   const [result, setResult] = useState<SimResult | null>(null);
-  const runTest = () => setResult(simulateDbQuery(c, runtime));
+  // 시뮬레이터는 기존 DbLinkConfig 모양을 받으므로 연동 항목 값으로 구성해 전달
+  const runTest = () =>
+    setResult(
+      simulateDbQuery(
+        {
+          enabled: ep.enabled,
+          name: ep.name,
+          purpose: ep.purpose,
+          ...c,
+          mappings: ep.mappings.map((m) => ({ target: m.target, column: m.source })),
+        },
+        runtime,
+      ),
+    );
 
   const setParam = (i: number, patch: Partial<{ key: string; value: string }>) =>
     update({ params: c.params.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) });
-  const setMapping = (i: number, patch: Partial<{ target: string; column: string }>) =>
-    update({ mappings: c.mappings.map((m, idx) => (idx === i ? { ...m, ...patch } : m)) });
 
   return (
-    <Stack spacing={2}>
-      <Alert severity="warning">
-        실제 DB 접속·쿼리 실행은 <b>백엔드(서버)</b>에서 이뤄집니다(브라우저는 DB 직접 접속 불가).
-        반드시 <b>읽기 전용 계정</b>·<b>바인드 파라미터</b>만 사용하고, 병원 정보팀/DBA의{' '}
-        <b>DB 직접 접속 승인</b>을 먼저 받으세요. 비밀번호는 운영에서 서버 secret 로 주입하는 것을
-        권장합니다.
-      </Alert>
-
-      {/* 기본 — 사용 여부 스위치는 통합 화면에서 이 패널 안으로 옮김 */}
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" sx={{ mb: 1.5 }}>
-          <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-            DB 쿼리 연동 사용
-          </Typography>
-          <Switch checked={c.enabled} onChange={(e) => update({ enabled: e.target.checked })} />
-        </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          <TextField
-            label="연동 이름"
-            size="small"
-            value={c.name}
-            onChange={(e) => update({ name: e.target.value })}
-            sx={{ flex: 1 }}
-          />
-          <TextField
-            select
-            label="연동 화면"
-            size="small"
-            value={c.purpose}
-            onChange={(e) => update({ purpose: e.target.value as ApiPurpose })}
-            sx={{ width: { xs: '100%', sm: 220 } }}
-            helperText="이 데이터를 사용할 화면"
-          >
-            {(Object.keys(PURPOSE_LABELS) as ApiPurpose[]).map((p) => (
-              <MenuItem key={p} value={p}>
-                {PURPOSE_LABELS[p]}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Stack>
-      </Paper>
-
+    <>
       {/* 접속 정보 */}
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
         <Typography variant="subtitle2" fontWeight={800} mb={1.5}>
@@ -290,101 +276,6 @@ export default function DbPanel() {
         </Stack>
       </Paper>
 
-      {/* 컬럼 매핑 */}
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-        <Stack direction="row" alignItems="center" mb={0.5} spacing={1}>
-          <Typography variant="subtitle2" fontWeight={800} sx={{ flex: 1 }}>
-            컬럼 → 앱 필드 매핑
-          </Typography>
-          {appFields.length > 0 && (
-            <Button
-              size="small"
-              onClick={() => {
-                const byCol = new Map(c.mappings.map((m) => [m.target, m.column]));
-                const merged = appFields.map((f) => ({
-                  target: f.key,
-                  column: byCol.get(f.key) ?? '',
-                }));
-                const extra = c.mappings.filter((m) => !appFields.some((f) => f.key === m.target));
-                update({ mappings: [...merged, ...extra] });
-              }}
-            >
-              앱 필드 불러오기
-            </Button>
-          )}
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => update({ mappings: [...c.mappings, { target: '', column: '' }] })}
-          >
-            매핑 추가
-          </Button>
-        </Stack>
-        {appFields.length > 0 && (
-          <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-            앱 필드: {appFields.map((f) => `${f.label}(${f.key})`).join(', ')} — 각 필드에 넣을 DB
-            컬럼(별칭)을 지정하세요.
-          </Typography>
-        )}
-        <Stack spacing={1}>
-          <Stack direction="row" spacing={1}>
-            <Typography variant="caption" sx={{ width: 200, fontWeight: 700 }}>
-              앱 필드(target)
-            </Typography>
-            <Typography variant="caption" sx={{ flex: 1, fontWeight: 700 }}>
-              DB 컬럼/별칭(column)
-            </Typography>
-            <Box sx={{ width: 32 }} />
-          </Stack>
-          {c.mappings.map((m, i) => (
-            <Stack key={i} direction="row" spacing={1}>
-              {appFields.length > 0 ? (
-                <TextField
-                  select
-                  size="small"
-                  value={m.target}
-                  onChange={(e) => setMapping(i, { target: e.target.value })}
-                  sx={{ width: 200 }}
-                >
-                  <MenuItem value="">
-                    <em>선택</em>
-                  </MenuItem>
-                  {appFields.map((f) => (
-                    <MenuItem key={f.key} value={f.key}>
-                      {f.label} ({f.key})
-                    </MenuItem>
-                  ))}
-                  {m.target && !appFields.some((f) => f.key === m.target) && (
-                    <MenuItem value={m.target}>{m.target}</MenuItem>
-                  )}
-                </TextField>
-              ) : (
-                <TextField
-                  size="small"
-                  value={m.target}
-                  placeholder="formId"
-                  onChange={(e) => setMapping(i, { target: e.target.value })}
-                  sx={{ width: 200 }}
-                />
-              )}
-              <TextField
-                size="small"
-                value={m.column}
-                placeholder="FORM_ID 또는 formId(별칭)"
-                onChange={(e) => setMapping(i, { column: e.target.value })}
-                sx={{ flex: 1 }}
-              />
-              <IconButton
-                size="small"
-                onClick={() => update({ mappings: c.mappings.filter((_, idx) => idx !== i) })}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          ))}
-        </Stack>
-      </Paper>
-
       {/* 테스트(시뮬레이션) */}
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
         <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -396,7 +287,7 @@ export default function DbPanel() {
         <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
           내장 샘플 데이터에 <b>파라미터(WHERE)</b>와 <b>컬럼 매핑</b>을 적용해 결과를 미리 봅니다.
           (실제 접속은 백엔드 배포 후 동일 화면에서 실제 값으로 실행)
-          {c.purpose === 'patientForms' && ' 예: patientNo = 10001'}
+          {ep.purpose === 'patientForms' && ' 예: patientNo = 10001'}
         </Typography>
 
         {runtimeKeys.length > 0 && (
@@ -468,6 +359,6 @@ export default function DbPanel() {
           </Box>
         )}
       </Paper>
-    </Stack>
+    </>
   );
 }
