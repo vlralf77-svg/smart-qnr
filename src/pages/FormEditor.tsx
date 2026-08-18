@@ -33,6 +33,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
+import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import HistoryIcon from '@mui/icons-material/History';
 import Tooltip from '@mui/material/Tooltip';
@@ -51,6 +53,7 @@ import FocusEditor from '@/components/editor/FocusEditor';
 import PreviewDialog from '@/components/editor/PreviewDialog';
 import VersionHistoryDialog from '@/components/editor/VersionHistoryDialog';
 import PreviewWindow from '@/components/editor/PreviewWindow';
+import PhoneFrame from '@/components/editor/PhoneFrame';
 import FormRenderer from '@/components/renderer/FormRenderer';
 import PreviewErrorBoundary from '@/components/PreviewErrorBoundary';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -98,6 +101,18 @@ export default function FormEditor() {
   const toggleSidePreview = () =>
     setSidePreview((v) => {
       localStorage.setItem(PREVIEW_KEY, v ? '0' : '1');
+      return !v;
+    });
+
+  // 미리보기를 휴대폰 화면처럼 보여줄지(기기 목업) — 상태 기억
+  const PHONE_KEY = 'smartqnr.editorPhonePreview';
+  const [phonePreview, setPhonePreview] = useState<boolean>(() => {
+    const v = localStorage.getItem(PHONE_KEY);
+    return v === null ? true : v === '1';
+  });
+  const togglePhonePreview = () =>
+    setPhonePreview((v) => {
+      localStorage.setItem(PHONE_KEY, v ? '0' : '1');
       return !v;
     });
 
@@ -594,6 +609,19 @@ export default function FormEditor() {
                         미리보기
                       </Typography>
                       <Chip label="실시간" size="small" color="success" variant="outlined" />
+                      <Tooltip title={phonePreview ? '넓게 보기' : '휴대폰 화면처럼 보기'}>
+                        <IconButton
+                          size="small"
+                          color={phonePreview ? 'primary' : 'default'}
+                          onClick={togglePhonePreview}
+                        >
+                          {phonePreview ? (
+                            <PhoneIphoneIcon fontSize="small" />
+                          ) : (
+                            <DesktopWindowsOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip
                         title={popoutPreview ? '미리보기 창 닫기' : '새 창으로 열기 (2모니터)'}
                       >
@@ -639,9 +667,21 @@ export default function FormEditor() {
                         </Button>
                       </Box>
                     ) : (
-                      <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+                      <Box
+                        sx={
+                          phonePreview
+                            ? { flex: 1, minHeight: 0, overflow: 'hidden' }
+                            : { flex: 1, overflowY: 'auto', p: 2 }
+                        }
+                      >
                         <PreviewErrorBoundary>
-                          <FormRenderer key={form.id} schema={form} preview />
+                          {phonePreview ? (
+                            <PhoneFrame>
+                              <FormRenderer key={form.id} schema={form} preview />
+                            </PhoneFrame>
+                          ) : (
+                            <FormRenderer key={form.id} schema={form} preview />
+                          )}
                         </PreviewErrorBoundary>
                       </Box>
                     )}
@@ -882,11 +922,21 @@ export default function FormEditor() {
 
       {popoutPreview && !isOverlayForm(form) && (
         <PreviewWindow onClose={() => setPopoutPreview(false)}>
-          <Box sx={{ p: 2, maxWidth: 820, mx: 'auto' }}>
-            <PreviewErrorBoundary>
-              <FormRenderer key={form.id} schema={form} preview />
-            </PreviewErrorBoundary>
-          </Box>
+          {phonePreview ? (
+            <Box sx={{ height: '100vh' }}>
+              <PreviewErrorBoundary>
+                <PhoneFrame maxHeight={960}>
+                  <FormRenderer key={form.id} schema={form} preview />
+                </PhoneFrame>
+              </PreviewErrorBoundary>
+            </Box>
+          ) : (
+            <Box sx={{ p: 2, maxWidth: 820, mx: 'auto' }}>
+              <PreviewErrorBoundary>
+                <FormRenderer key={form.id} schema={form} preview />
+              </PreviewErrorBoundary>
+            </Box>
+          )}
         </PreviewWindow>
       )}
 
