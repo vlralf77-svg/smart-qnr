@@ -141,6 +141,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // 사내망의 다른 PC/태블릿에서도 접속할 수 있게 모든 인터페이스에 바인딩한다.
+    //  (기본값은 localhost 전용이라 LAN IP 로 접속하면 연결 거부가 난다 — `-- --host` 를 매번
+    //   붙일 필요가 없도록 여기서 기본으로 켠다. 개발 서버에만 적용되며 배포에는 영향 없음)
+    host: true,
     // 개발서버(HMR)에서 백엔드(도커/로컬 8080)로 /api 프록시.
     //  `docker compose up -d db backend` + `npm run dev:api` 조합으로,
     //  실제 DB에 저장하면서도 화면 수정은 즉시 반영된다.
