@@ -42,6 +42,7 @@ import {
   joinKo,
 } from '@/utils/findings';
 import { computeScore, isScoringEnabled, scoringLabel } from '@/utils/scoring';
+import { formAtVersion } from '@/utils/formVersion';
 import { SECTION_PALETTE } from '@/theme/sectionPalette';
 import { api, isBackendEnabled } from '@/api/client';
 import { useFormsStore } from '@/store/useFormsStore';
@@ -158,7 +159,8 @@ export default function PatientView() {
   const patientIdType = usePatientStore((s) => s.idType);
   const localForms = useFormsStore((s) => s.forms);
   const localResponses = useFormsStore((s) => s.responses);
-  const [form, setForm] = useState<FormSchema | undefined>();
+  // 현재 확정본(latest)과, 응답이 작성된 시점의 버전(form)을 구분해서 쓴다
+  const [latest, setLatest] = useState<FormSchema | undefined>();
   const [response, setResponse] = useState<FormResponse | undefined>();
   const [loading, setLoading] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -190,7 +192,7 @@ export default function PatientView() {
           .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0];
       }
       if (cancelled) return;
-      setForm(f);
+      setLatest(f);
       setResponse(r);
       setLoading(false);
     })();
@@ -200,6 +202,10 @@ export default function PatientView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
+  // 응답은 작성 당시 버전(v3 등) 기준으로 보여야 한다 — 그 사이 문항이 바뀌었어도
+  //  환자가 실제로 본 문진 그대로 표시·요약·저장되도록 그 시점 스냅샷을 쓴다.
+  const versioned = formAtVersion(latest, response?.formVersion);
+  const form = versioned.form;
   const answers = response?.answers ?? {};
   // 채점 총점(문진에 채점 문항/설정이 있을 때만)
   const score = form && isScoringEnabled(form) ? computeScore(form, answers) : null;
@@ -374,6 +380,21 @@ export default function PatientView() {
           <Alert severity="warning">아직 작성한 내용이 없습니다.</Alert>
         ) : (
           <>
+            {/* 작성 당시 버전으로 표시 중임을 알림 — 그 사이 문진이 바뀐 경우 */}
+            {versioned.isOld && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                이 응답은 작성 당시 버전(<b>v{response.formVersion}</b>) 기준으로 표시됩니다. 현재
+                문진은 v{versioned.currentVersion} 입니다.
+              </Alert>
+            )}
+            {versioned.missing && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                작성 당시 버전(v{response.formVersion})의 문진 내용이 보관되어 있지 않아 현재 버전(v
+                {versioned.currentVersion})으로 표시합니다. 문항이 바뀌었다면 일부 답변이 보이지
+                않을 수 있습니다.
+              </Alert>
+            )}
+
             {/* 헤더(hero) */}
             <Box sx={{ mb: { xs: 3, sm: 4 } }}>
               <Typography

@@ -23,6 +23,7 @@ import FormRenderer from '@/components/renderer/FormRenderer';
 import FontScaleToggle from '@/components/FontScaleToggle';
 import { useIsMobileLayout } from '@/hooks/useIsMobileLayout';
 import { useFontScale, FONT_ZOOM } from '@/store/useFontScale';
+import { formAtVersion } from '@/utils/formVersion';
 
 export default function PatientRespond() {
   const { formId } = useParams();
@@ -30,11 +31,13 @@ export default function PatientRespond() {
   const patientNo = usePatientStore((s) => s.patientNo);
   const localForms = useFormsStore((s) => s.forms);
   const localResponses = useFormsStore((s) => s.responses);
-  const [form, setForm] = useState<FormSchema | undefined>();
+  // 현재 확정본. 실제로 화면에 쓰는 문진은 아래 versioned.form(수정 시 작성 당시 버전)
+  const [latest, setLatest] = useState<FormSchema | undefined>();
   // 기존 응답(있으면 수정 모드)
   const [prev, setPrev] = useState<{
     responseId: string;
     answers: Record<string, AnswerValue>;
+    formVersion?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
@@ -49,25 +52,35 @@ export default function PatientRespond() {
       if (isBackendEnabled) {
         try {
           const f = await api.publicGetForm(formId);
-          if (!cancelled) setForm(f);
+          if (!cancelled) setLatest(f);
         } catch {
-          if (!cancelled) setForm(undefined);
+          if (!cancelled) setLatest(undefined);
         }
         try {
           const list = patientNo ? await api.publicMyResponses(patientNo) : [];
           const r = list
             .filter((x) => x.formId === formId)
             .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0];
-          if (!cancelled && r) setPrev({ responseId: r.responseId, answers: r.answers ?? {} });
+          if (!cancelled && r)
+            setPrev({
+              responseId: r.responseId,
+              answers: r.answers ?? {},
+              formVersion: r.formVersion,
+            });
         } catch {
           /* 무시 */
         }
       } else {
-        setForm(localForms.find((f) => f.id === formId && f.testFlag));
+        setLatest(localForms.find((f) => f.id === formId && f.testFlag));
         const r = localResponses
           .filter((x) => x.formId === formId && x.patientId === patientNo)
           .sort((a, b) => (b.submittedAt ?? '').localeCompare(a.submittedAt ?? ''))[0];
-        if (r) setPrev({ responseId: r.responseId, answers: r.answers ?? {} });
+        if (r)
+          setPrev({
+            responseId: r.responseId,
+            answers: r.answers ?? {},
+            formVersion: r.formVersion,
+          });
       }
       if (!cancelled) setLoading(false);
     })();
@@ -77,12 +90,18 @@ export default function PatientRespond() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
+  // 수정 모드면 작성 당시 버전(v3 등)으로 보여 준다 — 환자가 답한 그 문진 그대로.
+  //  새로 작성할 때는 당연히 현재 확정본을 쓴다.
+  const versioned = formAtVersion(latest, prev?.formVersion);
+  const form = versioned.form;
+
   const handleSubmit = async (answers: Record<string, AnswerValue>) => {
     if (!form) return;
     const response = {
       // 수정이면 기존 응답 id 로 갱신, 아니면 새로 발급
       responseId: prev?.responseId ?? uid('resp'),
       formId: form.id,
+      // 수정이면 작성 당시 버전을 그대로 유지한다(화면도 그 버전으로 보여 줬으므로)
       formVersion: form.version,
       patientId: patientNo ?? undefined,
       submittedAt: new Date().toISOString(),
@@ -137,15 +156,29 @@ export default function PatientRespond() {
             </Stack>
           </Paper>
         ) : (
-          <Paper sx={{ p: { xs: 2, sm: 3 } }} style={{ zoom }}>
-            <FormRenderer
-              schema={form}
-              onSubmit={handleSubmit}
-              defaultValues={prev?.answers}
-              submitLabel={prev ? '수정 완료' : '제출하기'}
-              allowSubmitAnywhere={!!prev}
-            />
-          </Paper>
+          <>
+            {versioned.isOld && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                작성 당시 버전(<b>v{prev?.formVersion}</b>) 문진으로 수정합니다. 현재 문진은 v
+                {versioned.currentVersion} 입니다.
+              </Alert>
+            )}
+            {versioned.missing && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                작성 당시 버전(v{prev?.formVersion})의 문진 내용이 보관되어 있지 않아 현재 버전(v
+                {versioned.currentVersion})으로 표시합니다.
+              </Alert>
+            )}
+            <Paper sx={{ p: { xs: 2, sm: 3 } }} style={{ zoom }}>
+              <FormRenderer
+                schema={form}
+                onSubmit={handleSubmit}
+                defaultValues={prev?.answers}
+                submitLabel={prev ? '수정 완료' : '제출하기'}
+                allowSubmitAnywhere={!!prev}
+              />
+            </Paper>
+          </>
         )}
       </Container>
     </Box>
