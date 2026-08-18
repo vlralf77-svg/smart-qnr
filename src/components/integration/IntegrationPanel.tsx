@@ -332,6 +332,9 @@ function EndpointWorkspace({
     activePairs(ep.headers).some((h) => h.key.trim().toLowerCase() === 'content-type');
 
   const canRun = isDb ? !!db.query.trim() : !!ep.url.trim();
+  // 상태 없는 실패 + 직접 호출 = 브라우저가 막았을 가능성이 높다(CORS)
+  const corsLikely =
+    !isDb && !ep.viaProxy && !!result && !result.ok && (result.label === '실패' || !result.ms);
 
   const run = async () => {
     setBusy(true);
@@ -512,6 +515,17 @@ function EndpointWorkspace({
           )}
         </Box>
 
+        {!isDb && ep.viaProxy && (
+          <Tooltip title="브라우저 대신 서버가 호출합니다 ([설정] 탭에서 변경)">
+            <Chip
+              size="small"
+              label="서버 경유"
+              color="secondary"
+              variant="outlined"
+              sx={{ height: 22, fontSize: 11, fontWeight: 700, flexShrink: 0 }}
+            />
+          </Tooltip>
+        )}
         <Button
           variant="contained"
           startIcon={<PlayArrowIcon />}
@@ -714,6 +728,26 @@ function EndpointWorkspace({
                 끄면 앱 화면에서 쓰이지 않습니다.
               </Typography>
             </Stack>
+
+            {!isDb && (
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Switch
+                    checked={!!ep.viaProxy}
+                    onChange={(e) => onChange({ viaProxy: e.target.checked })}
+                  />
+                  <Typography variant="body2" fontWeight={700}>
+                    서버 경유로 호출
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  브라우저가 직접 부르지 않고 <b>서버가 대신 호출</b>합니다. 대상 서버가 CORS 를
+                  허용하지 않아(<code>No &apos;Access-Control-Allow-Origin&apos;</code>) 웹에서 막힐
+                  때 켜세요. 개발 서버(npm run dev)와 백엔드 연동 모드에서 동작하며, EXE 는 원래
+                  제약이 없어 영향이 없습니다.
+                </Typography>
+              </Box>
+            )}
             <Divider />
             <Box>
               <Button
@@ -774,8 +808,31 @@ function EndpointWorkspace({
           ) : (
             <>
               {!result.ok && (
-                <Alert severity="error" sx={{ mb: 1.5 }}>
+                <Alert
+                  severity="error"
+                  sx={{ mb: 1.5 }}
+                  action={
+                    corsLikely ? (
+                      <Button
+                        size="small"
+                        color="inherit"
+                        onClick={() => {
+                          onChange({ viaProxy: true });
+                          setResult(null);
+                        }}
+                      >
+                        서버 경유로 켜기
+                      </Button>
+                    ) : undefined
+                  }
+                >
                   {result.error || '호출에 실패했습니다.'}
+                  {corsLikely && (
+                    <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                      브라우저가 대상 서버의 응답을 막았을 수 있습니다(CORS). 서버 경유로 켜고 다시
+                      실행해 보세요.
+                    </Typography>
+                  )}
                 </Alert>
               )}
               {result.note && (

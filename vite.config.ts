@@ -61,6 +61,19 @@ export default defineConfig({
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
+      // 연동 관리의 '서버 경유로 호출' 옵션 — 개발 서버가 EMR 을 대신 호출한다.
+      //  브라우저는 같은 오리진(개발 서버)만 부르므로, EMR 이 CORS 를 허용하지 않아도 동작한다.
+      //  대상 서버 주소는 요청 헤더 x-emr-target 으로 전달받는다.
+      '/emr-proxy': {
+        target: 'http://127.0.0.1',
+        changeOrigin: true,
+        router: (req) => (req.headers['x-emr-target'] as string) || 'http://127.0.0.1',
+        rewrite: (p) => p.replace(/^\/emr-proxy/, ''),
+        configure: (proxy) => {
+          // 내부용 헤더는 대상 서버로 넘기지 않는다
+          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('x-emr-target'));
+        },
+      },
     },
   },
 });

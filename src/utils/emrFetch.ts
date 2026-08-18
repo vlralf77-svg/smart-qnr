@@ -3,6 +3,7 @@
 //  - 웹: fetch 직접 호출(대상 서버가 CORS 허용해야 함).
 import { activePairs, ApiEndpoint, FieldMapping, HeaderPair } from '@/store/useApiConfigStore';
 import { pushLog } from '@/store/useLogStore';
+import { api, isBackendEnabled } from '@/api/client';
 
 export interface EmrFetchResult {
   ok: boolean;
@@ -130,6 +131,52 @@ export function buildUrl(urlTemplate: string, mergedVars: Record<string, string>
   return appendQuery(substituted, leftover);
 }
 
+function parseBody(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text; // JSON 이 아니면 텍스트 그대로
+  }
+}
+
+/**
+ * 서버가 대신 호출한다(브라우저는 같은 오리진만 부르므로 CORS 제약이 없다).
+ *  - 개발 서버(npm run dev / dev:api): vite 프록시 /emr-proxy 가 x-emr-target 으로 전달받아 호출
+ *  - 배포 웹(백엔드 연동 모드): 백엔드 /api/emr-proxy 가 호출
+ */
+async function proxyFetch(req: EmrRequest): Promise<EmrFetchResult> {
+  try {
+    if (import.meta.env.DEV) {
+      const u = new URL(req.url);
+      const res = await fetch(`/emr-proxy${u.pathname}${u.search}`, {
+        method: req.method,
+        headers: { ...req.headers, 'x-emr-target': u.origin },
+        body: req.method === 'POST' ? req.body : undefined,
+      });
+      const text = await res.text();
+      return { ok: res.ok, status: res.status, data: parseBody(text) };
+    }
+    if (!isBackendEnabled) {
+      return {
+        ok: false,
+        status: 0,
+        error:
+          '서버 경유는 개발 서버(npm run dev) 또는 백엔드 연동 모드에서만 동작합니다. EXE 는 원래 직접 호출해도 CORS 제약이 없습니다.',
+      };
+    }
+    const r = await api.emrProxy({
+      url: req.url,
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+    });
+    if (r.error) return { ok: false, status: r.status ?? 0, error: r.error };
+    return { ok: r.ok, status: r.status, data: parseBody(r.body ?? '') };
+  } catch (e) {
+    return { ok: false, status: 0, error: (e as Error).message };
+  }
+}
+
 /** 엔드포인트 설정 + 변수로 실제 호출. 고정 변수(variables) 위에 런타임 vars 를 덮어씀. */
 export async function callEndpoint(
   ep: ApiEndpoint,
@@ -169,7 +216,9 @@ export async function callEndpoint(
       return finish({ ok: false, status: 0, error: (e as Error).message });
     }
   }
-  // 웹 폴백
+  // 서버 경유 — 브라우저 대신 개발 서버/백엔드가 호출(CORS 우회)
+  if (ep.viaProxy) return finish(await proxyFetch(req));
+  // 웹 폴백 — 브라우저가 직접 호출(대상 서버가 CORS 를 허용해야 함)
   try {
     const res = await fetch(req.url, {
       method: req.method,
@@ -177,13 +226,7 @@ export async function callEndpoint(
       body: req.method === 'POST' ? req.body : undefined,
     });
     const text = await res.text();
-    let data: unknown = text;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      /* 텍스트 그대로 */
-    }
-    return finish({ ok: res.ok, status: res.status, data });
+    return finish({ ok: res.ok, status: res.status, data: parseBody(text) });
   } catch (e) {
     return finish({ ok: false, status: 0, error: (e as Error).message });
   }

@@ -68,6 +68,12 @@ export interface ApiEndpoint {
   kind?: LinkKind;
   /** kind='db' 일 때 쓰는 접속·쿼리 설정 */
   db?: DbSettings;
+  /**
+   * 서버 경유로 호출할지 여부(kind='api' 전용).
+   *  켜면 브라우저가 직접 부르지 않고 개발 서버/백엔드가 대신 호출한다 — 대상 서버가
+   *  CORS 를 허용하지 않을 때 사용. EXE(Electron)는 원래 CORS 제약이 없어 영향 없음.
+   */
+  viaProxy?: boolean;
   method: 'GET' | 'POST';
   url: string; // {변수} 치환 가능 — 예: https://emr/{hospital}/api/forms?patientNo={patientNo}
   /** URL/본문의 {변수} 에 채울 고정 변수(이름/값). 실행 시 런타임 값(예: patientNo)이 우선. */

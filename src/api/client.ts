@@ -127,6 +127,16 @@ export const api = {
     );
   },
 
+  // EMR 대리 호출 — 브라우저가 CORS 로 막힐 때 백엔드가 대신 호출한다.
+  emrProxy(req: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  }): Promise<{ ok: boolean; status: number; body?: string; error?: string }> {
+    return request('/api/emr-proxy', { method: 'POST', body: JSON.stringify(req) });
+  },
+
   // 서버(백단) 로그 — 백엔드에 /api/logs 엔드포인트가 있을 때만 동작
   serverLogs(limit = 200): Promise<ServerLogEntry[]> {
     return request<ServerLogEntry[]>(`/api/logs?limit=${limit}`);
