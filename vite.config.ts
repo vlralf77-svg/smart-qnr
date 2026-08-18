@@ -13,6 +13,8 @@ const pkg = createRequire(import.meta.url)('./package.json') as { version: strin
  *  (vite 의 server.proxy 는 요청마다 대상을 바꾸지 못해 직접 미들웨어로 처리)
  */
 function emrDevProxy(): Plugin {
+  /** 대상 서버가 이 시간 안에 응답하지 않으면 끊고 사유를 돌려준다 */
+  const TIMEOUT_MS = 15000;
   // 대상 서버로 넘기지 않을 헤더(연결 관련·내부용)
   const DROP = new Set([
     'host',
@@ -53,19 +55,34 @@ function emrDevProxy(): Plugin {
             for await (const c of req) chunks.push(c as Buffer);
             body = Buffer.concat(chunks);
           }
+          const t0 = Date.now();
           try {
-            const r = await fetch(url, { method: req.method || 'GET', headers, body });
+            const r = await fetch(url, {
+              method: req.method || 'GET',
+              headers,
+              body,
+              // 응답이 없으면 브라우저가 먼저 끊기지 않도록 여기서 끊고 사유를 돌려준다
+              signal: AbortSignal.timeout(TIMEOUT_MS),
+            });
             const buf = Buffer.from(await r.arrayBuffer());
             res.statusCode = r.status;
             const ct = r.headers.get('content-type');
             if (ct) res.setHeader('content-type', ct);
             res.end(buf);
+            server.config.logger.info(
+              `[emr-proxy] ${req.method} ${url} → ${r.status} (${Date.now() - t0}ms)`,
+            );
           } catch (e) {
-            // 대상 서버에 닿지 못함(주소 오류·방화벽·서버 다운 등)
-            const cause = (e as { cause?: { code?: string } })?.cause?.code;
-            fail(
-              502,
-              `대상 서버 호출 실패: ${(e as Error).message}${cause ? ` (${cause})` : ''} — ${url}`,
+            // 대상 서버에 닿지 못함(주소 오류·방화벽·서버 다운·응답 없음 등)
+            const err = e as Error & { cause?: { code?: string } };
+            const timedOut =
+              err.name === 'TimeoutError' || err.cause?.code === 'UND_ERR_CONNECT_TIMEOUT';
+            const reason = timedOut
+              ? `${TIMEOUT_MS / 1000}초 안에 응답이 없습니다. 개발 서버를 띄운 PC 에서 이 주소에 접근할 수 있는지(방화벽·사내망) 확인하세요.`
+              : `${err.message}${err.cause?.code ? ` (${err.cause.code})` : ''}`;
+            fail(502, `대상 서버 호출 실패: ${reason} — ${url}`);
+            server.config.logger.warn(
+              `[emr-proxy] ${req.method} ${url} → 실패 (${Date.now() - t0}ms) ${reason}`,
             );
           }
         })();
