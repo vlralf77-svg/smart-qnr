@@ -6,7 +6,15 @@ import { devtools, persist } from 'zustand/middleware';
 export interface HeaderPair {
   key: string;
   value: string;
+  /** 설명(메모) — 표에서 참고용, 호출에는 쓰이지 않음 */
+  desc?: string;
+  /** 사용 여부(없으면 사용) — 체크를 해제하면 호출에서 제외된다 */
+  on?: boolean;
 }
+
+/** 체크가 켜져 있고 이름이 있는 항목만 사용 */
+export const activePairs = (pairs: HeaderPair[] = []): HeaderPair[] =>
+  pairs.filter((p) => p.on !== false && p.key.trim());
 
 export interface FieldMapping {
   /** 앱에서 쓸 필드명(예: formId, title, category) */

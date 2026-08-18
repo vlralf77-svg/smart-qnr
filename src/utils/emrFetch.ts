@@ -1,7 +1,7 @@
 // 외부 API 호출 + 응답 매핑 유틸.
 //  - Electron: 메인 프로세스로 호출(브라우저 CORS 제약 회피).
 //  - 웹: fetch 직접 호출(대상 서버가 CORS 허용해야 함).
-import { ApiEndpoint, FieldMapping, HeaderPair } from '@/store/useApiConfigStore';
+import { activePairs, ApiEndpoint, FieldMapping, HeaderPair } from '@/store/useApiConfigStore';
 import { pushLog } from '@/store/useLogStore';
 
 export interface EmrFetchResult {
@@ -91,14 +91,14 @@ export function isTruthy(x: unknown): boolean {
 
 function headersToObject(pairs: HeaderPair[]): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const p of pairs) if (p.key.trim()) out[p.key.trim()] = p.value;
+  for (const p of activePairs(pairs)) out[p.key.trim()] = p.value;
   return out;
 }
 
-/** HeaderPair[] → { key: value } (빈 키 제외) */
-export function pairsToVars(pairs: { key: string; value: string }[]): Record<string, string> {
+/** HeaderPair[] → { key: value } (빈 키·사용 해제 항목 제외) */
+export function pairsToVars(pairs: HeaderPair[] = []): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const p of pairs) if (p.key.trim()) out[p.key.trim()] = p.value;
+  for (const p of activePairs(pairs)) out[p.key.trim()] = p.value;
   return out;
 }
 
