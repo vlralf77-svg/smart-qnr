@@ -1,10 +1,78 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
 // package.json 의 version 을 빌드 시점에 앱으로 주입(화면에 프로그램 버전 표시용)
 const pkg = createRequire(import.meta.url)('./package.json') as { version: string };
+
+/**
+ * 연동 관리의 '서버 경유로 호출' 옵션용 개발 서버 프록시(dev 전용).
+ *  브라우저는 같은 오리진(개발 서버)만 부르므로, 대상 서버가 CORS 를 허용하지 않아도 동작한다.
+ *  대상 서버 주소는 요청 헤더 x-emr-target 으로 받고, 나머지 경로/쿼리는 그대로 이어붙인다.
+ *  (vite 의 server.proxy 는 요청마다 대상을 바꾸지 못해 직접 미들웨어로 처리)
+ */
+function emrDevProxy(): Plugin {
+  // 대상 서버로 넘기지 않을 헤더(연결 관련·내부용)
+  const DROP = new Set([
+    'host',
+    'connection',
+    'content-length',
+    'x-emr-target',
+    'origin',
+    'referer',
+    'accept-encoding',
+  ]);
+  return {
+    name: 'smartqnr-emr-dev-proxy',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/emr-proxy', (req, res) => {
+        void (async () => {
+          const fail = (status: number, message: string) => {
+            res.statusCode = status;
+            res.setHeader('content-type', 'application/json; charset=utf-8');
+            // 대상 서버의 응답이 아니라 프록시 자체의 실패임을 화면에 알린다
+            res.setHeader('x-emr-proxy-error', '1');
+            res.end(JSON.stringify({ error: message }));
+          };
+          const target = req.headers['x-emr-target'];
+          if (typeof target !== 'string' || !/^https?:\/\//i.test(target)) {
+            fail(400, '대상 서버(x-emr-target)가 지정되지 않았습니다.');
+            return;
+          }
+          const url = target.replace(/\/$/, '') + (req.url || '/');
+          const headers: Record<string, string> = {};
+          for (const [k, v] of Object.entries(req.headers)) {
+            if (DROP.has(k.toLowerCase()) || v == null) continue;
+            headers[k] = Array.isArray(v) ? v.join(', ') : v;
+          }
+          let body: Buffer | undefined;
+          if (req.method && !['GET', 'HEAD'].includes(req.method)) {
+            const chunks: Buffer[] = [];
+            for await (const c of req) chunks.push(c as Buffer);
+            body = Buffer.concat(chunks);
+          }
+          try {
+            const r = await fetch(url, { method: req.method || 'GET', headers, body });
+            const buf = Buffer.from(await r.arrayBuffer());
+            res.statusCode = r.status;
+            const ct = r.headers.get('content-type');
+            if (ct) res.setHeader('content-type', ct);
+            res.end(buf);
+          } catch (e) {
+            // 대상 서버에 닿지 못함(주소 오류·방화벽·서버 다운 등)
+            const cause = (e as { cause?: { code?: string } })?.cause?.code;
+            fail(
+              502,
+              `대상 서버 호출 실패: ${(e as Error).message}${cause ? ` (${cause})` : ''} — ${url}`,
+            );
+          }
+        })();
+      });
+    },
+  };
+}
 
 // Electron 패키징 시 file:// 로 로드되므로 상대경로(base './') 필요
 export default defineConfig({
@@ -21,7 +89,7 @@ export default defineConfig({
       define: { 'process.env.DRAGGABLE_DEBUG': 'false' },
     },
   },
-  plugins: [react()],
+  plugins: [react(), emrDevProxy()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -60,19 +128,6 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
-      },
-      // 연동 관리의 '서버 경유로 호출' 옵션 — 개발 서버가 EMR 을 대신 호출한다.
-      //  브라우저는 같은 오리진(개발 서버)만 부르므로, EMR 이 CORS 를 허용하지 않아도 동작한다.
-      //  대상 서버 주소는 요청 헤더 x-emr-target 으로 전달받는다.
-      '/emr-proxy': {
-        target: 'http://127.0.0.1',
-        changeOrigin: true,
-        router: (req) => (req.headers['x-emr-target'] as string) || 'http://127.0.0.1',
-        rewrite: (p) => p.replace(/^\/emr-proxy/, ''),
-        configure: (proxy) => {
-          // 내부용 헤더는 대상 서버로 넘기지 않는다
-          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('x-emr-target'));
-        },
       },
     },
   },

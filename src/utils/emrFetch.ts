@@ -154,7 +154,16 @@ async function proxyFetch(req: EmrRequest): Promise<EmrFetchResult> {
         body: req.method === 'POST' ? req.body : undefined,
       });
       const text = await res.text();
-      return { ok: res.ok, status: res.status, data: parseBody(text) };
+      const data = parseBody(text);
+      // 대상 서버의 응답이 아니라 개발 서버(프록시) 자체가 실패한 경우 — 사유를 그대로 보여준다
+      if (res.headers.get('x-emr-proxy-error')) {
+        return {
+          ok: false,
+          status: 0,
+          error: (data as { error?: string } | null)?.error ?? '서버 경유 호출에 실패했습니다.',
+        };
+      }
+      return { ok: res.ok, status: res.status, data };
     }
     if (!isBackendEnabled) {
       return {
