@@ -51,6 +51,7 @@ import {
 import { DbConnTab, DbQueryTab, buildJdbcUrl } from './DbFields';
 import { CodeBox, EmptyHint, KeyValueTable, MONO, TabLabel } from './IntegrationBits';
 import { simulateDbQuery } from '@/utils/dbLinkSim';
+import { ApiError, api, isBackendEnabled } from '@/api/client';
 import { callEndpoint, extractRows, extractVars, buildUrl, pairsToVars } from '@/utils/emrFetch';
 
 const PURPOSES = Object.keys(PURPOSE_LABELS) as ApiPurpose[];
@@ -332,6 +333,8 @@ function EndpointWorkspace({
     activePairs(ep.headers).some((h) => h.key.trim().toLowerCase() === 'content-type');
 
   const canRun = isDb ? !!db.query.trim() : !!ep.url.trim();
+  // 백엔드 연동 모드면 서버가 실제 DB 를 조회한다. 아니면 내장 샘플로 시뮬레이션.
+  const dbLive = isDb && isBackendEnabled;
   // 상태 없는 실패 + 직접 호출 = 브라우저가 막았을 가능성이 높다(CORS)
   const corsLikely =
     !isDb && !ep.viaProxy && !!result && !result.ok && (result.label === '실패' || !result.ms);
@@ -343,28 +346,64 @@ function EndpointWorkspace({
     const t0 = Date.now();
     try {
       if (isDb) {
-        const sim = simulateDbQuery(
-          {
-            enabled: ep.enabled,
-            name: ep.name,
-            purpose: ep.purpose,
-            ...db,
-            params: activePairs(db.params),
-            mappings: ep.mappings.map((m) => ({ target: m.target, column: m.source })),
-          },
-          runVars,
-        );
-        const cond = Object.entries(sim.effective)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(', ');
-        setResult({
-          ok: true,
-          label: '시뮬레이션',
-          ms: Date.now() - t0,
-          rows: sim.rows,
-          columns: sim.columns,
-          note: cond ? `${sim.note} · 조건 ${cond}` : sim.note,
-        });
+        const cond = (eff: Record<string, string>) =>
+          Object.entries(eff)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ');
+        if (dbLive) {
+          // 서버가 실제 DB 에 접속해 쿼리를 실행한다
+          try {
+            const r = await api.dbLinkTest({
+              ...db,
+              params: activePairs(db.params).map((p) => ({ key: p.key, value: p.value })),
+              runtime: runVars,
+            });
+            setResult({
+              ok: true,
+              label: '실제 DB',
+              ms: Date.now() - t0,
+              rows: r.rows,
+              columns: r.columns,
+              note: cond(r.effective) ? `${r.note} · 조건 ${cond(r.effective)}` : r.note,
+            });
+          } catch (e) {
+            const status = e instanceof ApiError ? e.status : 0;
+            const hint =
+              status === 404
+                ? ' — 서버에 DB 연동 기능이 없습니다. 백엔드 이미지를 다시 빌드하세요(docker compose up -d --build).'
+                : status === 401
+                  ? ' — 로그인이 필요합니다. 다시 로그인한 뒤 실행하세요.'
+                  : '';
+            setResult({
+              ok: false,
+              label: status ? String(status) : '실패',
+              ms: Date.now() - t0,
+              error: (e as Error).message + hint,
+              rows: [],
+              columns: [],
+            });
+          }
+        } else {
+          const sim = simulateDbQuery(
+            {
+              enabled: ep.enabled,
+              name: ep.name,
+              purpose: ep.purpose,
+              ...db,
+              params: activePairs(db.params),
+              mappings: ep.mappings.map((m) => ({ target: m.target, column: m.source })),
+            },
+            runVars,
+          );
+          setResult({
+            ok: true,
+            label: '시뮬레이션',
+            ms: Date.now() - t0,
+            rows: sim.rows,
+            columns: sim.columns,
+            note: cond(sim.effective) ? `${sim.note} · 조건 ${cond(sim.effective)}` : sim.note,
+          });
+        }
       } else {
         const r = await callEndpoint(ep, runVars);
         setResult({
@@ -515,6 +554,23 @@ function EndpointWorkspace({
           )}
         </Box>
 
+        {isDb && (
+          <Tooltip
+            title={
+              dbLive
+                ? '서버가 실제 DB 에 접속해 쿼리를 실행합니다'
+                : '내장 샘플 데이터로 결과를 미리 봅니다. 실제 실행은 백엔드 연동 모드(npm run dev:api / 도커 웹)에서 동작합니다'
+            }
+          >
+            <Chip
+              size="small"
+              label={dbLive ? '실제 DB' : '시뮬레이션'}
+              color={dbLive ? 'success' : 'warning'}
+              variant="outlined"
+              sx={{ height: 22, fontSize: 11, fontWeight: 700, flexShrink: 0 }}
+            />
+          </Tooltip>
+        )}
         {!isDb && ep.viaProxy && (
           <Tooltip title="브라우저 대신 서버가 호출합니다 ([설정] 탭에서 변경)">
             <Chip
