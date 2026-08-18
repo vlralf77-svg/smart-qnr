@@ -6,6 +6,7 @@ import { Section, QuestionType } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
 import LayoutCanvas from './LayoutCanvas';
 import AddQuestionMenu from './AddQuestionMenu';
+import { usePaletteDrag } from './paletteDrag';
 
 interface Props {
   section: Section;
@@ -17,6 +18,8 @@ export default function SectionBlock({ section, sectionDragHandle, canDeleteSect
   const { addQuestion, updateSection, removeSection, setActiveSection } = useEditorStore();
   const activeSectionId = useEditorStore((s) => s.activeSectionId);
   const isActive = activeSectionId === section.id;
+  // 팔레트에서 끌어오는 중이면 문항이 없는 섹션에도 드롭 영역을 띄운다
+  const dragging = usePaletteDrag((s) => s.type);
 
   return (
     <Paper
@@ -58,9 +61,9 @@ export default function SectionBlock({ section, sectionDragHandle, canDeleteSect
         </Tooltip>
       </Stack>
 
-      {section.questions.length === 0 ? (
+      {section.questions.length === 0 && !dragging ? (
         <Typography variant="caption" color="text.disabled" sx={{ pl: 4, display: 'block', py: 1 }}>
-          문항이 없습니다. 아래에서 추가하세요.
+          문항이 없습니다. 아래에서 추가하거나, 위 팔레트의 아이콘을 끌어다 놓으세요.
         </Typography>
       ) : (
         <LayoutCanvas sectionId={section.id} questions={section.questions} />

@@ -10,8 +10,16 @@ import 'react-resizable/css/styles.css';
 import { Box } from '@mui/material';
 import { Question } from '@/types/schema';
 import { useEditorStore } from '@/store/useEditorStore';
-import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, withLayouts } from '@/utils/gridLayout';
+import {
+  GRID_COLS,
+  GRID_ROW_HEIGHT,
+  GRID_MARGIN,
+  DEFAULT_QUESTION_W,
+  defaultHeightForType,
+  withLayouts,
+} from '@/utils/gridLayout';
 import QuestionCard from './QuestionCard';
+import { usePaletteDrag } from './paletteDrag';
 
 const GridLayout = WidthProvider(RGL);
 
@@ -21,10 +29,18 @@ interface Props {
 }
 
 export default function LayoutCanvas({ sectionId, questions }: Props) {
-  const { selected, select, updateQuestionLayoutsBulk, duplicateQuestion, removeQuestion } =
-    useEditorStore();
+  const {
+    selected,
+    select,
+    updateQuestionLayoutsBulk,
+    duplicateQuestion,
+    removeQuestion,
+    addQuestion,
+  } = useEditorStore();
+  // 팔레트에서 끌고 오는 중이면 놓을 자리를 미리 보여주고, 빈 섹션에도 드롭 영역을 남긴다
+  const { type: dragType, setType } = usePaletteDrag();
 
-  if (questions.length === 0) {
+  if (questions.length === 0 && !dragType) {
     return null;
   }
 
@@ -68,6 +84,13 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
     commitLayouts(nextLayout);
   };
 
+  // 팔레트에서 끌어다 놓은 지점에 문항을 추가한다(놓인 행 y 기준으로 아래를 밀어냄)
+  const handleDrop = (_next: Layout[], item: Layout) => {
+    if (!dragType) return;
+    addQuestion(sectionId, dragType, { x: item.x, y: item.y });
+    setType(null);
+  };
+
   return (
     <Box
       sx={{
@@ -76,6 +99,14 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
           opacity: 0.3,
           borderRadius: 1.5,
         },
+        // 끌어오는 중에는 놓을 수 있는 영역임을 보이게 한다(빈 섹션 포함)
+        ...(dragType && {
+          minHeight: GRID_ROW_HEIGHT,
+          border: '2px dashed',
+          borderColor: 'primary.main',
+          borderRadius: 2,
+          bgcolor: 'action.hover',
+        }),
       }}
     >
       <GridLayout
@@ -89,6 +120,13 @@ export default function LayoutCanvas({ sectionId, questions }: Props) {
         draggableCancel=".rgl-no-drag"
         onDragStop={handleDragStop}
         onResizeStop={handleResizeStop}
+        isDroppable={!!dragType}
+        droppingItem={{
+          i: '__palette__',
+          w: DEFAULT_QUESTION_W,
+          h: dragType ? defaultHeightForType(dragType) : 1,
+        }}
+        onDrop={handleDrop}
       >
         {placed.map((q) => (
           <div key={q.id}>

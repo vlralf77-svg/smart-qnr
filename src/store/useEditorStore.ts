@@ -28,6 +28,8 @@ import {
   GRID_COLS,
   DEFAULT_QUESTION_W,
   DEFAULT_QUESTION_H,
+  defaultHeightForType,
+  withLayouts,
 } from '@/utils/gridLayout';
 
 interface Selection {
@@ -85,7 +87,12 @@ interface EditorState {
   ungroupSection: (sectionId: string) => void;
 
   // 문항
-  addQuestion: (sectionId: string, type?: QuestionType) => void;
+  /**
+   * 문항 추가.
+   *  at 을 주면(팔레트 아이콘을 캔버스로 끌어다 놓은 경우) 그 위치에 넣고
+   *  아래쪽 문항을 새 문항 높이만큼 밀어낸다. 없으면 섹션 맨 아래에 추가한다.
+   */
+  addQuestion: (sectionId: string, type?: QuestionType, at?: { x: number; y: number }) => void;
   /** 여러 문항을 한 번에 추가(엑셀 붙여넣기 등). 마지막 문항을 선택 상태로 둔다. */
   addQuestionsBulk: (
     sectionId: string,
@@ -479,20 +486,33 @@ export const useEditorStore = create<EditorState>()(
           };
         }),
 
-      addQuestion: (sectionId, type = 'text') =>
+      addQuestion: (sectionId, type = 'text', at) =>
         set((st) => {
           if (!st.form) return st;
           let newQuestionId = '';
           const form = mapSections(st.form, (secs) =>
             mapSection(secs, sectionId, (s) => {
               const question = createQuestion(type);
-              question.layout = createDefaultLayout(
-                s.questions,
-                type,
-                question.options?.length ?? 0,
-              );
+              const optionCount = question.options?.length ?? 0;
               newQuestionId = question.id;
-              return { ...s, questions: [...s.questions, question] };
+
+              if (!at) {
+                question.layout = createDefaultLayout(s.questions, type, optionCount);
+                return { ...s, questions: [...s.questions, question] };
+              }
+
+              // 끌어다 놓은 위치에 삽입 — 그 줄부터 아래 문항을 새 문항 높이만큼 내린다.
+              //  좌표가 없던 문항도 화면에 보이는 위치(withLayouts)로 맞춰 예측 가능하게 처리.
+              const h = defaultHeightForType(type, optionCount);
+              const y = Math.max(0, Math.round(at.y));
+              question.layout = { x: 0, y, w: DEFAULT_QUESTION_W, h };
+              const placed = withLayouts(s.questions).map((q) =>
+                q.layout.y >= y ? { ...q, layout: { ...q.layout, y: q.layout.y + h } } : q,
+              );
+              const idx = placed.findIndex((q) => q.layout.y >= y + h);
+              const questions: Question[] = placed.slice();
+              questions.splice(idx < 0 ? questions.length : idx, 0, question);
+              return { ...s, questions };
             }),
           );
           return {
