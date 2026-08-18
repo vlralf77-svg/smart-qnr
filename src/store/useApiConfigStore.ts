@@ -128,7 +128,9 @@ export const useApiConfigStore = create<ApiConfigState>()(
             method: 'GET',
             url: '',
             variables: [],
-            headers: [{ key: 'Content-Type', value: 'application/json' }],
+            // 기본 메서드가 GET 이므로 헤더는 비워 둔다. Content-Type 을 기본으로 넣으면
+            //  브라우저가 프리플라이트(OPTIONS)를 보내 CORS 로 막히는 서버가 많다.
+            headers: [],
             body: '',
             rootPath: '',
             mappings: defaultMappings(purpose),

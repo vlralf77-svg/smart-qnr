@@ -136,10 +136,19 @@ export async function callEndpoint(
   vars: Record<string, string>,
 ): Promise<EmrFetchResult> {
   const merged = { ...pairsToVars(ep.variables ?? []), ...vars };
+  const headers = headersToObject(ep.headers);
+  // GET 은 본문이 없어 Content-Type 이 필요 없다. 이 헤더가 붙으면 브라우저가
+  //  본 요청 전에 프리플라이트(OPTIONS)를 보내는데, 이를 받아주지 않는 서버에서는
+  //  "content-type is not allowed by Access-Control-Allow-Headers" 로 차단된다.
+  if (ep.method === 'GET') {
+    for (const k of Object.keys(headers)) {
+      if (k.toLowerCase() === 'content-type') delete headers[k];
+    }
+  }
   const req: EmrRequest = {
     url: buildUrl(ep.url, merged),
     method: ep.method,
-    headers: headersToObject(ep.headers),
+    headers,
     body: ep.method === 'POST' ? fillTemplate(ep.body, merged) : undefined,
   };
 

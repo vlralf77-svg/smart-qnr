@@ -293,6 +293,9 @@ function EndpointEditor({
   const cols = ep.mappings.map((m) => m.target).filter(Boolean);
   const appFields = APP_FIELDS[ep.purpose];
   const mappedCount = ep.mappings.filter((m) => m.target && m.source).length;
+  // GET 인데 Content-Type 헤더가 남아 있으면 호출 시 자동 제외됨을 알린다(프리플라이트 회피)
+  const droppedContentType =
+    ep.method === 'GET' && ep.headers.some((h) => h.key.trim().toLowerCase() === 'content-type');
 
   const runTest = async () => {
     setBusy(true);
@@ -552,6 +555,31 @@ function EndpointEditor({
               </Button>
             }
           >
+            {droppedContentType && (
+              <Alert
+                severity="warning"
+                sx={{ mb: 2, py: 0.25, '& .MuiAlert-message': { fontSize: 12.5 } }}
+                action={
+                  <Button
+                    size="small"
+                    color="inherit"
+                    onClick={() =>
+                      onChange({
+                        headers: ep.headers.filter(
+                          (h) => h.key.trim().toLowerCase() !== 'content-type',
+                        ),
+                      })
+                    }
+                  >
+                    삭제
+                  </Button>
+                }
+              >
+                GET 요청에는 <code>Content-Type</code> 이 필요 없어 <b>호출 시 자동으로 제외</b>
+                됩니다. 이 헤더가 있으면 브라우저가 사전 확인(OPTIONS) 요청을 먼저 보내 CORS 로
+                차단될 수 있습니다.
+              </Alert>
+            )}
             <Stack spacing={1}>
               {ep.headers.map((h, i) => (
                 <Stack key={i} direction="row" spacing={1}>
