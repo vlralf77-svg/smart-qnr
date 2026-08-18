@@ -1,10 +1,10 @@
 // 환자 작성 내용 → 이미지(PNG) 생성·다운로드.
 //  외부 라이브러리 없이 Canvas 로 렌더(한글 안전). 브라우저는 다운로드 폴더로 저장,
 //  Electron 도 기본 다운로드 위치로 저장된다. (원래는 병원 서버 전송용 — 서버 확정 후 교체)
-import { AnswerValue, FormSchema, Question, NON_INPUT_TYPES } from '@/types/schema';
+import { AnswerValue, FormSchema, NON_INPUT_TYPES } from '@/types/schema';
 import { orderedQuestions } from './questionOrder';
 import { computeScore, isScoringEnabled, scoringLabel } from './scoring';
-import { collectFindings, findingsSentence, isSurveyForm } from './findings';
+import { answerParts, collectFindings, findingsSentence, isSurveyForm } from './findings';
 
 export interface ResponseMeta {
   patientName?: string;
@@ -14,36 +14,10 @@ export interface ResponseMeta {
 
 const FONT = '"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif';
 
-function fmtAnswer(q: Question, v: AnswerValue): string {
-  if (v === null || v === undefined || v === '') return '(미응답)';
-  if (q.type === 'boolean') return v === true || v === 'true' ? '예' : '아니오';
-  if (q.type === 'radio' || q.type === 'select') {
-    return q.options?.find((o) => o.value === v)?.label ?? String(v);
-  }
-  if (q.type === 'checkbox') {
-    const arr = Array.isArray(v) ? v : [v];
-    return arr.map((x) => q.options?.find((o) => o.value === x)?.label ?? String(x)).join(', ');
-  }
-  return String(v);
-}
-
 function fmtDate(ts?: string): string {
   if (!ts) return '';
   const d = new Date(ts);
   return Number.isNaN(d.getTime()) ? ts : d.toLocaleString('ko-KR');
-}
-
-// 선택한 답변(선택지)에 지정된 강조 색이 있으면 반환 — 조회 화면과 동일하게 표시
-function answerColor(q: Question, v: AnswerValue): string | undefined {
-  if (v === null || v === undefined || v === '') return undefined;
-  if (q.type === 'radio' || q.type === 'select') {
-    return q.options?.find((o) => o.value === v)?.color;
-  }
-  if (q.type === 'checkbox') {
-    const arr = Array.isArray(v) ? v : [v];
-    return q.options?.find((o) => arr.includes(o.value) && o.color)?.color;
-  }
-  return undefined;
 }
 
 interface Cmd {
@@ -200,19 +174,12 @@ export function buildResponseImageDataUrl(
       const labelSize = q.fontSize && q.fontSize > 0 ? q.fontSize : 15;
       block(`Q. ${q.label || ''}`, labelSize, labelColor, { bold: true });
       const val = answers[q.id] ?? null;
-      // 답변을 (라벨, 강조색) 세그먼트로 분해 — 다중 선택은 선택지마다 개별 색 반영
-      const segs: { text: string; color?: string }[] = [];
-      if (val === null || val === undefined || val === '') {
-        segs.push({ text: '(미응답)' });
-      } else if (q.type === 'checkbox') {
-        const arr = Array.isArray(val) ? val : [val];
-        arr.forEach((x) => {
-          const o = q.options?.find((oo) => oo.value === x);
-          segs.push({ text: o?.label ?? String(x), color: o?.color });
-        });
-      } else {
-        segs.push({ text: fmtAnswer(q, val), color: answerColor(q, val) });
-      }
+      // 답변을 (라벨, 강조색) 조각으로 분해 — 조회 화면과 같은 공용 규칙(answerParts)을 사용해
+      //  선택지 강조색은 물론 단답형 문항의 답변 강조색(answerColor)도 그대로 반영한다.
+      const segs: { text: string; color?: string }[] = answerParts(q, val).map((p) => ({
+        text: p.label,
+        color: p.color,
+      }));
       const note = answers[`${q.id}__text`];
       if (note != null && String(note).trim() !== '')
         segs.push({ text: `직접입력: ${String(note)}` });
