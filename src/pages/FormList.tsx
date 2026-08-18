@@ -32,7 +32,6 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ApiIcon from '@mui/icons-material/Api';
-import StorageIcon from '@mui/icons-material/Storage';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import LinkIcon from '@mui/icons-material/Link';
@@ -366,26 +365,16 @@ export default function FormList() {
       run: () => navigate('/accounts'),
     },
     {
+      // API 연동과 DB 쿼리 연동을 한 화면에서 전환 — '연동 관리'로 통합
       key: 'api',
       section: '관리',
-      title: 'API 연동',
-      desc: 'EMR 연동 설정',
+      title: '연동 관리',
+      desc: 'EMR API · DB 쿼리 연동',
       icon: <ApiIcon fontSize="small" />,
       chipColor: '#3f76d0',
       chipBg: '#e8f0fe',
       allowed: canManage,
       run: () => navigate('/integration'),
-    },
-    {
-      key: 'dblink',
-      section: '관리',
-      title: 'DB 쿼리 연동',
-      desc: 'DB 직접 조회·매핑',
-      icon: <StorageIcon fontSize="small" />,
-      chipColor: '#8a5a12',
-      chipBg: '#faf1dc',
-      allowed: canManage,
-      run: () => navigate('/db-link'),
     },
     {
       key: 'stats',

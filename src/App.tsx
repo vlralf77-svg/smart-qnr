@@ -16,7 +16,6 @@ const ResponseForm = lazy(() => import('./pages/ResponseForm'));
 const UploadConvert = lazy(() => import('./pages/UploadConvert'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const IntegrationConfig = lazy(() => import('./pages/IntegrationConfig'));
-const DbLinkConfig = lazy(() => import('./pages/DbLinkConfig'));
 const LogViewer = lazy(() => import('./pages/LogViewer'));
 const StatsPage = lazy(() => import('./pages/StatsPage'));
 const PatientForms = lazy(() => import('./pages/PatientForms'));
@@ -171,16 +170,8 @@ export default function App() {
                   </RequireAuth>
                 }
               />
-              <Route
-                path="/db-link"
-                element={
-                  <RequireAuth>
-                    <RequirePermission perm="manageAccounts">
-                      <DbLinkConfig />
-                    </RequirePermission>
-                  </RequireAuth>
-                }
-              />
+              {/* DB 연동은 '연동 관리' 화면에 통합됨 — 기존 링크는 DB 탭으로 연결 */}
+              <Route path="/db-link" element={<Navigate to="/integration?mode=db" replace />} />
               <Route
                 path="/stats"
                 element={
