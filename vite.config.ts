@@ -2,6 +2,10 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import type { ServerResponse } from 'node:http';
+
+/** 개발 서버가 /api 를 넘길 백엔드 주소 */
+const API_TARGET = process.env.VITE_DEV_API_TARGET || 'http://localhost:8080';
 
 // package.json 의 version 을 빌드 시점에 앱으로 주입(화면에 프로그램 버전 표시용)
 const pkg = createRequire(import.meta.url)('./package.json') as { version: string };
@@ -143,8 +147,24 @@ export default defineConfig({
     //  대상 주소는 VITE_DEV_API_TARGET 로 바꿀 수 있음(기본 localhost:8080).
     proxy: {
       '/api': {
-        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
+        target: API_TARGET,
         changeOrigin: true,
+        // 백엔드가 떠 있지 않으면 기본 응답이 빈 500 이라 원인을 알 수 없다 → 사유를 담아 돌려준다
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            const r = res as ServerResponse;
+            if (typeof r?.setHeader !== 'function' || r.headersSent) return;
+            r.statusCode = 502;
+            r.setHeader('content-type', 'application/json; charset=utf-8');
+            r.end(
+              JSON.stringify({
+                error:
+                  `백엔드 서버(${API_TARGET})에 연결할 수 없습니다: ${err.message}. ` +
+                  '도커 백엔드가 떠 있는지 확인하세요 — docker compose up -d --build',
+              }),
+            );
+          });
+        },
       },
     },
   },

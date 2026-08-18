@@ -59,9 +59,22 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (res.status === 204) return undefined as T;
   const text = await res.text();
-  const data = text ? JSON.parse(text) : undefined;
+  // 서버가 죽었거나 프록시가 낸 오류는 본문이 JSON 이 아닐 수 있다 — 파싱 실패로 원인을 가리지 않는다
+  let data: unknown;
+  try {
+    data = text ? JSON.parse(text) : undefined;
+  } catch {
+    if (res.ok) throw new ApiError('서버 응답을 해석할 수 없습니다.', res.status);
+    data = undefined;
+  }
   if (!res.ok) {
-    const msg = (data && (data.error || data.message)) || `요청 실패(${res.status})`;
+    const body = data as { error?: string; message?: string } | undefined;
+    const msg =
+      body?.error ||
+      body?.message ||
+      (res.status >= 500
+        ? `서버 오류(${res.status}) — 백엔드가 떠 있는지 확인하세요.`
+        : `요청 실패(${res.status})`);
     throw new ApiError(msg, res.status);
   }
   return data as T;
